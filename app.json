@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "GermanLearnerApp",
-    "slug": "GermanLearnerApp",
+    "name": "HalloDeutsch",
+    "slug": "HalloDeutsch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akshaykadam.germanlearnerapp"
     },
     "android": {
+      "package": "com.akshaykadam.germanlearnerapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

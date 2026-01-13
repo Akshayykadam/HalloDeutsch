@@ -1,0 +1,1 @@
+export { IdiomsSlangScreen } from './IdiomsSlangScreen';

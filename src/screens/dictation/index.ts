@@ -1,0 +1,1 @@
+export { DictationScreen } from './DictationScreen';

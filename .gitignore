@@ -39,3 +39,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# configuration with secrets
+src/config.ts
+*.log
+.DS_Store
