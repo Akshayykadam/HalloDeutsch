@@ -17,6 +17,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
 import { CEFRLevel, CurriculumModule, CurriculumLesson } from '../../types';
 import { getModulesForLevel, getModuleById, getLevelStats, AVAILABLE_LEVELS, LEVEL_DESCRIPTIONS } from '../../data/content/curriculum-service';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { VocabularyScreen } from '../vocabulary';
 import { GrammarScreen } from '../grammar';
 import { DictionaryScreen } from '../dictionary';
@@ -229,7 +230,7 @@ const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
                 </TouchableOpacity>
                 <View style={styles.detailHeaderText}>
                     <Text style={[styles.detailModuleLabel, { color: levelColor }]}>
-                        {module.levelId} • MODULE {module.order}
+                        {getLevelTitle(module.levelId as CEFRLevel)} • MODULE {module.order}
                     </Text>
                     <Text style={styles.detailTitle}>{module.title}</Text>
                 </View>
@@ -451,7 +452,7 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         {levelInfo.name} • {levelInfo.nameDe}
                     </Text>
                 </View>
-                <Badge label={selectedLevel} variant="level" level={selectedLevel} />
+                <Badge label={getLevelTitle(selectedLevel)} variant="level" level={selectedLevel} />
             </View>
 
             {/* Level Selector Tabs */}
@@ -490,7 +491,7 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                     styles.levelPillText,
                                     isActive ? { color: Colors.white } : { color: color }
                                 ]}>
-                                    {level}
+                                    {getLevelTitle(level)}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -512,7 +513,7 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 >
                     <View style={styles.levelInfoContent}>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.levelInfoTitle}>{selectedLevel}: {levelInfo.name}</Text>
+                            <Text style={styles.levelInfoTitle}>{getLevelTitle(selectedLevel)}</Text>
                             <Text style={styles.levelInfoDesc}>{levelInfo.description}</Text>
                             {isLevelAvailable && (
                                 <View style={styles.levelStats}>

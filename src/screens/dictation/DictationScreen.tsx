@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as audioService from '../../services/audioService';
+import { getLevelTitle } from '../../utils/levelUtils';
 
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -191,7 +192,7 @@ export const DictationScreen: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Dictation</Text>
                 <View style={styles.headerRight}>
-                    <Text style={styles.levelBadge}>{progress.level}</Text>
+                    <Text style={styles.levelBadge}>{getLevelTitle(progress.level)}</Text>
                 </View>
             </View>
 

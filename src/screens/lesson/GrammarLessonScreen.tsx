@@ -12,7 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as audioService from '../../services/audioService';
 import { Card, Button, ProgressBar, Badge, SafeArea } from '../../components/ui';
-import { ModuleCompleteModal } from '../../components/gamification';
+import { ModuleCompleteModal, LessonCompleteModal } from '../../components/gamification';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows, Layout } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
@@ -48,6 +48,7 @@ export const GrammarLessonScreen: React.FC = () => {
     const [speakingText, setSpeakingText] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
     const [showModuleComplete, setShowModuleComplete] = useState(false);
+    const [showLessonComplete, setShowLessonComplete] = useState(false);
 
     // Get current module for navigation
     const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
@@ -87,9 +88,11 @@ export const GrammarLessonScreen: React.FC = () => {
         }
 
         // Show changes visually (optional delay)
+        setShowLessonComplete(true);
     };
 
     const handleNextLesson = () => {
+        setShowLessonComplete(false);
         if (!lesson) return;
 
         // Check for next lesson within the same module
@@ -122,12 +125,7 @@ export const GrammarLessonScreen: React.FC = () => {
     };
 
     const handleBackPress = () => {
-        // Navigate directly to module detail instead of going through lesson stack
-        if (currentModule) {
-            navigation.navigate('ModuleDetail', { moduleId: currentModule.id });
-        } else {
-            navigation.goBack();
-        }
+        navigation.goBack();
     };
 
     if (!lesson || !topic) {
@@ -143,6 +141,16 @@ export const GrammarLessonScreen: React.FC = () => {
 
     return (
         <SafeArea style={styles.container}>
+            {/* Lesson Complete Modal */}
+            <LessonCompleteModal
+                visible={showLessonComplete}
+                lessonTitle={lesson.title}
+                xpEarned={20}
+                onContinue={handleNextLesson}
+                onClose={handleBackPress}
+                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+            />
+
             {/* Module Complete Modal */}
             <ModuleCompleteModal
                 visible={showModuleComplete}

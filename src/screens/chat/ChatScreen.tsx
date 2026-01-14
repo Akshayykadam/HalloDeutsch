@@ -10,15 +10,17 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChatBubble, SuggestedResponses } from '../../components/chat';
-import { SafeArea } from '../../components/ui';
+import { SafeArea } from '../../components/ui'; // Added Button import if needed, or use TouchableOpacity
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { generateConversationResponse, checkGrammar } from '../../services/geminiService';
 import { useUserStore } from '../../store';
+import { getLevelTitle } from '../../utils/levelUtils';
 
 interface Message {
     id: string;
@@ -31,13 +33,11 @@ interface Message {
 
 import { SCENARIOS } from '../../data/scenarios';
 
-// ...
-
 export const ChatScreen = () => {
     // ...
     const { theme } = useTheme();
     const styles = getStyles(theme);
-    const { progress } = useUserStore();
+    const { progress, addXP } = useUserStore();
     // ...
     const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
     const [chatStarted, setChatStarted] = useState(false);
@@ -46,7 +46,11 @@ export const ChatScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showTranslations, setShowTranslations] = useState(true);
+    const [sessionXP, setSessionXP] = useState(0);
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
     const scrollViewRef = useRef<ScrollView>(null);
+
+    const [selectedLevel, setSelectedLevel] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
 
     const resetChat = () => {
         setChatStarted(false);
@@ -59,6 +63,7 @@ export const ChatScreen = () => {
         setSelectedScenario(scenarioId);
         setChatStarted(true);
         setIsLoading(true);
+        setMessages([]);
         setMessages([]);
 
         const scenario = SCENARIOS.find(s => s.id === scenarioId);
@@ -77,8 +82,6 @@ export const ChatScreen = () => {
 
         // Generate suggestions for the user to respond to the initial message
         try {
-            // We do a mock call or a quick gen for suggestions
-            // For now, let's just hardcode some generic ones or let the user type
             setSuggestions(['Hallo!', 'Guten Tag!', 'Ich möchte...']);
         } catch (e) {
             console.error(e);
@@ -99,6 +102,10 @@ export const ChatScreen = () => {
             isUser: true,
             timestamp: new Date(),
         };
+
+        // Award XP for participating in conversation
+        addXP(2);
+        addXP(2);
 
         setMessages(prev => [...prev, userMessage]);
         setInputText('');
@@ -156,10 +163,15 @@ export const ChatScreen = () => {
         setIsLoading(false);
     };
 
-    // ... (rest of component)
+
+
+    // ... (rest of component until return)
 
     // Scenario Selection Screen
     if (!chatStarted) {
+        const levels: ('All' | 'A1' | 'A2' | 'B1' | 'B2')[] = ['All', 'A1', 'A2', 'B1', 'B2'];
+        const filteredScenarios = SCENARIOS.filter(s => selectedLevel === 'All' || s.level === selectedLevel);
+
         return (
             <SafeArea style={styles.container}>
                 <View style={styles.header}>
@@ -167,10 +179,34 @@ export const ChatScreen = () => {
                     <Text style={styles.headerSubtitle}>Roleplay in real-world situations</Text>
                 </View>
 
+                <View style={styles.filterContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: Spacing.base }}>
+                        {levels.map(level => (
+                            <TouchableOpacity
+                                key={level}
+                                style={[
+                                    styles.filterChip,
+                                    selectedLevel === level && styles.filterChipActive,
+                                    { borderColor: selectedLevel === level ? Colors.primary[500] : theme.border.medium }
+                                ]}
+                                onPress={() => setSelectedLevel(level)}
+                            >
+                                <Text style={[
+                                    styles.filterText,
+                                    selectedLevel === level && styles.filterTextActive,
+                                    { color: selectedLevel === level ? Colors.white : theme.text.secondary }
+                                ]}>
+                                    {getLevelTitle(level)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 <ScrollView style={styles.scenarioList} contentContainerStyle={styles.scenarioContent}>
                     <Text style={styles.sectionTitle}>Choose a scenario:</Text>
 
-                    {SCENARIOS.map((scenario) => (
+                    {filteredScenarios.map((scenario) => (
                         <TouchableOpacity
                             key={scenario.id}
                             style={[styles.scenarioCard, { backgroundColor: theme.background.tertiary }]}
@@ -178,7 +214,7 @@ export const ChatScreen = () => {
                             activeOpacity={0.7}
                         >
                             <LinearGradient
-                                colors={scenario.id === 'free'
+                                colors={scenario.id.includes('free')
                                     ? [Colors.secondary[500], Colors.secondary[600]]
                                     : [Colors.primary[500], Colors.primary[600]]}
                                 start={{ x: 0, y: 0 }}
@@ -192,7 +228,7 @@ export const ChatScreen = () => {
                                 <View style={styles.scenarioHeader}>
                                     <Text style={[styles.scenarioTitle, { color: theme.text.primary }]}>{scenario.title}</Text>
                                     <View style={[styles.levelBadge, { borderColor: theme.border.medium }]}>
-                                        <Text style={[styles.levelText, { color: theme.text.secondary }]}>{scenario.level}</Text>
+                                        <Text style={[styles.levelText, { color: theme.text.secondary }]}>{getLevelTitle(scenario.level)}</Text>
                                     </View>
                                 </View>
                                 <Text style={[styles.scenarioSubtitle, { color: theme.text.secondary }]}>{scenario.titleEn}</Text>
@@ -269,20 +305,11 @@ export const ChatScreen = () => {
                     {isLoading && (
                         <View style={styles.loadingContainer}>
                             <View style={styles.loadingBubble}>
-                                <ActivityIndicator size="small" color={Colors.primary[500]} />
-                                <Text style={styles.loadingText}>Typing...</Text>
+                                <ActivityIndicator size="small" color={theme.text.secondary} />
                             </View>
                         </View>
                     )}
                 </ScrollView>
-
-                {suggestions.length > 0 && !isLoading && (
-                    <SuggestedResponses
-                        suggestions={suggestions}
-                        onSelect={handleSend}
-                        disabled={isLoading}
-                    />
-                )}
 
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -362,6 +389,31 @@ const getStyles = (theme: any) => StyleSheet.create({
         fontWeight: FontWeight.semibold,
         color: theme.text.secondary,
         marginBottom: Spacing.md,
+    },
+    filterContainer: {
+        paddingVertical: Spacing.md,
+        backgroundColor: theme.background.secondary,
+    },
+    filterChip: {
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        minWidth: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        marginRight: Spacing.sm,
+    },
+    filterChipActive: {
+        backgroundColor: Colors.primary[500],
+        borderColor: Colors.primary[500],
+    },
+    filterText: {
+        fontSize: FontSize.base,
+        fontWeight: FontWeight.medium,
+    },
+    filterTextActive: {
+        fontWeight: FontWeight.bold,
     },
     scenarioCard: {
         marginBottom: Spacing.md,
@@ -524,5 +576,8 @@ const getStyles = (theme: any) => StyleSheet.create({
     },
     sendButtonDisabled: {
         backgroundColor: theme.border.light,
+    },
+    finishButton: {
+        padding: Spacing.sm,
     },
 });

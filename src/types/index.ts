@@ -35,6 +35,8 @@ export interface UserProgress {
     minutesToday: number;
     lastActiveDate: string;
     dailyStats?: Record<string, number>; // Date "YYYY-MM-DD" -> minutes
+
+    lastStreakUpdate: string;
 }
 
 // Vocabulary Word - Comprehensive word entry

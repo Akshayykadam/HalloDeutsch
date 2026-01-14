@@ -27,6 +27,7 @@ import {
     getPromptsByLevel,
 } from '../../data/content/penpal-characters';
 import { checkGrammar } from '../../services/geminiService';
+import { getLevelTitle } from '../../utils/levelUtils';
 
 type ScreenState = 'select' | 'prompt' | 'write' | 'response';
 
@@ -439,7 +440,7 @@ export const PenPalScreen: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>AI Pen Pal</Text>
                 <View style={styles.headerRight}>
-                    <Text style={styles.levelBadge}>{progress.level}</Text>
+                    <Text style={styles.levelBadge}>{getLevelTitle(progress.level)}</Text>
                 </View>
             </View>
 

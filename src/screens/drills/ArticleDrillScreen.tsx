@@ -9,10 +9,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+
 import * as Haptics from 'expo-haptics';
 
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { useUserStore } from '../../store';
 import {
     ArticleNoun,
@@ -187,7 +189,7 @@ export const ArticleDrillScreen: React.FC = () => {
                 <View style={styles.statRow}>
                     <Ionicons name="school" size={24} color={Colors.primary[500]} />
                     <Text style={styles.statLabel}>Level:</Text>
-                    <Text style={styles.statValue}>{progress.level}</Text>
+                    <Text style={styles.statValue}>{getLevelTitle(progress.level)}</Text>
                 </View>
             </View>
 

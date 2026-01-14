@@ -21,12 +21,25 @@ import { getLessonById, getModuleForLesson, isLastLessonInModule } from '../../d
 import { generateQuizBatch } from '../../services/geminiService';
 import { Exercise } from '../../types';
 
+const GERMAN_FACTS = [
+    "Did you know? German has three genders: masculine, feminine, and neuter.",
+    "Tip: Always capitalize every Noun in German.",
+    "Fun Fact: The letter 'ß' (Eszett) is unique to German.",
+    "Did you know? About 60% of German vocabulary is similar to English.",
+    "Tip: 'Guten Appetit' means 'Enjoy your meal'!",
+    "Fun Fact: German is the most widely spoken native language in Europe.",
+    "Tip: Listen to German music to improve your pronunciation.",
+    "Did you know? Berlin has more bridges than Venice.",
+];
+
 export const QuizScreen: React.FC = () => {
     const { theme } = useTheme();
     const styles = getStyles(theme);
     const navigation = useNavigation();
     const route = useRoute<any>();
     const { lessonId } = route.params;
+    const { progress: userProgress } = useUserStore(); // Destructure properly
+
 
     const lesson = getLessonById(lessonId);
 
@@ -40,6 +53,18 @@ export const QuizScreen: React.FC = () => {
     const [batchCount, setBatchCount] = useState(1);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [showModuleComplete, setShowModuleComplete] = useState(false);
+    const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+    // Rotation logic for tips
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (loading) {
+            interval = setInterval(() => {
+                setCurrentTipIndex((prev) => (prev + 1) % GERMAN_FACTS.length);
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     // Get current module for navigation
     const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
@@ -128,12 +153,7 @@ export const QuizScreen: React.FC = () => {
     };
 
     const handleBackPress = () => {
-        // Navigate directly to module detail instead of going through lesson stack
-        if (currentModule) {
-            (navigation as any).navigate('ModuleDetail', { moduleId: currentModule.id });
-        } else {
-            navigation.goBack();
-        }
+        navigation.goBack();
     };
 
     const speakText = (text: string) => {
@@ -143,9 +163,22 @@ export const QuizScreen: React.FC = () => {
     if (loading) {
         return (
             <SafeArea style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary[500]} />
-                    <Text style={styles.loadingText}>Generating AI Questions...</Text>
+                <View style={[styles.loadingContainer, { backgroundColor: theme.background.primary }]}>
+                    <View style={styles.loadingContent}>
+                        <View style={styles.loadingIconContainer}>
+                            <ActivityIndicator size="large" color={Colors.primary[500]} />
+                        </View>
+                        <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+                            Generating AI Questions...
+                        </Text>
+
+                        <View style={[styles.tipContainer, { backgroundColor: theme.background.secondary }]}>
+                            <Ionicons name="bulb-outline" size={24} color={Colors.warning[500]} style={{ marginBottom: Spacing.sm }} />
+                            <Text style={[styles.tipText, { color: theme.text.secondary }]}>
+                                {GERMAN_FACTS[currentTipIndex]}
+                            </Text>
+                        </View>
+                    </View>
                 </View>
             </SafeArea>
         );
@@ -277,10 +310,32 @@ const getStyles = (theme: any) => StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    loadingContent: {
+        width: '100%',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.xl,
+    },
+    loadingIconContainer: {
+        marginBottom: Spacing.lg,
+    },
     loadingText: {
-        marginTop: Spacing.md,
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.bold,
+        marginBottom: Spacing.xl,
+        textAlign: 'center',
+    },
+    tipContainer: {
+        width: '100%',
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        ...Shadows.md,
+    },
+    tipText: {
         fontSize: FontSize.md,
-        color: theme.text.secondary,
+        textAlign: 'center',
+        lineHeight: 24,
+        fontStyle: 'italic',
     },
     errorContainer: {
         flex: 1,
@@ -343,15 +398,15 @@ const getStyles = (theme: any) => StyleSheet.create({
     },
     optionSelected: {
         borderColor: Colors.primary[500],
-        backgroundColor: Colors.primary[50],
+        backgroundColor: Colors.primary[500] + '15',
     },
     optionCorrect: {
         borderColor: Colors.success[500],
-        backgroundColor: Colors.success[50],
+        backgroundColor: Colors.success[500] + '15',
     },
     optionWrong: {
         borderColor: Colors.error[500],
-        backgroundColor: Colors.error[50],
+        backgroundColor: Colors.error[500] + '15',
     },
     optionLetterContainer: {
         width: 32,

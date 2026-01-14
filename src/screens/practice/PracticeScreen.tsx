@@ -16,6 +16,7 @@ import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LevelColors, Shado
 import { useTheme } from '../../context/ThemeContext'
 import { useUserStore, useSettingsStore } from '../../store';
 import { generateQuizBatch } from '../../services/geminiService';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { CEFRLevel, Exercise } from '../../types';
 
 // Practice topics for each level
@@ -185,7 +186,7 @@ export const PracticeScreen: React.FC = () => {
                                     styles.levelTabText,
                                     selectedLevel === level && styles.levelTabTextActive
                                 ]}>
-                                    {level}
+                                    {getLevelTitle(level)}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -267,7 +268,7 @@ export const PracticeScreen: React.FC = () => {
                     <Ionicons name="close" size={26} color={theme.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.quizHeaderCenter}>
-                    <Badge label={selectedLevel} variant="level" level={selectedLevel} />
+                    <Badge label={getLevelTitle(selectedLevel)} variant="level" level={selectedLevel} />
                     <Text style={styles.quizTopic}>{selectedTopic}</Text>
                 </View>
                 <Text style={styles.quizProgress}>{currentIndex + 1}/{questions.length}</Text>

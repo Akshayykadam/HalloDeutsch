@@ -7,8 +7,9 @@ import * as audioService from '../../services/audioService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { SafeArea, Button } from '../../components/ui';
-import { ModuleCompleteModal } from '../../components/gamification';
+import { ModuleCompleteModal, LessonCompleteModal } from '../../components/gamification';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LightTheme, Shadows } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
 import { getAllLessons, getModuleForLesson, getNextLessonInModule } from '../../data/content/curriculum-service';
 
@@ -57,10 +58,13 @@ export const NumbersScreen: React.FC = () => {
     const route = useRoute<any>();
     const { lessonId } = route.params || {};
 
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const { updateProgress, progress } = useUserStore();
     const [speakingNumber, setSpeakingNumber] = useState<number | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
     const [showModuleComplete, setShowModuleComplete] = useState(false);
+    const [showLessonComplete, setShowLessonComplete] = useState(false);
 
     // Get current module for navigation
     const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
@@ -85,28 +89,30 @@ export const NumbersScreen: React.FC = () => {
 
         // Award XP
         updateProgress({ lessonsCompleted: progress.lessonsCompleted + 1 });
+        setShowLessonComplete(true);
+    };
 
-        // Check for next lesson within the same module
+    const handleLessonCompleteContinue = () => {
+        setShowLessonComplete(false);
+
         if (lessonId) {
             const nextLessonInModule = getNextLessonInModule(lessonId);
 
             if (nextLessonInModule) {
                 // Navigate to next lesson within module using replace to avoid stack buildup
-                setTimeout(() => {
-                    if (nextLessonInModule.vocabularyDomains?.includes('numbers')) {
-                        navigation.replace('Numbers', { lessonId: nextLessonInModule.id });
-                    } else if (nextLessonInModule.type === 'vocabulary') {
-                        navigation.replace('VocabularyLesson', { lessonId: nextLessonInModule.id });
-                    } else if (nextLessonInModule.type === 'pronunciation' || nextLessonInModule.title.toLowerCase().includes('alphabet')) {
-                        navigation.replace('Alphabet', { lessonId: nextLessonInModule.id });
-                    } else if (nextLessonInModule.type === 'grammar') {
-                        navigation.replace('GrammarLesson', { lessonId: nextLessonInModule.id });
-                    } else if (nextLessonInModule.type === 'quiz') {
-                        navigation.replace('Quiz', { lessonId: nextLessonInModule.id });
-                    } else {
-                        navigation.replace('LessonDetail', { lessonId: nextLessonInModule.id });
-                    }
-                }, 500);
+                if (nextLessonInModule.vocabularyDomains?.includes('numbers')) {
+                    navigation.replace('Numbers', { lessonId: nextLessonInModule.id });
+                } else if (nextLessonInModule.type === 'vocabulary') {
+                    navigation.replace('VocabularyLesson', { lessonId: nextLessonInModule.id });
+                } else if (nextLessonInModule.type === 'pronunciation' || nextLessonInModule.title.toLowerCase().includes('alphabet')) {
+                    navigation.replace('Alphabet', { lessonId: nextLessonInModule.id });
+                } else if (nextLessonInModule.type === 'grammar') {
+                    navigation.replace('GrammarLesson', { lessonId: nextLessonInModule.id });
+                } else if (nextLessonInModule.type === 'quiz') {
+                    navigation.replace('Quiz', { lessonId: nextLessonInModule.id });
+                } else {
+                    navigation.replace('LessonDetail', { lessonId: nextLessonInModule.id });
+                }
             } else {
                 // Last lesson in module - show module complete modal
                 setShowModuleComplete(true);
@@ -123,16 +129,21 @@ export const NumbersScreen: React.FC = () => {
     };
 
     const handleBackPress = () => {
-        // Navigate directly to module detail instead of going through lesson stack
-        if (currentModule) {
-            navigation.navigate('ModuleDetail', { moduleId: currentModule.id });
-        } else {
-            navigation.goBack();
-        }
+        navigation.goBack();
     };
 
     return (
         <SafeArea style={styles.container}>
+            {/* Lesson Complete Modal */}
+            <LessonCompleteModal
+                visible={showLessonComplete}
+                lessonTitle="Numbers & Counting"
+                xpEarned={10}
+                onContinue={handleLessonCompleteContinue}
+                onClose={handleBackPress}
+                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+            />
+
             {/* Module Complete Modal */}
             <ModuleCompleteModal
                 visible={showModuleComplete}
@@ -145,15 +156,13 @@ export const NumbersScreen: React.FC = () => {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={LightTheme.text.primary} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerContent}>
                     <Text style={styles.headerTitle}>Zahlen (Numbers)</Text>
                     <Text style={styles.headerSubtitle}>Tap a number to hear it</Text>
                 </View>
-                <TouchableOpacity style={styles.volumeButton}>
-                    <Ionicons name="volume-high" size={22} color={Colors.primary[500]} />
-                </TouchableOpacity>
+
             </View>
 
             {/* Info Banner */}
@@ -310,19 +319,19 @@ export const NumbersScreen: React.FC = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: LightTheme.background.secondary,
+        backgroundColor: theme.background.secondary,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: Spacing.lg,
         paddingVertical: Spacing.md,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.background.primary,
         borderBottomWidth: 1,
-        borderBottomColor: LightTheme.border.light,
+        borderBottomColor: theme.border.light,
     },
     backButton: {
         padding: Spacing.sm,
@@ -334,11 +343,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
     },
     headerSubtitle: {
         fontSize: FontSize.sm,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
     },
     volumeButton: {
         padding: Spacing.sm,
@@ -366,7 +375,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
         marginBottom: Spacing.md,
         marginTop: Spacing.sm,
     },
@@ -378,7 +387,7 @@ const styles = StyleSheet.create({
     card: {
         width: (width - Spacing.base * 2 - Spacing.md * 3) / 3, // 3 columns
         aspectRatio: 0.9,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.background.tertiary, // Changed from Colors.white
         borderRadius: BorderRadius.md,
         padding: Spacing.sm,
         alignItems: 'center',
@@ -404,14 +413,14 @@ const styles = StyleSheet.create({
     label: {
         fontSize: FontSize.md,
         fontWeight: FontWeight.medium,
-        color: LightTheme.text.primary,
+        color: theme.text.primary, // Changed from LightTheme.text.primary
     },
     labelActive: {
         color: Colors.white,
     },
     phonetic: {
         fontSize: FontSize.xs,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary, // Changed from LightTheme.text.secondary
         marginTop: 2,
     },
     speakingIcon: {
@@ -420,7 +429,7 @@ const styles = StyleSheet.create({
         right: 4,
     },
     tipsCard: {
-        backgroundColor: Colors.warning[50], // Light yellow/orange
+        backgroundColor: Colors.warning[50], // Light yellow/orange - keeping for now
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
         marginTop: Spacing.xl,

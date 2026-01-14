@@ -14,7 +14,7 @@ import * as audioService from '../../services/audioService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getAllLessons, getModuleForLesson, getNextLessonInModule } from '../../data/content/curriculum-service';
 import { SafeArea, Button } from '../../components/ui';
-import { ModuleCompleteModal } from '../../components/gamification';
+import { ModuleCompleteModal, LessonCompleteModal } from '../../components/gamification';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
@@ -100,6 +100,7 @@ export const AlphabetScreen: React.FC = () => {
     const [speakingLetter, setSpeakingLetter] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
     const [showModuleComplete, setShowModuleComplete] = useState(false);
+    const [showLessonComplete, setShowLessonComplete] = useState(false);
 
     // Get current module for navigation
     const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
@@ -110,8 +111,11 @@ export const AlphabetScreen: React.FC = () => {
 
         // Award XP
         updateProgress({ lessonsCompleted: progress.lessonsCompleted + 1 });
+        setShowLessonComplete(true);
+    };
 
-        // Check for next lesson within the same module
+    const handleLessonCompleteContinue = () => {
+        setShowLessonComplete(false);
         if (lessonId) {
             const nextLessonInModule = getNextLessonInModule(lessonId);
 
@@ -148,12 +152,7 @@ export const AlphabetScreen: React.FC = () => {
     };
 
     const handleBackPress = () => {
-        // Navigate directly to module detail instead of going through lesson stack
-        if (currentModule) {
-            navigation.navigate('ModuleDetail', { moduleId: currentModule.id });
-        } else {
-            navigation.goBack();
-        }
+        navigation.goBack();
     };
 
     const speakLetter = async (letter: string, example: string) => {
@@ -172,6 +171,16 @@ export const AlphabetScreen: React.FC = () => {
 
     return (
         <SafeArea style={styles.container}>
+            {/* Lesson Complete Modal */}
+            <LessonCompleteModal
+                visible={showLessonComplete}
+                lessonTitle="Alphabet"
+                xpEarned={10}
+                onContinue={handleLessonCompleteContinue}
+                onClose={handleBackPress}
+                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+            />
+
             {/* Module Complete Modal */}
             <ModuleCompleteModal
                 visible={showModuleComplete}
@@ -190,9 +199,7 @@ export const AlphabetScreen: React.FC = () => {
                     <Text style={styles.headerTitle}>Das deutsche Alphabet</Text>
                     <Text style={styles.headerSubtitle}>Tap a letter to hear its pronunciation</Text>
                 </View>
-                <TouchableOpacity style={styles.volumeButton}>
-                    <Ionicons name="volume-high" size={22} color={Colors.primary[500]} />
-                </TouchableOpacity>
+
             </View>
 
             {/* Info Banner */}

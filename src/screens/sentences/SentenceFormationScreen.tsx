@@ -7,12 +7,14 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
+    Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Card, Badge, Button, ProgressBar, SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LightTheme, Shadows, LevelColors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useUserStore, useSettingsStore } from '../../store';
 import { CEFRLevel } from '../../types';
 
@@ -327,8 +329,13 @@ const sentenceFormulas: SentenceFormula[] = [
 
 export const SentenceFormationScreen: React.FC = () => {
     const navigation = useNavigation();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const { progress } = useUserStore();
     const { settings } = useSettingsStore();
+
+
+
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
     const [selectedFormula, setSelectedFormula] = useState<SentenceFormula | null>(null);
     const [exerciseIndex, setExerciseIndex] = useState(0);
@@ -349,8 +356,10 @@ export const SentenceFormationScreen: React.FC = () => {
         if (correct && settings.hapticEnabled) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        } else if (settings.hapticEnabled) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } else {
+            if (settings.hapticEnabled) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
         }
     };
 
@@ -579,15 +588,15 @@ export const SentenceFormationScreen: React.FC = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: LightTheme.background.secondary,
+        backgroundColor: theme.background.secondary,
     },
     header: {
         padding: Spacing.base,
         paddingTop: Spacing.lg,
-        backgroundColor: LightTheme.background.primary,
+        backgroundColor: theme.background.primary,
     },
     headerTitleRow: {
         flexDirection: 'row',
@@ -597,11 +606,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: FontSize.xl,
         fontWeight: FontWeight.bold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
     },
     headerSubtitle: {
         fontSize: FontSize.sm,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
         marginTop: 2,
     },
     formulaHeader: {
@@ -609,7 +618,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: Spacing.base,
-        backgroundColor: LightTheme.background.primary,
+        backgroundColor: theme.background.primary,
     },
     backButtonTouchable: {
         flexDirection: 'row',
@@ -622,7 +631,7 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
     levelSelectorContainer: {
-        backgroundColor: LightTheme.background.primary,
+        backgroundColor: theme.background.primary,
         paddingVertical: Spacing.md,
         ...Shadows.sm,
         zIndex: 10,
@@ -668,7 +677,7 @@ const styles = StyleSheet.create({
     formulaListTitle: {
         fontSize: FontSize.base,
         fontWeight: FontWeight.semibold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
     },
     formulaListTitleDe: {
         fontSize: FontSize.sm,
@@ -676,7 +685,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     formulaPreview: {
-        backgroundColor: Colors.primary[50],
+        backgroundColor: Colors.primary[50], // Consider darkening for dark mode? Or keep as highlight. keeping for now.
         padding: Spacing.sm,
         borderRadius: BorderRadius.sm,
         marginBottom: Spacing.sm,
@@ -689,13 +698,13 @@ const styles = StyleSheet.create({
     },
     formulaListDesc: {
         fontSize: FontSize.sm,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
         lineHeight: 20,
     },
     formulaTitle: {
         fontSize: FontSize['2xl'],
         fontWeight: FontWeight.bold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
     },
     formulaTitleDe: {
         fontSize: FontSize.lg,
@@ -716,14 +725,14 @@ const styles = StyleSheet.create({
     },
     description: {
         fontSize: FontSize.base,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
         lineHeight: 24,
         marginBottom: Spacing.xl,
     },
     sectionTitle: {
         fontSize: FontSize.md,
         fontWeight: FontWeight.semibold,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
         marginBottom: Spacing.md,
         marginTop: Spacing.md,
     },
@@ -745,7 +754,7 @@ const styles = StyleSheet.create({
     },
     componentLabel: {
         fontSize: FontSize.xs,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
         marginBottom: Spacing.sm,
     },
     componentExamples: {
@@ -753,7 +762,7 @@ const styles = StyleSheet.create({
     },
     componentExample: {
         fontSize: FontSize.sm,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
     },
     exampleCard: {
         marginBottom: Spacing.sm,
@@ -761,12 +770,12 @@ const styles = StyleSheet.create({
     exampleSentence: {
         fontSize: FontSize.lg,
         fontWeight: FontWeight.medium,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
         marginBottom: Spacing.xs,
     },
     exampleTranslation: {
         fontSize: FontSize.sm,
-        color: LightTheme.text.secondary,
+        color: theme.text.secondary,
         marginBottom: Spacing.md,
     },
     breakdownContainer: {
@@ -780,7 +789,7 @@ const styles = StyleSheet.create({
     exercisePrompt: {
         fontSize: FontSize.lg,
         fontWeight: FontWeight.medium,
-        color: LightTheme.text.primary,
+        color: theme.text.primary,
         marginBottom: Spacing.md,
     },
     hintsContainer: {
@@ -792,43 +801,50 @@ const styles = StyleSheet.create({
     hintsLabel: {
         fontSize: FontSize.sm,
         fontWeight: FontWeight.semibold,
-        color: Colors.gold[700],
         marginBottom: Spacing.xs,
+        color: Colors.gold[900],
     },
     hint: {
         fontSize: FontSize.sm,
-        color: Colors.gold[700],
+        color: Colors.gold[800],
+        marginBottom: 2,
     },
     answerInput: {
-        backgroundColor: LightTheme.background.tertiary,
+        borderWidth: 1,
+        borderColor: theme.border.light,
+        borderRadius: BorderRadius.lg,
         padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        fontSize: FontSize.base,
-        color: LightTheme.text.primary,
-        minHeight: 60,
+        fontSize: FontSize.md,
+        minHeight: 100,
         textAlignVertical: 'top',
-        borderWidth: 2,
-        borderColor: 'transparent',
+        marginBottom: Spacing.md,
+        backgroundColor: theme.background.primary,
+        color: theme.text.primary,
     },
     inputCorrect: {
         borderColor: Colors.success[500],
-        backgroundColor: Colors.success[50],
+        backgroundColor: Colors.success[50], // Maybe adjust for dark mode?
     },
     inputIncorrect: {
         borderColor: Colors.error[500],
-        backgroundColor: Colors.error[50],
+        backgroundColor: Colors.error[50], // Maybe adjust for dark mode?
     },
     answerFeedback: {
-        marginTop: Spacing.md,
+        marginBottom: Spacing.md,
+        padding: Spacing.md,
+        backgroundColor: theme.background.secondary,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        borderColor: theme.border.light,
     },
     feedbackRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: Spacing.xs,
     },
     feedbackText: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.semibold,
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.bold,
     },
     feedbackCorrect: {
         color: Colors.success[600],
@@ -837,11 +853,12 @@ const styles = StyleSheet.create({
         color: Colors.error[600],
     },
     sampleAnswer: {
-        fontSize: FontSize.sm,
-        color: LightTheme.text.secondary,
+        fontSize: FontSize.base,
+        color: theme.text.primary,
+        marginTop: Spacing.xs,
     },
     exerciseButtons: {
-        marginTop: Spacing.lg,
+        marginTop: Spacing.sm,
     },
     emptyCard: {
         alignItems: 'center',

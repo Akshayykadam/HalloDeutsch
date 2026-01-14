@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, ProgressBar, Badge, SafeArea } from '../../components/ui';
+import { StreakCounter, XPCounter, GoalCounter } from '../../components/gamification/StreakCounter';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
@@ -29,6 +31,14 @@ export const HomeScreen: React.FC = () => {
     const styles = getStyles(theme);
     const { isPhone } = useResponsive();
     const navigation = useNavigation<any>();
+
+    const { checkStreak } = useUserStore();
+
+    useFocusEffect(
+        useCallback(() => {
+            checkStreak();
+        }, [checkStreak])
+    );
 
     const navigateToLearn = (screen: string) => {
         navigation.navigate('Learn', { screen });
@@ -96,15 +106,26 @@ export const HomeScreen: React.FC = () => {
                     <Text style={styles.greeting}>Guten Tag!</Text>
                     <Text style={styles.subtitle}>Ready to learn German?</Text>
                 </View>
-                <TouchableOpacity
-                    style={styles.profileButton}
-                    onPress={() => navigation.navigate('Profile')}
-                    activeOpacity={0.7}
-                >
-                    <View style={styles.profileAvatar}>
-                        <Ionicons name="person" size={20} color={Colors.primary[500]} />
-                    </View>
-                </TouchableOpacity>
+                <View style={styles.headerStats}>
+                    <TouchableOpacity
+                        style={styles.profileButton}
+                        onPress={() => navigation.navigate('Dictionary')}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.searchIconBg}>
+                            <Ionicons name="search" size={20} color={Colors.primary[500]} />
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.profileButton}
+                        onPress={() => navigation.navigate('Profile')}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.profileAvatar}>
+                            <Ionicons name="person" size={20} color={Colors.primary[500]} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView
@@ -114,19 +135,28 @@ export const HomeScreen: React.FC = () => {
             >
                 {/* Daily Progress Card */}
                 <FadeInView delay={100}>
-                    <Card variant="gradient" gradientColors={[Colors.primary[500], Colors.primary[700]]} style={styles.progressCard}>
+                    <Card variant="gradient" gradientColors={[Colors.primary[600], Colors.primary[800]]} style={styles.progressCard}>
                         <View style={styles.progressHeader}>
-                            <Text style={styles.progressTitle}>Daily Goal</Text>
+                            <Text style={styles.progressTitle}>Daily Progress</Text>
                             <Badge label={`${progress.minutesToday}/${progress.dailyGoal} min`} variant="info" />
                         </View>
+
                         <ProgressBar
                             progress={(progress.minutesToday / progress.dailyGoal) * 100}
-                            height={10}
+                            height={8}
                             variant="success"
+                            style={{ marginBottom: Spacing.md }}
                         />
-                        <Text style={styles.progressSubtitle}>
-                            {progress.minutesToday} / {progress.dailyGoal} minutes today
-                        </Text>
+
+                        <View style={styles.statsRowInCard}>
+                            <View style={styles.statPillInCard}>
+                                <StreakCounter streak={progress.streak || 0} size="small" variant="card" label="Day Streak" vertical={true} />
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.statPillInCard}>
+                                <XPCounter xp={progress.totalXP || 0} size="small" variant="card" label="Total XP" vertical={true} />
+                            </View>
+                        </View>
                     </Card>
                 </FadeInView>
 
@@ -219,7 +249,7 @@ export const HomeScreen: React.FC = () => {
                             >
                                 <Card style={styles.lessonCard}>
                                     <View style={styles.lessonHeader}>
-                                        <Badge label={progress.level} variant="level" level={progress.level} />
+                                        <Badge label={getLevelTitle(progress.level)} variant="level" level={progress.level} />
                                         <Text style={styles.lessonUnit}>Unit {currentModuleIndex + 1}</Text>
                                     </View>
                                     <Text style={styles.lessonTitle}>{currentModule?.title || 'Loading...'}</Text>
@@ -477,6 +507,14 @@ const getStyles = (theme: any) => StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    searchIconBg: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.background.tertiary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     headerStats: {
         flexDirection: 'row',
         gap: Spacing.sm,
@@ -494,19 +532,49 @@ const getStyles = (theme: any) => StyleSheet.create({
     progressHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
+        alignItems: 'flex-start',
+        marginBottom: Spacing.lg,
     },
     progressTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.semibold,
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.bold,
         color: Colors.white,
+        marginBottom: 4,
     },
     progressSubtitle: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.xs,
+        color: 'rgba(255,255,255,0.8)',
+    },
+    goalBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: BorderRadius.full,
+        gap: 4,
+    },
+    goalBadgeText: {
         color: Colors.white,
-        opacity: 0.8,
-        marginTop: Spacing.sm,
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.bold,
+    },
+    statsRowInCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around', // Better spacing
+        backgroundColor: 'rgba(0,0,0,0.15)', // Darker glass
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
+        borderRadius: BorderRadius.xl,
+    },
+    statDivider: {
+        width: 1,
+        height: 30, // Taller divider
+        backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    statPillInCard: {
+        alignItems: 'center',
     },
     // Word of Day Widget styles
     wordCard: {

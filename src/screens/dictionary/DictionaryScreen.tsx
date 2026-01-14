@@ -226,13 +226,23 @@ export const DictionaryScreen: React.FC = () => {
                         placeholder="Enter a German word..."
                         placeholderTextColor={Colors.neutral[400]}
                         value={searchQuery}
-                        onChangeText={setSearchQuery}
+                        onChangeText={(text) => {
+                            setSearchQuery(text);
+                            if (text.trim() === '') {
+                                setEntry(null);
+                                setError(null);
+                            }
+                        }}
                         onSubmitEditing={() => lookupWord(searchQuery)}
                         autoCapitalize="none"
                         autoCorrect={false}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <TouchableOpacity onPress={() => {
+                            setSearchQuery('');
+                            setEntry(null);
+                            setError(null);
+                        }}>
                             <Ionicons name="close-circle" size={18} color={Colors.neutral[400]} style={styles.clearButton} />
                         </TouchableOpacity>
                     )}

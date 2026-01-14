@@ -15,6 +15,7 @@ import * as audioService from '../../services/audioService';
 
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { useUserStore } from '../../store';
 import {
     pronunciationSentences,
@@ -176,7 +177,7 @@ export const PronunciationCoachScreen: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Pronunciation Coach</Text>
                 <View style={styles.headerRight}>
-                    <Text style={styles.levelBadge}>{progress.level}</Text>
+                    <Text style={styles.levelBadge}>{getLevelTitle(progress.level)}</Text>
                 </View>
             </View>
 

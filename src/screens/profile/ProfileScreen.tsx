@@ -16,9 +16,12 @@ import { Card, Badge, SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LevelColors, Shadows } from '../../theme';
 import { useUserStore, useSettingsStore } from '../../store';
 import { useTheme } from '../../context/ThemeContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { getLevelTitle } from '../../utils/levelUtils';
 import { isModelDownloaded, downloadModel, deleteModel, getModelSize } from '../../services/audioService';
 import { FadeInView } from '../../components/common/FadeInView';
+import { getLevelDescription } from '../../utils/levelUtils';
+import { AuthSection } from '../../components/auth';
 
 export const ProfileScreen: React.FC = () => {
     const { progress, updateProgress, reset: resetProgress, profile } = useUserStore();
@@ -26,7 +29,9 @@ export const ProfileScreen: React.FC = () => {
     const { theme, toggleTheme, isDark } = useTheme();
     const navigation = useNavigation();
     const styles = getStyles(theme, isDark);
-    const [showSettings, setShowSettings] = useState(false);
+
+    // Removed showSettings state
+
 
     // TTS Model Management
     const [ttsState, setTtsState] = useState<'checking' | 'ready' | 'missing' | 'downloading'>('checking');
@@ -73,26 +78,17 @@ export const ProfileScreen: React.FC = () => {
     const handleResetProgress = () => {
         setShowConfirmModal(null);
         resetProgress();
-        setShowSettings(false);
     };
 
     // Effect to check status when modal visibility changes
+    // Effect to check status on mount
     React.useEffect(() => {
-        if (showSettings) {
-            checkModelStatus();
-        }
-    }, [showSettings]);
+        checkModelStatus();
+    }, []);
 
-    const getLevelDescription = (level: string) => {
-        const descriptions: Record<string, { title: string; subtitle: string }> = {
-            'A1': { title: 'Beginner', subtitle: 'Basic phrases & greetings' },
-            'A2': { title: 'Elementary', subtitle: 'Past tense & daily routines' },
-            'B1': { title: 'Intermediate', subtitle: 'Complex grammar concepts' },
-            'B2': { title: 'Upper Intermediate', subtitle: 'Professional German' },
-        };
-        return descriptions[level] || descriptions['A1'];
-    };
 
+
+    // ... inside component ...
     const levelInfo = getLevelDescription(progress.level);
 
     return (
@@ -111,28 +107,6 @@ export const ProfileScreen: React.FC = () => {
                     end={{ x: 1, y: 1 }}
                     style={styles.profileHeader}
                 >
-                    {/* Back Button */}
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.settingsIconBg}>
-                            <Ionicons name="arrow-back" size={22} color={Colors.white} />
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Settings Icon */}
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={() => setShowSettings(true)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.settingsIconBg}>
-                            <Ionicons name="settings-outline" size={22} color={Colors.white} />
-                        </View>
-                    </TouchableOpacity>
-
                     {/* Avatar with Glow Effect */}
                     <View style={styles.avatarGlow}>
                         <View style={styles.avatarContainer}>
@@ -150,11 +124,29 @@ export const ProfileScreen: React.FC = () => {
                             colors={[LevelColors[progress.level], LevelColors[progress.level] + 'CC']}
                             style={styles.levelBadgeGradient}
                         >
-                            <Text style={styles.levelBadgeText}>{progress.level}</Text>
+                            <Text style={styles.levelBadgeText}>{levelInfo.title}</Text>
                         </LinearGradient>
-                        <Text style={styles.levelTitle}>{levelInfo.title}</Text>
+
                     </View>
                 </LinearGradient>
+
+                {/* Back Button */}
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                >
+                    <View style={styles.settingsIconBg}>
+                        <Ionicons name="arrow-back" size={22} color={Colors.white} />
+                    </View>
+                </TouchableOpacity>
+
+                {/* Cloud Sync / Auth Section */}
+                <FadeInView delay={100}>
+                    <AuthSection theme={theme} isDark={isDark} />
+                </FadeInView>
+
 
                 {/* Stats Cards with Icons */}
                 <FadeInView delay={200} style={styles.statsContainer}>
@@ -216,7 +208,7 @@ export const ProfileScreen: React.FC = () => {
                                 </View>
                                 <View style={[styles.journeyLevelPill, { backgroundColor: LevelColors[progress.level] + '20' }]}>
                                     <Text style={[styles.journeyLevelText, { color: LevelColors[progress.level] }]}>
-                                        {progress.level} Level
+                                        {levelInfo.title}
                                     </Text>
                                 </View>
                             </View>
@@ -238,57 +230,12 @@ export const ProfileScreen: React.FC = () => {
                     </TouchableOpacity>
                 </FadeInView>
 
-                {/* Daily Activity Chart */}
-                <FadeInView delay={400}>
-                    <Text style={styles.sectionTitle}>Daily Activity</Text>
-                    <Card style={styles.activityCard}>
-                        <DailyActivityChart
-                            dailyStats={progress.dailyStats || {}}
-                            minutesToday={progress.minutesToday}
-                            dailyGoal={progress.dailyGoal}
-                            theme={theme}
-                        />
-                    </Card>
-                </FadeInView>
-
-
-
-                {/* App Info Footer */}
+                {/* Integrated Settings Sections */}
                 <FadeInView delay={500}>
-                    <View style={styles.footer}>
-                        <Text style={styles.footerVersion}>HalloDeutsch v1.0.0</Text>
-                        <View style={styles.footerRow}>
-                            <Text style={styles.footerText}>Made with </Text>
-                            <Ionicons name="heart" size={12} color={Colors.error[400]} />
-                            <Text style={styles.footerText}> by Akshay Kadam</Text>
-                        </View>
-                    </View>
-                </FadeInView>
-            </ScrollView>
-
-            {/* Settings Modal */}
-            <Modal
-                visible={showSettings}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setShowSettings(false)}
-            >
-                <SafeArea style={[styles.container, { backgroundColor: theme.background.primary }]}>
-                    {/* Settings Header */}
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Settings</Text>
-                        <TouchableOpacity
-                            onPress={() => setShowSettings(false)}
-                            style={styles.closeButton}
-                        >
-                            <Ionicons name="close" size={26} color={theme.text.primary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
+                    <View style={styles.integratedSettingsContainer}>
                         {/* Learning Level */}
                         <Text style={styles.settingSectionTitle}>Learning Level</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <View style={styles.levelOptions}>
                                 {['A1', 'A2', 'B1', 'B2'].map((level) => {
                                     const levelKey = level as keyof typeof LevelColors;
@@ -309,7 +256,7 @@ export const ProfileScreen: React.FC = () => {
                                                 isActive && styles.levelOptionTextActive,
                                                 !isActive && { color: LevelColors[levelKey] }
                                             ]}>
-                                                {level}
+                                                {getLevelDescription(level).title}
                                             </Text>
                                         </TouchableOpacity>
                                     )
@@ -319,7 +266,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Appearance */}
                         <Text style={styles.settingSectionTitle}>Appearance</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <SettingRow
                                 icon="moon"
                                 iconColor={Colors.primary[500]}
@@ -333,7 +280,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Offline Voice Model */}
                         <Text style={styles.settingSectionTitle}>Offline Voice Model {modelSize !== '0 MB' && `(${modelSize})`}</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             {ttsState === 'downloading' ? (
                                 <View style={{ padding: Spacing.md, alignItems: 'center' }}>
                                     <Text style={{ marginBottom: Spacing.sm, color: theme.text.primary }}>Downloading... {downloadProgress}%</Text>
@@ -370,7 +317,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Audio & Feedback */}
                         <Text style={styles.settingSectionTitle}>Audio & Feedback</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <SettingRow
                                 icon="volume-high"
                                 iconColor={Colors.secondary[500]}
@@ -404,7 +351,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Notifications */}
                         <Text style={styles.settingSectionTitle}>Notifications</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <SettingRow
                                 icon="notifications"
                                 iconColor={Colors.primary[500]}
@@ -418,7 +365,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Daily Goal */}
                         <Text style={styles.settingSectionTitle}>Daily Goal</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <View style={styles.goalOptions}>
                                 {[5, 10, 15, 30].map((goal) => (
                                     <TouchableOpacity
@@ -427,13 +374,14 @@ export const ProfileScreen: React.FC = () => {
                                         style={[
                                             styles.goalOption,
                                             progress.dailyGoal === goal && styles.goalOptionActive,
-                                            { backgroundColor: progress.dailyGoal === goal ? Colors.primary[500] : theme.background.primary }
+                                            { backgroundColor: progress.dailyGoal === goal ? Colors.primary[500] : theme.background.tertiary }
                                         ]}
                                         activeOpacity={0.8}
                                     >
                                         <Text style={[
                                             styles.goalOptionText,
                                             progress.dailyGoal === goal && styles.goalOptionTextActive,
+                                            { color: progress.dailyGoal === goal ? Colors.white : theme.text.primary }
                                         ]}>
                                             {goal} min
                                         </Text>
@@ -444,7 +392,7 @@ export const ProfileScreen: React.FC = () => {
 
                         {/* Danger Zone */}
                         <Text style={[styles.settingSectionTitle, { color: Colors.error[500] }]}>Danger Zone</Text>
-                        <View style={[styles.settingsCard, { backgroundColor: theme.background.secondary, borderColor: Colors.error[200], borderWidth: 1 }]}>
+                        <View style={[styles.settingsCard, { backgroundColor: theme.background.primary, borderColor: Colors.error[200], borderWidth: 1 }]}>
                             <TouchableOpacity
                                 style={styles.dangerButton}
                                 onPress={() => setShowConfirmModal('resetProgress')}
@@ -454,11 +402,25 @@ export const ProfileScreen: React.FC = () => {
                                 <Text style={styles.dangerButtonText}>Reset All Progress</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </FadeInView>
 
-                        <View style={{ height: 60 }} />
-                    </ScrollView>
-                </SafeArea>
-            </Modal>
+
+
+                {/* App Info Footer */}
+                <FadeInView delay={500}>
+                    <View style={styles.footer}>
+                        <Text style={styles.footerVersion}>HalloDeutsch v1.0.0</Text>
+                        <View style={styles.footerRow}>
+                            <Text style={styles.footerText}>Made with </Text>
+                            <Ionicons name="heart" size={12} color={Colors.error[400]} />
+                            <Text style={styles.footerText}> by Akshay Kadam</Text>
+                        </View>
+                    </View>
+                </FadeInView>
+            </ScrollView>
+
+
 
             {/* Download Result Modal */}
             <Modal
@@ -564,7 +526,7 @@ export const ProfileScreen: React.FC = () => {
     );
 };
 
-// Daily Activity Chart Component
+// Daily Activity Chart Component (Line Graph)
 const DailyActivityChart: React.FC<{
     dailyStats: Record<string, number>;
     minutesToday: number;
@@ -572,6 +534,7 @@ const DailyActivityChart: React.FC<{
     theme: any;
 }> = ({ dailyStats, minutesToday, dailyGoal, theme }) => {
     const styles = getStyles(theme, false); // Theme is local here
+    const [layout, setLayout] = React.useState({ width: 0, height: 0 });
 
     // Get last 7 days including today
     const days = [];
@@ -594,38 +557,93 @@ const DailyActivityChart: React.FC<{
         });
     }
 
-    const maxMinutes = Math.max(...days.map(d => d.minutes), dailyGoal, 10);
+    const maxMinutes = Math.max(...days.map(d => d.minutes), dailyGoal, 10) * 1.2; // Add 20% buffer
+
+    // Geometry calculations
+    const points = days.map((day, index) => {
+        if (!layout.width) return null;
+
+        const x = (index / (days.length - 1)) * (layout.width - 20) + 10; // 10px padding sides
+        // Invert Y axis (0 is top)
+        const y = layout.height - ((day.minutes / maxMinutes) * layout.height) - 10; // 10px padding bottom
+
+        return { x, y, ...day };
+    });
 
     return (
-        <View style={styles.chartContainer}>
-            {days.map((day, index) => {
-                const heightPercentage = Math.min((day.minutes / maxMinutes) * 100, 100);
-                const isGoalMet = day.minutes >= dailyGoal;
-                const barColor = isGoalMet ? Colors.success[500] : (day.isToday ? Colors.primary[500] : Colors.neutral[300]);
+        <View style={styles.chartCard} onLayout={(e) => setLayout(e.nativeEvent.layout)}>
+            <View
+                style={styles.chartContainer}
+            >
+                {/* Grid Lines (Horizontal) */}
+                <View style={[styles.gridLine, { bottom: 10, backgroundColor: theme.border.light }]} />
+                <View style={[styles.gridLine, { bottom: layout.height / 2, backgroundColor: theme.border.light }]} />
+                <View style={[styles.gridLine, { top: 0, backgroundColor: theme.border.light }]} />
 
-                return (
-                    <View key={index} style={styles.chartColumn}>
-                        <View style={styles.barContainer}>
+                {/* Connecting Lines */}
+                {points.map((p, i) => {
+                    if (i === 0 || !p || !points[i - 1]) return null;
+                    const pPrev = points[i - 1];
+                    if (!pPrev) return null;
+
+                    const dx = p.x - pPrev.x;
+                    const dy = p.y - pPrev.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+
+                    return (
+                        <View
+                            key={`line-${i}`}
+                            style={{
+                                position: 'absolute',
+                                left: (pPrev.x + p.x) / 2 - length / 2,
+                                top: (pPrev.y + p.y) / 2 - 1.5,
+                                width: length,
+                                height: 3,
+                                backgroundColor: p.isToday ? Colors.primary[500] : Colors.primary[300],
+                                transform: [{ rotate: `${angle}rad` }],
+                                borderRadius: 1.5,
+                            }}
+                        />
+                    );
+                })}
+
+                {/* Dots and Labels */}
+                {points.map((p, index) => {
+                    if (!p) return null;
+                    const isGoalMet = p.minutes >= dailyGoal;
+                    const dotSize = p.isToday ? 12 : 8;
+                    const dotColor = isGoalMet ? Colors.success[500] : (p.isToday ? Colors.primary[500] : Colors.neutral[400]);
+
+                    return (
+                        <React.Fragment key={`dot-${index}`}>
                             <View
-                                style={[
-                                    styles.bar,
-                                    {
-                                        height: `${Math.max(heightPercentage, 4)}%`,
-                                        backgroundColor: barColor,
-                                        opacity: day.isToday ? 1 : 0.7
-                                    }
-                                ]}
+                                style={{
+                                    position: 'absolute',
+                                    left: p.x - dotSize / 2,
+                                    top: p.y - dotSize / 2,
+                                    width: dotSize,
+                                    height: dotSize,
+                                    borderRadius: dotSize / 2,
+                                    backgroundColor: dotColor,
+                                    borderWidth: 2,
+                                    borderColor: theme.background.primary,
+                                    zIndex: 10,
+                                    ...Shadows.sm
+                                }}
                             />
-                        </View>
-                        <Text style={[
-                            styles.dayLabel,
-                            day.isToday && { color: Colors.primary[500], fontWeight: 'bold' }
-                        ]}>
-                            {day.label}
-                        </Text>
-                    </View>
-                );
-            })}
+                            <View style={{ position: 'absolute', left: p.x - 10, bottom: -24, width: 20, alignItems: 'center' }}>
+                                <Text style={[
+                                    styles.dayLabel,
+                                    p.isToday && { color: Colors.primary[500], fontWeight: 'bold' }
+                                ]}>
+                                    {p.label}
+                                </Text>
+                            </View>
+                        </React.Fragment>
+                    );
+                })}
+            </View>
         </View>
     );
 };
@@ -659,38 +677,30 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
         backgroundColor: theme.background.secondary,
     },
     // Activity Chart Styles
-    activityCard: {
-        marginHorizontal: Spacing.base,
-        padding: Spacing.lg,
+    chartCard: {
+        backgroundColor: theme.background.primary,
         borderRadius: BorderRadius.xl,
+        padding: Spacing.md,
+        marginHorizontal: Spacing.base,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.md,
         ...Shadows.sm,
     },
     chartContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        height: 120,
-        paddingTop: Spacing.md,
+        height: 120, // Increased height for better visibility
+        marginTop: Spacing.md,
+        marginBottom: Spacing.md,
     },
-    chartColumn: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    barContainer: {
-        height: 80,
-        width: '100%',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        marginBottom: Spacing.xs,
-    },
-    bar: {
-        width: 8,
-        borderRadius: 4,
-        minHeight: 4,
+    gridLine: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 1,
     },
     dayLabel: {
         fontSize: FontSize.xs,
         color: theme.text.secondary,
+        textAlign: 'center',
     },
     content: {
         flex: 1,
@@ -708,6 +718,8 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
         position: 'absolute',
         top: Spacing.lg,
         right: Spacing.lg,
+        zIndex: 50,
+        elevation: 5,
     },
     settingsIconBg: {
         backgroundColor: 'rgba(255,255,255,0.2)',
@@ -763,6 +775,12 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
         position: 'absolute',
         top: Spacing.lg,
         left: Spacing.lg,
+        zIndex: 50,
+        elevation: 5,
+    },
+    integratedSettingsContainer: {
+        marginTop: Spacing.md,
+        paddingHorizontal: Spacing.base,
     },
     statsContainer: {
         marginTop: Spacing.md,
@@ -951,10 +969,11 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     },
     levelOptions: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: Spacing.sm,
     },
     levelOption: {
-        flex: 1,
+        width: '48%', // Ensure 2 items per row with gap
         paddingVertical: Spacing.md,
         alignItems: 'center',
         borderRadius: BorderRadius.lg,
