@@ -29,30 +29,22 @@ export const useFlashcardStore = create<FlashcardState>()(
             initialized: false,
 
             initializeDeck: (words) => {
-                const { deck } = get();
-                // Only add new words that aren't already in the deck
-                const existingIds = new Set(deck.map(c => c.id));
+                const newCards: Flashcard[] = words.map(w => ({
+                    id: w.id,
+                    front: w.german,
+                    back: w.english,
+                    example: w.exampleSentence,
+                    exampleEn: w.exampleTranslation,
+                    box: 0,
+                    nextReviewDate: new Date().toISOString(),
+                    streak: 0,
+                    easeFactor: 2.5,
+                }));
 
-                const newCards: Flashcard[] = words
-                    .filter(w => !existingIds.has(w.id))
-                    .map(w => ({
-                        id: w.id,
-                        front: w.german,
-                        back: w.english,
-                        example: w.exampleSentence,
-                        exampleEn: w.exampleTranslation,
-                        box: 0,
-                        nextReviewDate: new Date().toISOString(),
-                        streak: 0,
-                        easeFactor: 2.5,
-                    }));
-
-                if (newCards.length > 0) {
-                    set((state) => ({
-                        deck: [...state.deck, ...newCards],
-                        initialized: true
-                    }));
-                }
+                set({
+                    deck: newCards,
+                    initialized: true
+                });
             },
 
             getDueCards: () => {

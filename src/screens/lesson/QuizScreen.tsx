@@ -17,9 +17,9 @@ import { QuizCompleteModal, ModuleCompleteModal } from '../../components/gamific
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
-import { getLessonById, getModuleForLesson, isLastLessonInModule } from '../../data/content/curriculum-service';
+import { getLessonById, getCurriculumModule } from '../../services/contentService';
 import { generateQuizBatch } from '../../services/geminiService';
-import { Exercise } from '../../types';
+import { Exercise, CurriculumLesson, CurriculumModule } from '../../types';
 
 const GERMAN_FACTS = [
     "Did you know? German has three genders: masculine, feminine, and neuter.",
@@ -40,8 +40,9 @@ export const QuizScreen: React.FC = () => {
     const { lessonId } = route.params;
     const { progress: userProgress } = useUserStore(); // Destructure properly
 
-
-    const lesson = getLessonById(lessonId);
+    const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
+    const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
+    const [isLastLesson, setIsLastLesson] = useState(false);
 
     // State
     const [questions, setQuestions] = useState<Exercise[]>([]);
@@ -66,19 +67,48 @@ export const QuizScreen: React.FC = () => {
         return () => clearInterval(interval);
     }, [loading]);
 
-    // Get current module for navigation
-    const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
-    const isLastLesson = lessonId ? isLastLessonInModule(lessonId) : false;
-
     useEffect(() => {
-        loadQuestions();
-    }, []);
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const l = await getLessonById(lessonId);
+                if (l) {
+                    setLesson(l);
 
-    const loadQuestions = async () => {
-        if (!lesson) return;
+                    // Fetch Module
+                    if (l.moduleId) {
+                        const m = await getCurriculumModule(l.moduleId);
+                        if (m) {
+                            setCurrentModule(m);
+                            const idx = m.lessons.findIndex((x: any) => x.id === l.id);
+                            setIsLastLesson(idx === m.lessons.length - 1);
+                        }
+                    }
+
+                    // Load initial questions once lesson is ready
+                    await loadQuestions(l);
+                } else {
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error(error);
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [lessonId]);
+
+    // We updated loadQuestions to accept lesson as arg
+    // But original loadQuestions used 'lesson' from outer scope.
+    // We'll redefine it below.
+
+    const loadQuestions = async (lessonData: CurriculumLesson | null = null) => {
+        const targetLesson = lessonData || lesson;
+        if (!targetLesson) return;
+
         setLoading(true);
         try {
-            const newQuestions = await generateQuizBatch(lesson.title, 'A1', 10);
+            const newQuestions = await generateQuizBatch(targetLesson.title, 'A1', 10);
             if (newQuestions && newQuestions.length > 0) {
                 setQuestions(newQuestions);
                 setCurrentIndex(0);
@@ -94,6 +124,8 @@ export const QuizScreen: React.FC = () => {
             setLoading(false);
         }
     };
+
+
 
     const handleAnswer = (answer: string) => {
         if (selectedAnswer) return; // Already answered

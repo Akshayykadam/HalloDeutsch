@@ -1,5 +1,5 @@
 // Alphabet Screen - Interactive German alphabet learning with pronunciation
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,13 +7,15 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
+    ActivityIndicator
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as audioService from '../../services/audioService';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getAllLessons, getModuleForLesson, getNextLessonInModule } from '../../data/content/curriculum-service';
+import { getLessonById, getCurriculumModule } from '../../services/contentService';
 import { SafeArea, Button } from '../../components/ui';
+import { CurriculumLesson, CurriculumModule } from '../../types';
 import { ModuleCompleteModal, LessonCompleteModal } from '../../components/gamification';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -102,8 +104,34 @@ export const AlphabetScreen: React.FC = () => {
     const [showModuleComplete, setShowModuleComplete] = useState(false);
     const [showLessonComplete, setShowLessonComplete] = useState(false);
 
-    // Get current module for navigation
-    const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
+    const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
+    const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
+    const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            try {
+                if (lessonId) {
+                    const l = await getLessonById(lessonId);
+                    setLesson(l);
+                    if (l && l.moduleId) {
+                        const m = await getCurriculumModule(l.moduleId);
+                        setCurrentModule(m);
+                        if (m) {
+                            const idx = m.lessons.findIndex((x: any) => x.id === l.id);
+                            if (idx >= 0 && idx < m.lessons.length - 1) {
+                                setNextLesson(m.lessons[idx + 1]);
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.error(e); }
+            setLoading(false);
+        };
+        load();
+    }, [lessonId]);
 
     const handleComplete = () => {
         if (isCompleted) return;
@@ -116,8 +144,9 @@ export const AlphabetScreen: React.FC = () => {
 
     const handleLessonCompleteContinue = () => {
         setShowLessonComplete(false);
-        if (lessonId) {
-            const nextLessonInModule = getNextLessonInModule(lessonId);
+
+        if (nextLesson) {
+            const nextLessonInModule = nextLesson;
 
             if (nextLessonInModule) {
                 // Navigate to next lesson within module using replace to avoid stack buildup
@@ -136,10 +165,10 @@ export const AlphabetScreen: React.FC = () => {
                         navigation.replace('LessonDetail', { lessonId: nextLessonInModule.id });
                     }
                 }, 500);
-            } else {
-                // Last lesson in module - show module complete modal
-                setShowModuleComplete(true);
             }
+        } else if (lessonId) {
+            // Last lesson in module (if we had lessonId but no nextLesson)
+            setShowModuleComplete(true);
         } else {
             navigation.goBack();
         }
@@ -169,6 +198,16 @@ export const AlphabetScreen: React.FC = () => {
         setSpeakingLetter(null);
     };
 
+    if (loading) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
+
     return (
         <SafeArea style={styles.container}>
             {/* Lesson Complete Modal */}
@@ -178,7 +217,7 @@ export const AlphabetScreen: React.FC = () => {
                 xpEarned={10}
                 onContinue={handleLessonCompleteContinue}
                 onClose={handleBackPress}
-                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+                hasNextLesson={!!nextLesson}
             />
 
             {/* Module Complete Modal */}

@@ -9,6 +9,7 @@ import {
     Switch,
     Modal,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ import { isModelDownloaded, downloadModel, deleteModel, getModelSize } from '../
 import { FadeInView } from '../../components/common/FadeInView';
 import { getLevelDescription } from '../../utils/levelUtils';
 import { AuthSection } from '../../components/auth';
+import { seedDatabase } from '../../services/adminService';
 
 export const ProfileScreen: React.FC = () => {
     const { progress, updateProgress, reset: resetProgress, profile } = useUserStore();
@@ -39,6 +41,46 @@ export const ProfileScreen: React.FC = () => {
     const [modelSize, setModelSize] = useState<string>('0 MB');
     const [showResultModal, setShowResultModal] = useState<'success' | 'error' | null>(null);
     const [showConfirmModal, setShowConfirmModal] = useState<'deleteModel' | 'resetProgress' | null>(null);
+
+    // Admin / Developer State
+    const [showDevTools, setShowDevTools] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
+    const [seedProgress, setSeedProgress] = useState(0);
+    const [seedStatus, setSeedStatus] = useState('');
+
+    const handleSeedDB = async () => {
+        if (isSeeding) return;
+
+        Alert.alert(
+            "Seed All Content",
+            "This will upload Vocabulary, Curriculum, Grammar, and Exercises to Firestore. This may take a moment. Continue?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Upload All",
+                    onPress: async () => {
+                        setIsSeeding(true);
+                        setSeedProgress(0);
+                        setSeedStatus('Starting...');
+
+                        try {
+                            await seedDatabase((status, progress) => {
+                                setSeedStatus(status);
+                                setSeedProgress(progress);
+                            });
+                            Alert.alert("Success", "All content seeded successfully!");
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to seed content.");
+                            console.error(error);
+                        } finally {
+                            setIsSeeding(false);
+                            setSeedStatus('');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     // Check model status when settings modal opens
     const checkModelStatus = async () => {
@@ -79,6 +121,8 @@ export const ProfileScreen: React.FC = () => {
         setShowConfirmModal(null);
         resetProgress();
     };
+
+
 
     // Effect to check status when modal visibility changes
     // Effect to check status on mount
@@ -406,6 +450,51 @@ export const ProfileScreen: React.FC = () => {
                 </FadeInView>
 
 
+
+                {/* Developer Tools */}
+                <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xl, marginBottom: Spacing.sm, opacity: 0.5 }}
+                    onPress={() => setShowDevTools(!showDevTools)}
+                >
+                    <Ionicons name="hammer-outline" size={16} color={theme.text.secondary} />
+                    <Text style={{ marginLeft: 8, color: theme.text.secondary, fontSize: FontSize.sm }}>
+                        Developer Tools
+                    </Text>
+                </TouchableOpacity>
+
+                {showDevTools && (
+                    <View style={{ marginBottom: Spacing.xl, padding: Spacing.md, backgroundColor: theme.background.tertiary, borderRadius: BorderRadius.md, marginHorizontal: Spacing.lg }}>
+                        <Text style={{ fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: Spacing.md }}>
+                            Database Administration
+                        </Text>
+
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: isSeeding ? Colors.neutral[400] : Colors.primary[500],
+                                padding: Spacing.md,
+                                borderRadius: BorderRadius.md,
+                                alignItems: 'center',
+                                flexDirection: 'row',
+                                justifyContent: 'center'
+                            }}
+                            onPress={handleSeedDB}
+                            disabled={isSeeding}
+                        >
+                            {isSeeding ? (
+                                <ActivityIndicator size="small" color={Colors.white} style={{ marginRight: 8 }} />
+                            ) : (
+                                <Ionicons name="cloud-upload-outline" size={20} color={Colors.white} style={{ marginRight: 8 }} />
+                            )}
+                            <Text style={{ color: Colors.white, fontWeight: FontWeight.bold }}>
+                                {isSeeding ? (seedStatus || `${Math.round(seedProgress * 100)}%`) : 'Seed All Content'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Text style={{ fontSize: FontSize.xs, color: theme.text.tertiary, marginTop: Spacing.sm, textAlign: 'center' }}>
+                            Warning: This uploads Vocabulary, Curriculum, Grammar, and Exercises.
+                        </Text>
+                    </View>
+                )}
 
                 {/* App Info Footer */}
                 <FadeInView delay={500}>

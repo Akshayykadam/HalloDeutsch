@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as audioService from '../../services/audioService';
@@ -11,9 +11,8 @@ import { ModuleCompleteModal, LessonCompleteModal } from '../../components/gamif
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LightTheme, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
-import { getAllLessons, getModuleForLesson, getNextLessonInModule } from '../../data/content/curriculum-service';
-import { a1Vocabulary } from '../../data/content';
-import { VocabularyWord } from '../../types';
+import { getLessonById, getCurriculumModule, getVocabularyByDomains } from '../../services/contentService';
+import { VocabularyWord, CurriculumLesson, CurriculumModule } from '../../types';
 
 const { width } = Dimensions.get('window');
 
@@ -30,16 +29,11 @@ export const VocabularyLessonScreen: React.FC = () => {
     const [showModuleComplete, setShowModuleComplete] = useState(false);
     const [showLessonComplete, setShowLessonComplete] = useState(false);
 
-    // Get current module for navigation
-    const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
-
-
-    // Find current lesson and its vocabulary
-    const allLessons = getAllLessons();
-    const currentLesson = allLessons.find(l => l.id === lessonId);
-
-    const domains = currentLesson?.vocabularyDomains || [];
-    const lessonWords = a1Vocabulary.filter(w => domains.includes(w.domain)); // Exact match on domain string
+    const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
+    const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
+    const [lessonWords, setLessonWords] = useState<VocabularyWord[]>([]);
+    const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const domainTitles: Record<string, string> = {
         'time': 'Time Expressions',
@@ -57,6 +51,37 @@ export const VocabularyLessonScreen: React.FC = () => {
         'weather': 'Weather & Climate',
     };
 
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            try {
+                const l = await getLessonById(lessonId);
+                setLesson(l);
+
+                if (l && l.vocabularyDomains && l.vocabularyDomains.length > 0) {
+                    const words = await getVocabularyByDomains(l.vocabularyDomains);
+                    setLessonWords(words);
+                }
+
+                if (l && l.moduleId) {
+                    const m = await getCurriculumModule(l.moduleId);
+                    setCurrentModule(m);
+                    if (m) {
+                        const idx = m.lessons.findIndex((x: any) => x.id === l.id);
+                        if (idx >= 0 && idx < m.lessons.length - 1) {
+                            setNextLesson(m.lessons[idx + 1]);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            setLoading(false);
+        };
+        load();
+    }, [lessonId]);
+
+    const domains = lesson?.vocabularyDomains || [];
     const sections = domains.map(domain => {
         const words = lessonWords.filter(w => w.domain === domain);
         return {
@@ -65,6 +90,16 @@ export const VocabularyLessonScreen: React.FC = () => {
             words
         };
     }).filter(s => s.words.length > 0);
+
+    if (loading) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
 
     const speakWord = async (word: string) => {
         setSpeakingWord(word);
@@ -86,8 +121,9 @@ export const VocabularyLessonScreen: React.FC = () => {
 
     const handleLessonCompleteContinue = () => {
         setShowLessonComplete(false);
-        if (lessonId) {
-            const nextLessonInModule = getNextLessonInModule(lessonId);
+
+        if (nextLesson) {
+            const nextLessonInModule = nextLesson;
 
             if (nextLessonInModule) {
                 // Navigate to next lesson within module using replace to avoid stack buildup
@@ -128,11 +164,11 @@ export const VocabularyLessonScreen: React.FC = () => {
             {/* Lesson Complete Modal */}
             <LessonCompleteModal
                 visible={showLessonComplete}
-                lessonTitle={currentLesson?.title || 'Vocabulary'}
+                lessonTitle={lesson?.title || 'Vocabulary'}
                 xpEarned={15}
                 onContinue={handleLessonCompleteContinue}
                 onClose={handleBackPress}
-                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+                hasNextLesson={!!nextLesson}
             />
 
             {/* Module Complete Modal */}
@@ -150,8 +186,8 @@ export const VocabularyLessonScreen: React.FC = () => {
                     <Ionicons name="arrow-back" size={24} color={theme.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.headerContent}>
-                    <Text style={styles.headerTitle}>{currentLesson?.title || 'Vocabulary'}</Text>
-                    <Text style={styles.headerSubtitle}>{currentLesson?.titleDe || 'Wortschatz'}</Text>
+                    <Text style={styles.headerTitle}>{lesson?.title || 'Vocabulary'}</Text>
+                    <Text style={styles.headerSubtitle}>{lesson?.titleDe || 'Wortschatz'}</Text>
                 </View>
 
             </View>

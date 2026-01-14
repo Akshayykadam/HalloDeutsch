@@ -2,10 +2,10 @@
 // Provides unified access to modules and lessons across A1, A2, B1, B2
 
 import { CEFRLevel, CurriculumModule, CurriculumLesson } from '../../types';
-import { A1_MODULES, getModuleById as getA1ModuleById, getLessonById as getA1LessonById } from './a1-curriculum';
-import { A2_MODULES, getA2ModuleById, getA2LessonById } from './a2-curriculum';
-import { B1_MODULES, getB1ModuleById, getB1LessonById } from './b1-curriculum';
-import { B2_MODULES, getB2ModuleById, getB2LessonById } from './b2-curriculum';
+import { A1_MODULES } from './a1-curriculum';
+import { A2_MODULES } from './a2-curriculum';
+import { B1_MODULES } from './b1-curriculum';
+import { B2_MODULES } from './b2-curriculum';
 
 // All modules by level
 export const ALL_MODULES: Record<CEFRLevel, CurriculumModule[]> = {
@@ -27,18 +27,12 @@ export const getAllModules = (): CurriculumModule[] => {
 
 // Get module by ID (searches all levels)
 export const getModuleById = (moduleId: string): CurriculumModule | undefined => {
-    return getA1ModuleById(moduleId)
-        || getA2ModuleById(moduleId)
-        || getB1ModuleById(moduleId)
-        || getB2ModuleById(moduleId);
+    return getAllModules().find(m => m.id === moduleId);
 };
 
 // Get lesson by ID (searches all levels)
 export const getLessonById = (lessonId: string): CurriculumLesson | undefined => {
-    return getA1LessonById(lessonId)
-        || getA2LessonById(lessonId)
-        || getB1LessonById(lessonId)
-        || getB2LessonById(lessonId);
+    return getAllLessons().find(l => l.id === lessonId);
 };
 
 // Get all lessons for a level

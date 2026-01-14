@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as audioService from '../../services/audioService';
+import { searchVocabulary } from '../../services/contentService';
 import { Card, Badge, Button, SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -138,15 +139,44 @@ export const DictionaryScreen: React.FC = () => {
 
     const levels: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2'];
 
-    const lookupWord = async (word: string) => {
-        if (!word.trim()) return;
+    const lookupWord = async (query: string) => {
+        if (!query.trim()) return;
 
         setIsLoading(true);
         setError(null);
         setEntry(null);
 
         try {
-            const prompt = `You are a German dictionary. Look up the German word "${word}".
+            // Priority 1: Check Firestore (Cloud Content)
+            const results = await searchVocabulary(query.trim());
+            if (results && results.length > 0) {
+                // Find exact match or use first result
+                const exactMatch = results.find(w => w.german.toLowerCase() === query.trim().toLowerCase());
+                const bestMatch = exactMatch || results[0];
+
+                // Adapting VocabularyWord to DictionaryEntry format
+                // Our VocabularyWord type is slightly different, so we map it
+                const dictEntry: DictionaryEntry = {
+                    word: bestMatch.german,
+                    // @ts-ignore: Assuming gender exists on bestMatch
+                    gender: bestMatch.gender,
+                    // @ts-ignore
+                    plural: bestMatch.plural,
+                    pronunciation: bestMatch.pronunciation || '',
+                    partOfSpeech: bestMatch.partOfSpeech,
+                    // @ts-ignore
+                    meanings: [bestMatch.english], // Simple string to array
+                    examples: [], // VocabularyWord doesn't have examples yet
+                    level: bestMatch.level as CEFRLevel,
+                };
+
+                setEntry(dictEntry);
+                setIsLoading(false);
+                return;
+            }
+
+            // Priority 2: AI Fallback
+            const prompt = `Define the German word "${query}". Look up the German word "${query}".
       
       Provide a comprehensive dictionary entry in JSON format:
       {

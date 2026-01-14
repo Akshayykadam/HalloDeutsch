@@ -126,11 +126,15 @@ export interface VocabularyMastery {
 export interface GrammarTopic {
     id: string;
     title: string;
+    titleDe?: string;
     description: string;
     level: CEFRLevel;
     order: number;
     estimatedMinutes: number;
-    concepts: string[];
+    concepts?: string[];
+    lessons: number;
+    completedLessons: number;
+    examples: Array<{ german: string; english: string }>;
 }
 
 // Lesson (legacy - kept for compatibility)
@@ -165,7 +169,8 @@ export interface CurriculumModule {
     estimatedHours: number;
     lessons: CurriculumLesson[];
     isLocked: boolean;
-    completionPercentage: number;
+    isCompleted: boolean;
+    progress: number;
     iconName: string;                   // Ionicons name
 }
 
@@ -376,6 +381,7 @@ export type RootStackParamList = {
     Vocabulary: undefined;
     Dictionary: undefined;
     Lesson: { lessonId: string };
+    GrammarLesson: { lessonId: string }; // Add this
     Conversation: { scenarioId: string };
     VocabularyDetail: { wordId: string };
     GrammarDetail: { topicId: string };

@@ -982,7 +982,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1,
         lessons: m1_lessons,
         isLocked: false,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'text',
     },
     {
@@ -996,7 +997,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1.5,
         lessons: m2_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'time',
     },
     {
@@ -1010,7 +1012,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 2,
         lessons: m3_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'layers',
     },
     {
@@ -1024,7 +1027,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 2,
         lessons: m4_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'git-branch',
     },
     {
@@ -1038,7 +1042,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 2,
         lessons: m5_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'flash',
     },
     {
@@ -1052,7 +1057,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1.5,
         lessons: m6_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'sunny',
     },
     {
@@ -1066,7 +1072,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1.5,
         lessons: m7_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'navigate',
     },
     {
@@ -1080,7 +1087,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1.5,
         lessons: m8_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'cart',
     },
     {
@@ -1094,7 +1102,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 1.5,
         lessons: m9_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'people',
     },
     {
@@ -1108,7 +1117,8 @@ export const A1_MODULES: CurriculumModule[] = [
         estimatedHours: 2,
         lessons: m10_lessons,
         isLocked: true,
-        completionPercentage: 0,
+        progress: 0,
+        isCompleted: false,
         iconName: 'trophy',
     },
 ];

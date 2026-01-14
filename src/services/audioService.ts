@@ -91,7 +91,7 @@ export const speak = async (
         return new Promise((resolve) => {
             const speechOptions: Speech.SpeechOptions = {
                 language: 'de-DE',
-                rate: slow ? 0.6 : 0.85,
+                rate: slow ? 0.5 : 0.7,
                 pitch: 1.0,
                 onDone: () => {
                     isPlaying = false;

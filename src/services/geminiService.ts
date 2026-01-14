@@ -574,3 +574,55 @@ export const generateStory = async (
         return null;
     }
 };
+
+// Generate flashcards for a specific topic
+export const generateFlashcards = async (
+    level: CEFRLevel,
+    topic: string,
+    count: number = 5
+): Promise<VocabularyWord[]> => {
+    try {
+        const prompt = `Generate ${count} German vocabulary words related to "${topic}" for ${level} level learners.
+    
+    Respond in JSON format as an array of objects:
+    [
+      {
+        "german": "German word",
+        "english": "English translation",
+        "gender": "der/die/das",
+        "partOfSpeech": "noun/verb/adjective etc",
+        "exampleSentence": "Simple German example sentence",
+        "exampleTranslation": "English translation of example"
+      }
+    ]`;
+
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: prompt,
+        });
+
+        const text = response.text;
+        if (!text) return [];
+
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) return [];
+
+        const parsed: any[] = JSON.parse(jsonMatch[0]);
+
+        return parsed.map((item, index) => ({
+            id: `gen-card-${Date.now()}-${index}`,
+            german: item.german,
+            english: item.english,
+            pronunciation: '', // Optional or could be generated
+            partOfSpeech: item.partOfSpeech,
+            gender: item.gender,
+            level: level,
+            domain: topic,
+            exampleSentence: item.exampleSentence,
+            exampleTranslation: item.exampleTranslation,
+        }));
+    } catch (error) {
+        console.error('Error generating flashcards:', error);
+        return [];
+    }
+};

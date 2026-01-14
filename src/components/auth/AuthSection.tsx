@@ -216,7 +216,7 @@ export const AuthSection: React.FC<AuthSectionProps> = ({ theme, isDark }) => {
                     <View style={styles.authInfoRow}>
                         <View style={styles.authTextContainer}>
                             <Text style={[styles.userEmail, { color: theme.text.primary }]}>
-                                {user.email}
+                                {user.email || 'No Email'}
                             </Text>
                             <View style={styles.syncStatusRow}>
                                 <Ionicons name="cloud-done" size={12} color={Colors.success[500]} />
@@ -254,7 +254,7 @@ export const AuthSection: React.FC<AuthSectionProps> = ({ theme, isDark }) => {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </View >
         );
     }
 
@@ -560,6 +560,11 @@ const getAuthStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     },
     authTextContainer: {
         alignItems: 'center',
+    },
+    userEmail: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.semibold,
+        marginBottom: 4,
     },
     syncStatusRow: {
         flexDirection: 'row',

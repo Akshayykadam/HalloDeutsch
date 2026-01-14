@@ -17,7 +17,7 @@ import { ChatBubble, SuggestedResponses } from '../../components/chat';
 import { SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LightTheme, LevelColors } from '../../theme';
 import { CurriculumLesson } from '../../types';
-import { getLessonById } from '../../data/content/curriculum-service';
+import { getLessonById } from '../../services/contentService';
 import { generateLessonResponse, checkGrammar } from '../../services/geminiService';
 
 interface Message {
@@ -31,7 +31,8 @@ interface Message {
 
 export const LessonChatScreen = ({ navigation, route }: { navigation: any; route: any }) => {
     const { lessonId } = route.params;
-    const lesson = getLessonById(lessonId);
+    const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
+    const [initializing, setInitializing] = useState(true);
 
     const scrollViewRef = useRef<ScrollView>(null);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -39,6 +40,15 @@ export const LessonChatScreen = ({ navigation, route }: { navigation: any; route
     const [isLoading, setIsLoading] = useState(false);
     const [showTranslations, setShowTranslations] = useState(true);
     const [suggestions, setSuggestions] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchLesson = async () => {
+            const l = await getLessonById(lessonId);
+            setLesson(l);
+            setInitializing(false);
+        };
+        fetchLesson();
+    }, [lessonId]);
 
     const levelColor = lesson ? LevelColors[lesson.type === 'vocabulary' ? 'A1' : 'A1'] : LevelColors.A1;
 
@@ -205,6 +215,16 @@ export const LessonChatScreen = ({ navigation, route }: { navigation: any; route
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    if (initializing) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
 
     if (!lesson) {
         return (

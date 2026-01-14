@@ -7,6 +7,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,8 +18,8 @@ import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows, Layout } 
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
 import * as Haptics from 'expo-haptics';
-import { getModuleById, getLessonById, getModuleForLesson, getNextLessonInModule } from '../../data/content/curriculum-service';
-import { getGrammarTopicForLesson } from '../../data/content/grammar-content';
+import { getLessonById, getCurriculumModule, getGrammarTopics } from '../../services/contentService';
+import { CurriculumLesson, CurriculumModule, GrammarTopic } from '../../types';
 
 export const GrammarLessonScreen: React.FC = () => {
     const navigation = useNavigation<any>();
@@ -28,66 +29,164 @@ export const GrammarLessonScreen: React.FC = () => {
     const styles = getStyles(theme);
     const { progress, markLessonComplete, unlockNextLesson, updateGrammarTopicsCompleted } = useUserStore();
 
-    const lesson = getLessonById(lessonId);
-
-    // Get topic from grammar-content or create fallback from lesson data
-    const grammarTopic = lesson ? getGrammarTopicForLesson(lesson.title) : undefined;
-    const topic = grammarTopic || (lesson ? {
-        id: lesson.id,
-        title: lesson.title,
-        titleDe: lesson.titleDe,
-        description: lesson.whatLearning,
-        level: lesson.id.startsWith('a2') ? 'A2' : lesson.id.startsWith('b1') ? 'B1' : lesson.id.startsWith('b2') ? 'B2' : 'A1',
-        lessons: 1,
-        completedLessons: 0,
-        examples: [
-            { german: lesson.whereUsed.split('.')[0] || lesson.titleDe, english: lesson.whyLearning }
-        ]
-    } : undefined);
+    const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
+    const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
+    const [topic, setTopic] = useState<GrammarTopic | undefined>(undefined);
+    const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const [speakingText, setSpeakingText] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
     const [showModuleComplete, setShowModuleComplete] = useState(false);
     const [showLessonComplete, setShowLessonComplete] = useState(false);
 
-    // Get current module for navigation
-    const currentModule = lessonId ? getModuleForLesson(lessonId) : undefined;
-
     useEffect(() => {
-        if (!lesson) return;
-        // Check if already completed
-        // Logic handled by store usually, but we can verify
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                // Check if lessonId is actually a topic ID (e.g. "a1-articles") vs lesson ID ("a1-m1-l1")
+                const isTopicId = !lessonId.match(/^[a-z0-9]+-m\d+-l\d+$/);
+
+                if (isTopicId) {
+                    // Direct Topic Mode
+                    const topicData = (await getGrammarTopics('A1')).find(t => t.id === lessonId) ||
+                        (await getGrammarTopics('A2')).find(t => t.id === lessonId) ||
+                        (await getGrammarTopics('B1')).find(t => t.id === lessonId) ||
+                        (await getGrammarTopics('B2')).find(t => t.id === lessonId);
+
+                    if (topicData) {
+                        setTopic(topicData);
+                        // Create a dummy lesson object for the UI
+                        setLesson({
+                            id: topicData.id,
+                            moduleId: 'practice-mode',
+                            order: 0,
+                            title: topicData.title,
+                            titleDe: topicData.titleDe,
+                            type: 'grammar',
+                            whatLearning: topicData.description,
+                            whyLearning: 'Mastering grammar rules',
+                            whereUsed: 'Everyday communication',
+                            estimatedMinutes: 5,
+                            grammarTopics: [topicData.id],
+                            exercises: [],
+                            masteryThreshold: 80,
+                            isLocked: false,
+                            isCompleted: false,
+                            progress: 0
+                        });
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                // Standard Lesson Mode (existing logic)
+                // 1. Fetch Lesson
+                const lessonData = await getLessonById(lessonId);
+                if (!lessonData) {
+                    // Try treating as topic ID as fallback
+                    const topicData = (await getGrammarTopics('A1')).find(t => t.id === lessonId);
+                    if (topicData) {
+                        setTopic(topicData);
+                        setLesson({
+                            id: topicData.id,
+                            moduleId: 'grammar-ref',
+                            order: 0,
+                            title: topicData.title,
+                            titleDe: topicData.titleDe,
+                            type: 'grammar',
+                            whatLearning: topicData.description,
+                            whyLearning: 'Refining grammar skills',
+                            whereUsed: 'Formal and informal speech',
+                            estimatedMinutes: 5,
+                            grammarTopics: [topicData.id],
+                            exercises: [],
+                            masteryThreshold: 80, isLocked: false, isCompleted: false, progress: 0
+                        });
+                        setLoading(false);
+                        return;
+                    }
+
+                    setLoading(false);
+                    return;
+                }
+                setLesson(lessonData);
+
+                // 2. Fetch Module (if linked)
+                if (lessonData.moduleId) {
+                    const moduleData = await getCurriculumModule(lessonData.moduleId);
+                    if (moduleData) {
+                        setCurrentModule(moduleData);
+                        // 3. Find Next Lesson
+                        const idx = moduleData.lessons.findIndex((l: any) => l.id === lessonData.id);
+                        if (idx >= 0 && idx < moduleData.lessons.length - 1) {
+                            setNextLesson(moduleData.lessons[idx + 1]);
+                        }
+                    }
+                }
+
+                // 4. Find Grammar Topic
+                const level = lessonData.id.startsWith('a2') ? 'A2' : lessonData.id.startsWith('b1') ? 'B1' : lessonData.id.startsWith('b2') ? 'B2' : 'A1';
+                const topics = await getGrammarTopics(level);
+
+                let foundTopic = undefined;
+                // Fuzzy match logic
+                const title = lessonData.title.toLowerCase();
+                if (lessonData.grammarTopics && lessonData.grammarTopics.length > 0) {
+                    foundTopic = topics.find(t => t.id === lessonData.grammarTopics![0]);
+                }
+
+                if (!foundTopic) {
+                    if (title.includes('article') || title.includes('gender')) foundTopic = topics.find(t => t.id === 'a1-articles');
+                    else if (title.includes('structure') || title.includes('question')) foundTopic = topics.find(t => t.id === 'a1-sentence-structure');
+                    else if (title.includes('negation') || title.includes('nicht')) foundTopic = topics.find(t => t.id === 'a1-negation');
+                    else if (title.includes('perfekt') || title.includes('past')) foundTopic = topics.find(t => t.id === 'a2-perfekt');
+                    else if (title.includes('modal')) foundTopic = topics.find(t => t.id === 'a2-modal-verbs');
+                    else {
+                        foundTopic = topics.find(t => title.includes(t.title.toLowerCase()));
+                    }
+                }
+
+                // Fallback topic if none found
+                if (!foundTopic) {
+                    foundTopic = {
+                        id: lessonData.id,
+                        title: lessonData.title,
+                        titleDe: lessonData.titleDe,
+                        description: lessonData.whatLearning,
+                        level: level as any,
+                        lessons: 1,
+                        completedLessons: 0,
+                        examples: [
+                            { german: lessonData.whereUsed ? lessonData.whereUsed.split('.')[0] : lessonData.titleDe, english: lessonData.whyLearning }
+                        ],
+                        estimatedMinutes: 5,
+                        order: 0
+                    };
+                }
+                setTopic(foundTopic);
+
+            } catch (error) {
+                console.error("Error loading grammar lesson:", error);
+            }
+            setLoading(false);
+        };
+        fetchData();
     }, [lessonId]);
 
     const speakGerman = async (text: string) => {
         setSpeakingText(text);
-        // Haptic feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
         await audioService.speak(text);
         setSpeakingText(null);
     };
 
     const handleComplete = async () => {
         if (!lesson) return;
-
-        // 1. Mark complete
         await markLessonComplete(lesson.id);
         setIsCompleted(true);
-
-        // 2. Track grammar topic completion
         updateGrammarTopicsCompleted(1);
-
-        // 3. Unlock next
-        const nextId = unlockNextLesson(lesson.id);
-
-        // 4. Find next lesson object
-        let nextLesson = null;
-        if (nextId) {
-            nextLesson = getLessonById(nextId);
-        }
-
-        // Show changes visually (optional delay)
+        unlockNextLesson(lesson.id);
         setShowLessonComplete(true);
     };
 
@@ -95,11 +194,9 @@ export const GrammarLessonScreen: React.FC = () => {
         setShowLessonComplete(false);
         if (!lesson) return;
 
-        // Check for next lesson within the same module
-        const nextLessonInModule = getNextLessonInModule(lesson.id);
-
-        if (nextLessonInModule) {
-            // Navigate to next lesson within module using replace
+        if (nextLesson) {
+            const nextLessonInModule = nextLesson;
+            // Navigate to next lesson
             if (nextLessonInModule.type === 'vocabulary') {
                 navigation.replace('VocabularyLesson', { lessonId: nextLessonInModule.id });
             } else if (nextLessonInModule.vocabularyDomains?.includes('numbers')) {
@@ -114,7 +211,6 @@ export const GrammarLessonScreen: React.FC = () => {
                 navigation.replace('LessonDetail', { lessonId: nextLessonInModule.id });
             }
         } else {
-            // Last lesson in module - show module complete modal
             setShowModuleComplete(true);
         }
     };
@@ -127,6 +223,16 @@ export const GrammarLessonScreen: React.FC = () => {
     const handleBackPress = () => {
         navigation.goBack();
     };
+
+    if (loading) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
 
     if (!lesson || !topic) {
         return (
@@ -148,7 +254,7 @@ export const GrammarLessonScreen: React.FC = () => {
                 xpEarned={20}
                 onContinue={handleNextLesson}
                 onClose={handleBackPress}
-                hasNextLesson={!!getNextLessonInModule(lessonId || '')}
+                hasNextLesson={!!nextLesson}
             />
 
             {/* Module Complete Modal */}

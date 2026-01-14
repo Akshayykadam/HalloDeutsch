@@ -3,57 +3,40 @@
 ![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android)
 ![Tech](https://img.shields.io/badge/Built%20With-Expo%20%7C%20React%20Native-61DAFB?style=for-the-badge&logo=react)
 ![AI](https://img.shields.io/badge/Powered%20By-Google%20Gemini-8E75B2?style=for-the-badge&logo=google)
+![Backend](https://img.shields.io/badge/Database-Firebase%20Firestore-FFCA28?style=for-the-badge&logo=firebase)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-**HalloDeutsch** is a comprehensive German language learning application built with React Native and Expo. It combines structured curriculum content with AI-powered features to create an engaging and effective learning experience.
+**HalloDeutsch** is a comprehensive German language learning application built with React Native and Expo. It combines cloud-synced curriculum content with cutting-edge AI features to create a personalized, high-retention learning journey.
 
 ---
 
 ## ✨ Features
 
-### 📚 Learning Modules
-
-| Module | Description |
-|--------|-------------|
-| **Grammar Reference** | Complete A1-B2 grammar lessons with explanations and examples |
-| **Vocabulary Training** | Curated word lists organized by topic with audio pronunciation |
-| **Reading Practice** | Level-appropriate texts with translation support |
-| **Sentence Formation** | Practice building German sentences with grammar tips |
-| **Dictionary** | Integrated German-English dictionary lookup |
+### 📚 Structured Curriculum (Cloud-Powered)
+All course content is delivered via **Google Cloud Firestore**, allowing for real-time updates and extensive data coverage.
+| Level | Status | Content |
+|-------|--------|---------|
+| **A1** | ✅ Complete | Alphabet, Numbers, Greetings, Basic Grammar |
+| **A2** | ✅ Complete | Extended Vocabulary, Past Tense, Modal Verbs |
+| **B1** | ✅ Complete | Complex Sentences, Subordinate Clauses, Travel |
+| **B2** | 🚧 Beta | Academic Vocabulary, Professional Communication |
 
 ### 🤖 AI-Powered Features
+- **✨ AI Flashcards**: Generate custom vocabulary decks on any topic (e.g., "Space", "Coffee Shop", "Tech Interviews"). 
+- **Snap & Learn**: Take a photo of objects to learn their German word, gender, and usage.
+- **AI Stories**: Personalize your reading practice with level-appropriate stories generated on-demand.
+- **Interactive Chat**: Practice role-playing scenarios with real-time AI feedback.
 
-- **Snap & Learn**: Take a photo of any object to learn its German word, gender (der/die/das), and example sentences
-- **AI Stories**: Generate custom stories on any topic for your level with vocabulary highlights
-- **Interactive Chat**: Role-play real-world scenarios with AI feedback on grammar and vocabulary
-- **AI Pen Pal**: Practice written German with an AI writing partner that provides corrections
+### 🎯 Spaced Repetition System (SRS)
+- **Leitner System Implementation**: Optimize your memory retention with a smart flashcard system.
+- **Progressive Learning**: Cards move through boxes as you master them.
+- **Session Complete Screen**: Dynamic feedback showing XP earned and summary of cards mastered.
+- **Audio Integration**: Native-like Text-to-Speech (TTS) for every German word.
 
-### 🎯 Practice & Skills
-
-- **Pronunciation Coach**: Listen to native pronunciation and practice speaking
-- **Flashcards**: Spaced repetition system (SRS) for effective vocabulary retention
-- **Quizzes**: Test your knowledge with interactive multiple-choice quizzes
-- **Word of the Day**: Daily vocabulary boost with example sentences
-
-### 🌍 Cultural Learning
-
-- **Cultural Guide**: Essential tips about German customs, etiquette, and daily life
-- **Culture Quiz**: Test your knowledge of German culture
-- **Useful Phrases**: Common expressions for real-world situations
-
-### 🎮 Gamification
-
-- **XP & Levels**: Earn experience points for completing lessons
-- **Daily Streaks**: Build consistency with streak tracking
-- **Hearts System**: Encourages careful learning
-- **Achievements**: Unlock badges for reaching milestones
-
-### 🎨 User Experience
-
-- **Modern UI**: Clean, intuitive design with smooth animations
-- **Dark Mode**: Full dark theme support for comfortable night learning
-- **Haptic Feedback**: Tactile responses for interactions
-- **Offline Support**: Core lessons work without internet
+### 🎮 Gamification & Growth
+- **Daily Streaks**: Stay motivated with daily consistency tracking.
+- **XP & Leveling Up**: Earn experience for every lesson and flashcard mastered.
+- **Success UI**: Rewarding animations and glassmorphic design elements.
 
 ---
 
@@ -62,198 +45,57 @@
 | Category | Technology |
 |----------|------------|
 | **Framework** | React Native with Expo SDK 53 |
-| **Language** | TypeScript |
-| **Navigation** | React Navigation (Stack + Bottom Tabs) |
-| **State** | React Context + Zustand |
-| **Storage** | AsyncStorage |
-| **AI** | Google Gemini API |
-| **TTS** | expo-speech (German voice) |
-| **Styling** | Custom Theme System |
-| **Icons** | Ionicons |
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── components/          # Reusable UI components
-│   ├── common/          # Buttons, cards, inputs
-│   ├── gamification/    # XP bars, hearts, streaks
-│   └── ...
-├── context/             # React Context providers
-│   ├── ThemeContext.tsx
-│   └── UserContext.tsx
-├── data/                # Static content and data
-│   └── content/         # Vocabulary, grammar, stories
-├── navigation/          # App navigation setup
-├── screens/             # Screen components
-│   ├── home/
-│   ├── learn/
-│   ├── practice/
-│   ├── tools/
-│   ├── profile/
-│   └── ...
-├── services/            # API and utility services
-│   └── audioService.ts  # TTS functionality
-├── stores/              # Zustand stores
-└── theme/               # Colors, typography, spacing
-```
+| **Backend** | Firebase (Auth + Firestore) |
+| **AI Engine** | Google Gemini (1.5 Flash/Pro) |
+| **State** | Zustand (Persistent Storage) |
+| **TTS** | Expo Speech (German-DE Voice) |
+| **Navigation** | React Navigation 7 |
+| **Styling** | Modern Theme System (Dark/Light) |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-- **Node.js** v20+ (required for Metro bundler)
-- **npm** or **yarn**
-- **Android Studio** with an emulator (for development)
-- **Expo CLI** (`npm install -g expo-cli`)
+- **Node.js** v20+
+- **Expo Go** (available on Play Store/App Store)
+- **Firebase Project** (configured for web/android)
 
 ### Installation
-
-1. **Clone the repository**
+1. **Clone & Install**
    ```bash
-   git clone https://github.com/yourusername/GermanLearnerApp.git
-   cd GermanLearnerApp
-   ```
-
-2. **Install dependencies**
-   ```bash
+   git clone https://github.com/yourusername/HalloDeutsch.git
+   cd HalloDeutsch
    npm install
    ```
 
-3. **Configure API Keys**
-   
-   Create `src/config.ts`:
+2. **Configuration**
+   Add your API keys in `src/config.ts`:
    ```typescript
    export const Config = {
-       GEMINI_API_KEY: 'your-gemini-api-key-here',
+       GEMINI_API_KEY: 'your-gemini-key',
+       FIREBASE_CONFIG: {
+           apiKey: "...",
+           projectId: "...",
+           // ... other firebase keys
+       }
    };
    ```
-   > ⚠️ `src/config.ts` is git-ignored to protect your API keys.
 
-4. **Start development server**
+3. **Running**
    ```bash
-   npx expo run:android
+   npx expo start
    ```
-
----
-
-## 📦 Building Release APK
-
-1. **Generate native Android project**
-   ```bash
-   npx expo prebuild --platform android
-   ```
-
-2. **Build release APK**
-   ```bash
-   cd android && ./gradlew assembleRelease
-   ```
-
-3. **Find APK at**
-   ```
-   android/app/build/outputs/apk/release/app-release.apk
-   ```
-
-### Signing for Production
-
-For Play Store submission, configure signing in `android/app/build.gradle`:
-
-```gradle
-android {
-    signingConfigs {
-        release {
-            storeFile file('your-keystore.jks')
-            storePassword 'your-store-password'
-            keyAlias 'your-key-alias'
-            keyPassword 'your-key-password'
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-        }
-    }
-}
-```
-
-### Optimization for Production
-
-To significantly reduce the APK size (often by 30-50%), you should enable ProGuard/R8 in the release build.
-
-1. Open `android/app/build.gradle`
-2. Find the `def enableProGuardInReleaseBuilds = false` line
-3. Change it to `true`:
-   ```gradle
-   def enableProGuardInReleaseBuilds = true
-   ```
-4. Rebuild the release APK.
-
----
-
-## 📱 Screenshots
-
-| Home | Learn | Practice | Cultural Guide |
-|:----:|:-----:|:--------:|:--------------:|
-| *Add screenshot* | *Add screenshot* | *Add screenshot* | *Add screenshot* |
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_API_KEY` | Google Gemini API key for AI features |
-
-### Customization
-
-- **Theme Colors**: Edit `src/theme/colors.ts`
-- **Content**: Add vocabulary/grammar in `src/data/content/`
-- **App Config**: Modify `app.json` for app name, icons, splash
 
 ---
 
 ## 📋 Roadmap
-
-- [ ] iOS support
-- [ ] Cloud sync for progress
-- [ ] Social features (friends, leaderboards)
-- [ ] Speech recognition for pronunciation feedback
-- [ ] C1-C2 level content
-- [ ] Offline AI features
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- [ ] **Offline Mode**: Local caching of Firestore content.
+- [ ] **Speech Recognition**: Voice-activated pronunciation grading.
+- [ ] **C1 Professional**: Preparation for TestDaF/Telc C1 exams.
+- [ ] **Social**: Global leaderboards and friend challenges.
 
 ---
 
 ## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 🙏 Acknowledgments
-
-- [Expo](https://expo.dev/) for the amazing development platform
-- [Google Gemini](https://deepmind.google/technologies/gemini/) for AI capabilities
-- [React Navigation](https://reactnavigation.org/) for navigation
-- German language resources and native speakers who contributed content
-
----
-
-**Made with ❤️ for German learners everywhere**
+MIT License - Made with ❤️ for German learners everywhere.

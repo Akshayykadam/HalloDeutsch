@@ -6,6 +6,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,13 +15,18 @@ import { Card, Badge, ProgressBar, Button, SafeArea } from '../../components/ui'
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LevelColors, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
-import { CEFRLevel } from '../../types';
-import { grammarTopics, GrammarTopic } from '../../data/content/grammar-content';
+import { CEFRLevel, GrammarTopic } from '../../types';
+import { getGrammarTopics } from '../../services/contentService';
 
 
+
+import { RootStackParamList } from '../../types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type GrammarScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Grammar'>;
 
 export const GrammarScreen: React.FC = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<GrammarScreenNavigationProp>();
     const { theme } = useTheme();
     const styles = getStyles(theme);
     const { progress } = useUserStore();
@@ -36,10 +42,30 @@ export const GrammarScreen: React.FC = () => {
 
     const levels: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2'];
 
-    // Use the comprehensive list defined above
-    const cleanTopics = grammarTopics;
+    const [grammarTopics, setGrammarTopics] = useState<GrammarTopic[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const filteredTopics = cleanTopics.filter(t => t.level === selectedLevel);
+    React.useEffect(() => {
+        const fetchTopics = async () => {
+            setLoading(true);
+            const data = await getGrammarTopics(selectedLevel);
+            setGrammarTopics(data);
+            setLoading(false);
+        };
+        fetchTopics();
+    }, [selectedLevel]);
+
+    const filteredTopics = grammarTopics;
+
+    if (loading && !selectedTopic) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
 
     if (selectedTopic) {
         return (
@@ -102,7 +128,24 @@ export const GrammarScreen: React.FC = () => {
 
                     <Button
                         title="Start Lesson"
-                        onPress={() => { }}
+                        onPress={() => {
+                            // Find a lesson that matches this topic or use topic ID as pseudo-lesson ID
+                            // Ideally we query for the specific lesson, but for now we can pass the topic ID
+                            // and letting GrammarLessonScreen handle it is the most robust way given our current data structure.
+                            // However, GrammarLessonScreen expects a 'lessonId'. 
+                            // Since we don't have a direct link from Topic -> LessonId in the topic object,
+                            // we will attempt to find a lesson with this topic in the curriculum, 
+                            // or fallback to a constructing a valid lesson ID format if possible.
+
+                            // For now, let's pass a special ID format that GrammarLessonScreen can detect,
+                            // or simply assume there's a lesson with ID matching the topic (which might not be true).
+
+                            // BETTER APPROACH: Search for a lesson with this topic
+                            // But that requires async searching which we can't do easily in this onPress.
+                            // So we will navigate to GrammarLessonScreen and let it handle the lookup or display the topic directly.
+                            // We'll pass the topic.id as the lessonId, and update GrammarLessonScreen to handle this case.
+                            navigation.navigate('GrammarLesson', { lessonId: selectedTopic.id });
+                        }}
                         size="large"
                         fullWidth
                     />

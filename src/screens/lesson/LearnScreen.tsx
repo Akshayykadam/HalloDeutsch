@@ -7,6 +7,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +17,8 @@ import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LevelColors, Shado
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
 import { CEFRLevel, CurriculumModule, CurriculumLesson } from '../../types';
-import { getModulesForLevel, getModuleById, getLevelStats, AVAILABLE_LEVELS, LEVEL_DESCRIPTIONS } from '../../data/content/curriculum-service';
+import { getLevelStats, AVAILABLE_LEVELS, LEVEL_DESCRIPTIONS } from '../../data/content/curriculum-service';
+import { getCurriculumModules, getCurriculumModule } from '../../services/contentService';
 import { getLevelTitle } from '../../utils/levelUtils';
 import { VocabularyScreen } from '../vocabulary';
 import { GrammarScreen } from '../grammar';
@@ -170,11 +172,32 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ module, onPress, levelColor }) 
 // Module Detail Screen - Lesson List
 // ============================================
 const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
-    const { moduleId } = route.params;
+    const { moduleId, startIndex } = route.params;
     const { theme } = useTheme();
     const styles = getStyles(theme);
     const { progress } = useUserStore();
-    const module = getModuleById(moduleId);
+    const [module, setModule] = useState<CurriculumModule | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchModule = async () => {
+            setLoading(true);
+            const data = await getCurriculumModule(moduleId);
+            setModule(data);
+            setLoading(false);
+        };
+        fetchModule();
+    }, [moduleId]);
+
+    if (loading) {
+        return (
+            <SafeArea style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                </View>
+            </SafeArea>
+        );
+    }
 
     if (!module) {
         return (
@@ -185,10 +208,13 @@ const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
     }
 
     const levelColor = LevelColors[module.levelId];
+    // Need to re-fetch modules for calculating global index? 
+    // Or just store lesson counts?
+    // For now, let's skip the accurate "previous lessons count" logic or fetch all modules first.
+    // Ideally we pass that info or fetch all modules.
+    // Let's simplified: just assume local index for now or fetch all sibling modules.
 
     const handleLessonPress = (lesson: CurriculumLesson) => {
-        // Lock check is handled by the caller/render logic
-
         // special routing for Pronunciation lessons (Alphabet, Umlauts, Sounds)
         if (lesson.type === 'pronunciation' || lesson.title.toLowerCase().includes('alphabet')) {
             navigation.navigate('Alphabet', { lessonId: lesson.id });
@@ -268,14 +294,8 @@ const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
                     const isLast = index === module.lessons.length - 1;
 
                     // Calculate dynamic status
-                    // Count previous lessons
-                    let mIndex = 0;
-                    let previousLessonsCount = 0;
-                    const currentModules = getModulesForLevel(module.levelId);
-                    for (const m of currentModules) {
-                        if (m.id === module.id) break;
-                        previousLessonsCount += m.lessons.length;
-                    }
+                    // Count previous lessons using passed startIndex
+                    const previousLessonsCount = startIndex || 0;
 
                     const globalIndex = previousLessonsCount + index;
                     const isLessonCompleted = globalIndex < progress.lessonsCompleted;
@@ -402,14 +422,28 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { theme } = useTheme();
     const styles = getStyles(theme);
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
+    const [rawModules, setRawModules] = useState<CurriculumModule[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    React.useEffect(() => {
+        const fetchModules = async () => {
+            setLoading(true);
+            const data = await getCurriculumModules(selectedLevel);
+            setRawModules(data);
+            setLoading(false);
+        };
+        fetchModules();
+    }, [selectedLevel]);
 
     const levels: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2'];
-    const rawModules = getModulesForLevel(selectedLevel);
 
     // Process modules to add dynamic locking/progress
     let cumulativeLessonCount = 0;
+    const moduleStarts: Record<string, number> = {};
+
     const modules = rawModules.map(m => {
         const moduleStart = cumulativeLessonCount;
+        moduleStarts[m.id] = moduleStart;
         const moduleLength = m.lessons.length;
         cumulativeLessonCount += moduleLength;
 
@@ -435,11 +469,14 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const levelColor = LevelColors[selectedLevel];
 
     // Check if level has modules
-    const isLevelAvailable = modules.length > 0;
+    const isLevelAvailable = modules.length > 0 || loading;
 
     const handleModulePress = (module: CurriculumModule) => {
         if (module.isLocked) return;
-        navigation.navigate('ModuleDetail', { moduleId: module.id });
+        navigation.navigate('ModuleDetail', {
+            moduleId: module.id,
+            startIndex: moduleStarts[module.id] || 0
+        });
     };
 
     return (
@@ -464,7 +501,7 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 >
                     {levels.map((level) => {
                         const isActive = selectedLevel === level;
-                        const isAvailable = getModulesForLevel(level).length > 0;
+                        const isAvailable = true; // For now assume all levels available or check elsewhere
                         const color = LevelColors[level];
 
                         return (
