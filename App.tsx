@@ -12,13 +12,35 @@ import { ConnectivityGuard } from './src/components/common/ConnectivityGuard';
 
 import { useDailyTracker } from './src/hooks';
 import { initializeTTS, isModelDownloaded, downloadModel } from './src/services/audioService';
+import { seedDatabase } from './src/services/adminService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Increment this version to force re-sync on next app launch
+const CONTENT_VERSION = '1.1';
+const CONTENT_VERSION_KEY = '@content_version';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   useDailyTracker();
 
   useEffect(() => {
-    const setupTTS = async () => {
+    const setupApp = async () => {
+      try {
+        // Auto-sync content if version changed
+        const storedVersion = await AsyncStorage.getItem(CONTENT_VERSION_KEY);
+        if (storedVersion !== CONTENT_VERSION) {
+          console.log(`Content sync needed: ${storedVersion} → ${CONTENT_VERSION}`);
+          await seedDatabase((status, progress) => {
+            // Silent background sync
+          });
+          await AsyncStorage.setItem(CONTENT_VERSION_KEY, CONTENT_VERSION);
+          console.log('Content sync complete');
+        }
+      } catch (error) {
+        console.error('Auto-sync error:', error);
+      }
+
+      // TTS Setup
       try {
         const modelExists = await isModelDownloaded();
 
@@ -40,7 +62,7 @@ export default function App() {
       }
     };
 
-    setupTTS();
+    setupApp();
   }, []);
 
   if (showSplash) {

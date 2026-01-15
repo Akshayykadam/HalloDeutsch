@@ -398,6 +398,7 @@ export type RootStackParamList = {
     CulturalGuide: undefined;
     IdiomsSlang: undefined;
     GrammarReference: undefined;
+    About: undefined;
 };
 
 export type MainTabParamList = {

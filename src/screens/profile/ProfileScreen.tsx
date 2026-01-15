@@ -23,7 +23,6 @@ import { isModelDownloaded, downloadModel, deleteModel, getModelSize } from '../
 import { FadeInView } from '../../components/common/FadeInView';
 import { getLevelDescription } from '../../utils/levelUtils';
 import { AuthSection } from '../../components/auth';
-import { seedDatabase } from '../../services/adminService';
 
 export const ProfileScreen: React.FC = () => {
     const { progress, updateProgress, reset: resetProgress, profile } = useUserStore();
@@ -42,45 +41,6 @@ export const ProfileScreen: React.FC = () => {
     const [showResultModal, setShowResultModal] = useState<'success' | 'error' | null>(null);
     const [showConfirmModal, setShowConfirmModal] = useState<'deleteModel' | 'resetProgress' | null>(null);
 
-    // Admin / Developer State
-    const [showDevTools, setShowDevTools] = useState(false);
-    const [isSeeding, setIsSeeding] = useState(false);
-    const [seedProgress, setSeedProgress] = useState(0);
-    const [seedStatus, setSeedStatus] = useState('');
-
-    const handleSeedDB = async () => {
-        if (isSeeding) return;
-
-        Alert.alert(
-            "Seed All Content",
-            "This will upload Vocabulary, Curriculum, Grammar, and Exercises to Firestore. This may take a moment. Continue?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Upload All",
-                    onPress: async () => {
-                        setIsSeeding(true);
-                        setSeedProgress(0);
-                        setSeedStatus('Starting...');
-
-                        try {
-                            await seedDatabase((status, progress) => {
-                                setSeedStatus(status);
-                                setSeedProgress(progress);
-                            });
-                            Alert.alert("Success", "All content seeded successfully!");
-                        } catch (error) {
-                            Alert.alert("Error", "Failed to seed content.");
-                            console.error(error);
-                        } finally {
-                            setIsSeeding(false);
-                            setSeedStatus('');
-                        }
-                    }
-                }
-            ]
-        );
-    };
 
     // Check model status when settings modal opens
     const checkModelStatus = async () => {
@@ -451,70 +411,51 @@ export const ProfileScreen: React.FC = () => {
 
 
 
-                {/* Developer Tools */}
-                <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xl, marginBottom: Spacing.sm, opacity: 0.5 }}
-                    onPress={() => setShowDevTools(!showDevTools)}
-                >
-                    <Ionicons name="hammer-outline" size={16} color={theme.text.secondary} />
-                    <Text style={{ marginLeft: 8, color: theme.text.secondary, fontSize: FontSize.sm }}>
-                        Developer Tools
-                    </Text>
-                </TouchableOpacity>
 
-                {showDevTools && (
-                    <View style={{ marginBottom: Spacing.xl, padding: Spacing.md, backgroundColor: theme.background.tertiary, borderRadius: BorderRadius.md, marginHorizontal: Spacing.lg }}>
-                        <Text style={{ fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: Spacing.md }}>
-                            Database Administration
+                {/* About & Updates Section */}
+                <FadeInView delay={600}>
+                    <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
+                        <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: theme.text.primary, marginBottom: Spacing.sm }}>
+                            App Info
                         </Text>
-
                         <TouchableOpacity
                             style={{
                                 backgroundColor: theme.background.secondary,
                                 padding: Spacing.md,
                                 borderRadius: BorderRadius.md,
-                                alignItems: 'center',
                                 flexDirection: 'row',
-                                justifyContent: 'center',
-                                marginBottom: Spacing.md,
-                                borderWidth: 1,
-                                borderColor: theme.border.light,
-                            }}
-                            onPress={() => (navigation as any).navigate('GrammarReference')}
-                        >
-                            <Ionicons name="grid-outline" size={20} color={theme.text.primary} style={{ marginRight: 8 }} />
-                            <Text style={{ color: theme.text.primary, fontWeight: FontWeight.bold }}>
-                                View Grammar Tables
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={{
-                                backgroundColor: isSeeding ? Colors.neutral[400] : Colors.primary[500],
-                                padding: Spacing.md,
-                                borderRadius: BorderRadius.md,
                                 alignItems: 'center',
-                                flexDirection: 'row',
-                                justifyContent: 'center'
+                                justifyContent: 'space-between',
                             }}
-                            onPress={handleSeedDB}
-                            disabled={isSeeding}
+                            onPress={() => (navigation as any).navigate('About')}
+                            activeOpacity={0.7}
                         >
-                            {isSeeding ? (
-                                <ActivityIndicator size="small" color={Colors.white} style={{ marginRight: 8 }} />
-                            ) : (
-                                <Ionicons name="cloud-upload-outline" size={20} color={Colors.white} style={{ marginRight: 8 }} />
-                            )}
-                            <Text style={{ color: Colors.white, fontWeight: FontWeight.bold }}>
-                                {isSeeding ? (seedStatus || `${Math.round(seedProgress * 100)}%`) : 'Seed All Content'}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: 10,
+                                    backgroundColor: Colors.primary[500] + '20',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: Spacing.md,
+                                }}>
+                                    <Ionicons name="information-circle-outline" size={22} color={Colors.primary[500]} />
+                                </View>
+                                <View>
+                                    <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.medium, color: theme.text.primary }}>
+                                        About & Updates
+                                    </Text>
+                                    <Text style={{ fontSize: FontSize.xs, color: theme.text.tertiary, marginTop: 2 }}>
+                                        Check for updates, app info
+                                    </Text>
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
                         </TouchableOpacity>
-
-                        <Text style={{ fontSize: FontSize.xs, color: theme.text.tertiary, marginTop: Spacing.sm, textAlign: 'center' }}>
-                            Warning: This uploads Vocabulary, Curriculum, Grammar, and Exercises.
-                        </Text>
                     </View>
-                )}
+                </FadeInView>
+
 
                 {/* App Info Footer */}
                 <FadeInView delay={500}>

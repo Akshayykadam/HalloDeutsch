@@ -15,7 +15,7 @@ import {
 import { HomeScreen } from '../screens/home';
 import { LearnScreen } from '../screens/lesson';
 import { PracticeScreen } from '../screens/practice';
-import { ProfileScreen } from '../screens/profile';
+import { ProfileScreen, AboutScreen } from '../screens/profile';
 import { ChatScreen } from '../screens/chat';
 import { GrammarScreen, GrammarReferenceScreen } from '../screens/grammar';
 
@@ -231,6 +231,11 @@ export const AppNavigator: React.FC = () => {
                         <RootStack.Screen
                             name="IdiomsSlang"
                             component={IdiomsSlangScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <RootStack.Screen
+                            name="About"
+                            component={AboutScreen}
                             options={{ headerShown: false }}
                         />
                     </>
