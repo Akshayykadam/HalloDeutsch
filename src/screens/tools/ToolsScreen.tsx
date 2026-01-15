@@ -156,6 +156,17 @@ export const ToolsScreen: React.FC = () => {
                         <Text style={styles.miniCardTitle}>Idioms</Text>
                         <Text style={styles.miniCardDesc}>Slang & Phrases</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.miniCard}
+                        onPress={() => navigation.navigate('GrammarReference')}
+                    >
+                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.gold[500] + '15' }]}>
+                            <Ionicons name="grid-outline" size={32} color={Colors.gold[500]} />
+                        </View>
+                        <Text style={styles.miniCardTitle}>Grammar Tables</Text>
+                        <Text style={styles.miniCardDesc}>Quick reference</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeArea>

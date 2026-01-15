@@ -397,6 +397,7 @@ export type RootStackParamList = {
     ExamPrep: undefined;
     CulturalGuide: undefined;
     IdiomsSlang: undefined;
+    GrammarReference: undefined;
 };
 
 export type MainTabParamList = {

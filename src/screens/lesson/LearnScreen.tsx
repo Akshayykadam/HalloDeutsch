@@ -424,6 +424,15 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
     const [rawModules, setRawModules] = useState<CurriculumModule[]>([]);
     const [loading, setLoading] = useState(false);
+    const [hasInitialized, setHasInitialized] = useState(false);
+
+    // Sync selectedLevel with user's actual level on first load
+    React.useEffect(() => {
+        if (!hasInitialized && progress.level) {
+            setSelectedLevel(progress.level);
+            setHasInitialized(true);
+        }
+    }, [progress.level, hasInitialized]);
 
     React.useEffect(() => {
         const fetchModules = async () => {
@@ -436,9 +445,14 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }, [selectedLevel]);
 
     const levels: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2'];
+    const currentLevelIndex = levels.indexOf(selectedLevel);
+    let levelOffset = 0;
+    for (let i = 0; i < currentLevelIndex; i++) {
+        levelOffset += getLevelStats(levels[i]).lessons;
+    }
 
     // Process modules to add dynamic locking/progress
-    let cumulativeLessonCount = 0;
+    let cumulativeLessonCount = levelOffset;
     const moduleStarts: Record<string, number> = {};
 
     const modules = rawModules.map(m => {

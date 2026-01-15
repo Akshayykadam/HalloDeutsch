@@ -1,4 +1,15 @@
-import { getFirestore, collection, query, where, getDocs, limit, orderBy, startAfter, doc, getDoc } from '@react-native-firebase/firestore';
+import {
+    getFirestore,
+    collection,
+    doc,
+    getDocs,
+    getDoc,
+    query,
+    where,
+    limit,
+    orderBy,
+    startAfter,
+} from '@react-native-firebase/firestore';
 import { VocabularyWord } from '../types';
 
 /**
@@ -178,9 +189,25 @@ export const getGrammarTopics = async (level?: string): Promise<any[]> => {
         }
 
         const snapshot = await getDocs(q);
-        // Client-side sort by 'id' or 'title' if 'order' is missing, 
-        // essentially just returning the list.
-        return snapshot.docs.map((doc: any) => doc.data());
+        // Deserialize tables rowsJson back to rows array
+        const topics = snapshot.docs.map((doc: any) => {
+            const data = doc.data();
+            if (data.tables && Array.isArray(data.tables)) {
+                data.tables = data.tables.map((table: any) => ({
+                    ...table,
+                    rows: table.rowsJson ? JSON.parse(table.rowsJson) : [],
+                }));
+            }
+            return data;
+        });
+
+        // Sort client-side by level and order to avoid composite index
+        return topics.sort((a, b) => {
+            if (a.level !== b.level) {
+                return a.level.localeCompare(b.level);
+            }
+            return (a.order || 0) - (b.order || 0);
+        });
     } catch (error) {
         console.error('Error fetching grammar topics:', error);
         return [];

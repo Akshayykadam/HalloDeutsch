@@ -64,13 +64,32 @@ export const seedCurriculum = async (onProgress?: (progress: number) => void) =>
     allModules.forEach(module => {
         // Path: content/static/modules/{moduleId}
         const modRef = doc(db, 'content', 'static', 'modules', module.id);
-        batch.set(modRef, { ...module, updatedAt: serverTimestamp() });
+
+        // Sanitize module for static storage (no user progress)
+        const sanitizedModule = {
+            ...module,
+            isCompleted: false,
+            progress: 0,
+            lessons: module.lessons.map(l => ({
+                ...l,
+                isCompleted: false,
+                progress: 0,
+            })),
+            updatedAt: serverTimestamp()
+        };
+        batch.set(modRef, sanitizedModule);
 
         // Upload Lessons
         // Path: content/static/lessons/{lessonId}
         module.lessons.forEach(lesson => {
             const lessonRef = doc(db, 'content', 'static', 'lessons', lesson.id);
-            batch.set(lessonRef, { ...lesson, updatedAt: serverTimestamp() });
+            const sanitizedLesson = {
+                ...lesson,
+                isCompleted: false,
+                progress: 0,
+                updatedAt: serverTimestamp()
+            };
+            batch.set(lessonRef, sanitizedLesson);
         });
     });
 
@@ -85,7 +104,21 @@ export const seedGrammar = async (onProgress?: (progress: number) => void) => {
 
     grammarTopics.forEach(topic => {
         const docRef = doc(db, 'content', 'static', 'grammar', topic.id);
-        batch.set(docRef, { ...topic, updatedAt: serverTimestamp() });
+
+        // Serialize tables to avoid Firestore nested array limitation
+        const serializedTables = topic.tables?.map(table => ({
+            title: table.title,
+            headers: table.headers,
+            rowsJson: JSON.stringify(table.rows), // Convert nested array to JSON string
+        }));
+
+        const sanitizedTopic = {
+            ...topic,
+            tables: serializedTables || [],
+            completedLessons: 0,
+            updatedAt: serverTimestamp()
+        };
+        batch.set(docRef, sanitizedTopic);
     });
 
     await batch.commit();

@@ -15,8 +15,11 @@ import { Card, Badge, ProgressBar, Button, SafeArea } from '../../components/ui'
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LevelColors, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
-import { CEFRLevel, GrammarTopic } from '../../types';
+import { CEFRLevel } from '../../types';
+import { GrammarTopic } from '../../data/content/grammar-content';
 import { getGrammarTopics } from '../../services/contentService';
+import { GrammarTable } from '../../components/grammar/GrammarTable';
+import { getLevelTitle } from '../../utils/levelUtils';
 
 
 
@@ -33,6 +36,9 @@ export const GrammarScreen: React.FC = () => {
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
     const [selectedTopic, setSelectedTopic] = useState<GrammarTopic | null>(null);
     const [speakingText, setSpeakingText] = useState<string | null>(null);
+    const [grammarTopics, setGrammarTopics] = useState<GrammarTopic[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'learn' | 'examples' | 'tips'>('learn');
 
     const speakGerman = async (text: string) => {
         setSpeakingText(text);
@@ -41,9 +47,6 @@ export const GrammarScreen: React.FC = () => {
     };
 
     const levels: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2'];
-
-    const [grammarTopics, setGrammarTopics] = useState<GrammarTopic[]>([]);
-    const [loading, setLoading] = useState(false);
 
     React.useEffect(() => {
         const fetchTopics = async () => {
@@ -72,7 +75,7 @@ export const GrammarScreen: React.FC = () => {
             <SafeArea style={styles.container}>
                 <View style={styles.topicHeader}>
                     <TouchableOpacity
-                        onPress={() => setSelectedTopic(null)}
+                        onPress={() => { setSelectedTopic(null); setActiveTab('learn'); }}
                         style={styles.backButtonTouchable}
                     >
                         <Ionicons name="arrow-back" size={20} color={Colors.primary[500]} />
@@ -81,74 +84,172 @@ export const GrammarScreen: React.FC = () => {
                     <Badge label={selectedTopic.level} variant="level" level={selectedTopic.level} />
                 </View>
 
-                <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+                {/* Topic Header */}
+                <View style={styles.topicHeaderInfo}>
                     <Text style={styles.topicTitle}>{selectedTopic.title}</Text>
                     <Text style={styles.topicTitleDe}>{selectedTopic.titleDe}</Text>
-                    <Text style={styles.topicDescription}>{selectedTopic.description}</Text>
+                </View>
 
-                    <Card style={styles.progressCard}>
-                        <View style={styles.progressRow}>
-                            <Text style={styles.progressLabel}>Progress</Text>
-                            <Text style={styles.progressValue}>
-                                {selectedTopic.completedLessons}/{selectedTopic.lessons} lessons
-                            </Text>
-                        </View>
-                        <ProgressBar
-                            progress={(selectedTopic.completedLessons / selectedTopic.lessons) * 100}
-                            height={8}
-                        />
-                    </Card>
-
-                    <Text style={styles.sectionTitle}>Examples (Tap to listen)</Text>
-                    {selectedTopic.examples.map((example, idx) => (
+                {/* Tab Bar */}
+                <View style={styles.tabBar}>
+                    {(['learn', 'examples', 'tips'] as const).map((tab) => (
                         <TouchableOpacity
-                            key={idx}
-                            onPress={() => speakGerman(example.german)}
-                            activeOpacity={0.7}
+                            key={tab}
+                            onPress={() => setActiveTab(tab)}
+                            style={[
+                                styles.tabButton,
+                                activeTab === tab && styles.tabButtonActive
+                            ]}
                         >
-                            <Card variant="flat" style={[
-                                styles.exampleCard,
-                                speakingText === example.german && styles.exampleCardActive
+                            <Ionicons
+                                name={tab === 'learn' ? 'book' : tab === 'examples' ? 'list' : 'bulb'}
+                                size={16}
+                                color={activeTab === tab ? Colors.white : theme.text.secondary}
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text style={[
+                                styles.tabButtonText,
+                                activeTab === tab && styles.tabButtonTextActive
                             ]}>
-                                <View style={styles.exampleHeader}>
-                                    <Text style={[
-                                        styles.exampleGerman,
-                                        speakingText === example.german && styles.exampleGermanActive
-                                    ]}>{example.german}</Text>
-                                    <Ionicons
-                                        name={speakingText === example.german ? "volume-high" : "volume-medium"}
-                                        size={20}
-                                        color={speakingText === example.german ? Colors.primary[600] : Colors.neutral[400]}
-                                    />
-                                </View>
-                                <Text style={styles.exampleEnglish}>{example.english}</Text>
-                            </Card>
+                                {tab === 'learn' ? 'Learn' : tab === 'examples' ? 'Examples' : 'Tips'}
+                            </Text>
                         </TouchableOpacity>
                     ))}
+                </View>
 
-                    <Button
-                        title="Start Lesson"
-                        onPress={() => {
-                            // Find a lesson that matches this topic or use topic ID as pseudo-lesson ID
-                            // Ideally we query for the specific lesson, but for now we can pass the topic ID
-                            // and letting GrammarLessonScreen handle it is the most robust way given our current data structure.
-                            // However, GrammarLessonScreen expects a 'lessonId'. 
-                            // Since we don't have a direct link from Topic -> LessonId in the topic object,
-                            // we will attempt to find a lesson with this topic in the curriculum, 
-                            // or fallback to a constructing a valid lesson ID format if possible.
+                <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+                    {/* Learn Tab */}
+                    {activeTab === 'learn' && (
+                        <>
+                            {/* Show explanation if available, otherwise show description */}
+                            {selectedTopic.explanation ? (
+                                <Card style={styles.explanationCard}>
+                                    <Text style={styles.explanationText}>{selectedTopic.explanation}</Text>
+                                </Card>
+                            ) : (
+                                <Card style={styles.explanationCard}>
+                                    <Text style={styles.explanationText}>{selectedTopic.description}</Text>
+                                </Card>
+                            )}
 
-                            // For now, let's pass a special ID format that GrammarLessonScreen can detect,
-                            // or simply assume there's a lesson with ID matching the topic (which might not be true).
+                            {/* Render tables if available */}
+                            {selectedTopic.tables && selectedTopic.tables.length > 0 && (
+                                <>
+                                    {selectedTopic.tables.map((table, idx) => (
+                                        <View key={idx} style={styles.tableSection}>
+                                            <Text style={styles.tableTitle}>{table.title}</Text>
+                                            <GrammarTable
+                                                headers={table.headers}
+                                                rows={table.rows}
+                                            />
+                                        </View>
+                                    ))}
+                                </>
+                            )}
 
-                            // BETTER APPROACH: Search for a lesson with this topic
-                            // But that requires async searching which we can't do easily in this onPress.
-                            // So we will navigate to GrammarLessonScreen and let it handle the lookup or display the topic directly.
-                            // We'll pass the topic.id as the lessonId, and update GrammarLessonScreen to handle this case.
-                            navigation.navigate('GrammarLesson', { lessonId: selectedTopic.id });
-                        }}
-                        size="large"
-                        fullWidth
-                    />
+                            {selectedTopic.keyRules && selectedTopic.keyRules.length > 0 && (
+                                <>
+                                    <Text style={styles.sectionTitle}>📝 Key Rules</Text>
+                                    {selectedTopic.keyRules.map((rule: string, idx: number) => (
+                                        <Card key={idx} variant="flat" style={styles.ruleCard}>
+                                            <View style={styles.ruleRow}>
+                                                <View style={styles.ruleBullet}>
+                                                    <Text style={styles.ruleBulletText}>{idx + 1}</Text>
+                                                </View>
+                                                <Text style={styles.ruleText}>{rule}</Text>
+                                            </View>
+                                        </Card>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Fallback: Show examples preview if no key rules */}
+                            {(!selectedTopic.keyRules || selectedTopic.keyRules.length === 0) && (
+                                <Card variant="flat" style={{ marginTop: Spacing.md }}>
+                                    <Text style={styles.tipText}>💡 Tap the "Examples" tab to see usage examples with audio!</Text>
+                                </Card>
+                            )}
+                        </>
+                    )}
+
+                    {/* Examples Tab */}
+                    {activeTab === 'examples' && (
+                        <>
+                            <Text style={styles.sectionTitle}>🔊 Tap to listen</Text>
+                            {selectedTopic.examples.map((example, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => speakGerman(example.german)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Card variant="flat" style={[
+                                        styles.exampleCard,
+                                        speakingText === example.german && styles.exampleCardActive
+                                    ]}>
+                                        <View style={styles.exampleHeader}>
+                                            <Text style={[
+                                                styles.exampleGerman,
+                                                speakingText === example.german && styles.exampleGermanActive
+                                            ]}>{example.german}</Text>
+                                            <Ionicons
+                                                name={speakingText === example.german ? "volume-high" : "volume-medium"}
+                                                size={20}
+                                                color={speakingText === example.german ? Colors.primary[600] : Colors.neutral[400]}
+                                            />
+                                        </View>
+                                        <Text style={styles.exampleEnglish}>{example.english}</Text>
+                                    </Card>
+                                </TouchableOpacity>
+                            ))}
+                        </>
+                    )}
+
+                    {/* Tips Tab */}
+                    {activeTab === 'tips' && (
+                        <>
+                            {selectedTopic.tips && selectedTopic.tips.length > 0 && (
+                                <>
+                                    <View style={styles.tipsSectionHeader}>
+                                        <Ionicons name="bulb" size={20} color={Colors.primary[400]} />
+                                        <Text style={styles.tipsSectionTitle}>Learning Tips</Text>
+                                    </View>
+                                    {selectedTopic.tips.map((tip: string, idx: number) => (
+                                        <View key={idx} style={styles.tipCard}>
+                                            <View style={styles.tipIconContainer}>
+                                                <Ionicons name="checkmark-circle" size={18} color={Colors.primary[400]} />
+                                            </View>
+                                            <Text style={styles.tipText}>{tip.replace(/^[🎯🔊📱📝🔄✍️💡🚗]+\s*/, '')}</Text>
+                                        </View>
+                                    ))}
+                                </>
+                            )}
+
+                            {selectedTopic.commonMistakes && selectedTopic.commonMistakes.length > 0 && (
+                                <>
+                                    <View style={[styles.tipsSectionHeader, { marginTop: Spacing.xl }]}>
+                                        <Ionicons name="warning" size={20} color={Colors.warning[400]} />
+                                        <Text style={styles.tipsSectionTitle}>Common Mistakes</Text>
+                                    </View>
+                                    {selectedTopic.commonMistakes.map((mistake: string, idx: number) => (
+                                        <View key={idx} style={styles.mistakeCard}>
+                                            <View style={styles.mistakeIconContainer}>
+                                                <Ionicons name="close-circle" size={18} color={Colors.error[400]} />
+                                            </View>
+                                            <Text style={styles.mistakeText}>{mistake.replace(/^[❌✅]+\s*/, '')}</Text>
+                                        </View>
+                                    ))}
+                                </>
+                            )}
+
+                            {(!selectedTopic.tips || selectedTopic.tips.length === 0) &&
+                                (!selectedTopic.commonMistakes || selectedTopic.commonMistakes.length === 0) && (
+                                    <View style={styles.emptyState}>
+                                        <Ionicons name="information-circle-outline" size={48} color={Colors.neutral[400]} />
+                                        <Text style={styles.emptyText}>No tips available for this topic yet.</Text>
+                                    </View>
+                                )}
+                        </>
+                    )}
                 </ScrollView>
             </SafeArea>
         );
@@ -190,7 +291,7 @@ export const GrammarScreen: React.FC = () => {
                                     styles.levelTabText,
                                     isActive ? { color: Colors.white } : { color: LevelColors[level] }
                                 ]}>
-                                    {level}
+                                    {getLevelTitle(level)}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -435,5 +536,139 @@ const getStyles = (theme: any) => StyleSheet.create({
     exampleEnglish: {
         fontSize: FontSize.sm,
         color: theme.text.secondary,
+    },
+    // Tabbed UI styles
+    topicHeaderInfo: {
+        paddingHorizontal: Spacing.base,
+        paddingBottom: Spacing.md,
+        backgroundColor: theme.background.primary,
+    },
+    tabBar: {
+        flexDirection: 'row' as const,
+        paddingHorizontal: Spacing.base,
+        paddingVertical: Spacing.sm,
+        gap: Spacing.sm,
+        backgroundColor: theme.background.primary,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border.primary,
+    },
+    tabButton: {
+        flex: 1,
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        borderRadius: BorderRadius.full,
+        backgroundColor: theme.background.secondary,
+    },
+    tabButtonActive: {
+        backgroundColor: Colors.primary[500],
+    },
+    tabButtonText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
+        color: theme.text.secondary,
+    },
+    tabButtonTextActive: {
+        color: Colors.white,
+    },
+    explanationCard: {
+        marginBottom: Spacing.lg,
+        backgroundColor: theme.background.secondary,
+    },
+    explanationText: {
+        fontSize: FontSize.base,
+        color: theme.text.primary,
+        lineHeight: 24,
+    },
+    ruleCard: {
+        marginBottom: Spacing.sm,
+    },
+    ruleRow: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-start' as const,
+    },
+    ruleBullet: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: Colors.primary[500],
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        marginRight: Spacing.sm,
+    },
+    ruleBulletText: {
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+    },
+    ruleText: {
+        flex: 1,
+        fontSize: FontSize.base,
+        color: theme.text.primary,
+        lineHeight: 22,
+    },
+    tableSection: {
+        marginVertical: Spacing.md,
+    },
+    tableTitle: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.semibold,
+        color: theme.text.primary,
+        marginBottom: Spacing.sm,
+    },
+    tipsSectionHeader: {
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    tipsSectionTitle: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.semibold,
+        color: theme.text.primary,
+    },
+    tipCard: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-start' as const,
+        marginBottom: Spacing.sm,
+        backgroundColor: theme.background.secondary,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+    },
+    tipIconContainer: {
+        marginRight: Spacing.sm,
+        marginTop: 2,
+    },
+    tipText: {
+        flex: 1,
+        fontSize: FontSize.sm,
+        color: theme.text.secondary,
+        lineHeight: 20,
+    },
+    mistakeCard: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-start' as const,
+        marginBottom: Spacing.sm,
+        backgroundColor: theme.background.secondary,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+    },
+    mistakeIconContainer: {
+        marginRight: Spacing.sm,
+        marginTop: 2,
+    },
+    mistakeText: {
+        flex: 1,
+        fontSize: FontSize.sm,
+        color: theme.text.secondary,
+        lineHeight: 20,
+    },
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center' as const,
+        alignItems: 'center' as const,
+        paddingVertical: Spacing['2xl'],
     },
 });

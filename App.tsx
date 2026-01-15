@@ -8,6 +8,7 @@ import { AppNavigator } from './src/navigation';
 
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
+import { ConnectivityGuard } from './src/components/common/ConnectivityGuard';
 
 import { useDailyTracker } from './src/hooks';
 import { initializeTTS, isModelDownloaded, downloadModel } from './src/services/audioService';
@@ -51,8 +52,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <StatusBar style="auto" />
-        <AppNavigator />
+        <ConnectivityGuard>
+          <StatusBar style="auto" />
+          <AppNavigator />
+        </ConnectivityGuard>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

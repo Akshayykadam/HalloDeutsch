@@ -17,7 +17,9 @@ import { LearnScreen } from '../screens/lesson';
 import { PracticeScreen } from '../screens/practice';
 import { ProfileScreen } from '../screens/profile';
 import { ChatScreen } from '../screens/chat';
-import { GrammarScreen } from '../screens/grammar';
+import { GrammarScreen, GrammarReferenceScreen } from '../screens/grammar';
+
+
 import { VocabularyScreen } from '../screens/vocabulary';
 import { DictionaryScreen } from '../screens/dictionary';
 import { SnapScreen } from '../screens/vision/SnapScreen';
@@ -161,6 +163,14 @@ export const AppNavigator: React.FC = () => {
                             }}
                         />
                         <RootStack.Screen name="Grammar" component={GrammarScreen} />
+                        <RootStack.Screen
+                            name="GrammarReference"
+                            component={GrammarReferenceScreen}
+                            options={{
+                                presentation: 'modal',
+                                animation: 'slide_from_bottom'
+                            }}
+                        />
                         <RootStack.Screen name="Vocabulary" component={VocabularyScreen} />
                         <RootStack.Screen name="Dictionary" component={DictionaryScreen} />
                         <RootStack.Screen

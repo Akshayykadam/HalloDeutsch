@@ -470,6 +470,26 @@ export const ProfileScreen: React.FC = () => {
 
                         <TouchableOpacity
                             style={{
+                                backgroundColor: theme.background.secondary,
+                                padding: Spacing.md,
+                                borderRadius: BorderRadius.md,
+                                alignItems: 'center',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                marginBottom: Spacing.md,
+                                borderWidth: 1,
+                                borderColor: theme.border.light,
+                            }}
+                            onPress={() => (navigation as any).navigate('GrammarReference')}
+                        >
+                            <Ionicons name="grid-outline" size={20} color={theme.text.primary} style={{ marginRight: 8 }} />
+                            <Text style={{ color: theme.text.primary, fontWeight: FontWeight.bold }}>
+                                View Grammar Tables
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={{
                                 backgroundColor: isSeeding ? Colors.neutral[400] : Colors.primary[500],
                                 padding: Spacing.md,
                                 borderRadius: BorderRadius.md,
