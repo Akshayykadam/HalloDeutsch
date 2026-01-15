@@ -1,10 +1,22 @@
 // German Learner App - Main Entry Point
 // Import polyfills first for Gemini Live API support
 import './src/polyfills';
-import React, { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppNavigator } from './src/navigation';
+import { Text, TextInput } from 'react-native';
+
+// Disable system font scaling to maintain consistent UI
+// @ts-ignore
+if (Text.defaultProps == null) Text.defaultProps = {};
+// @ts-ignore
+Text.defaultProps.allowFontScaling = false;
+
+// @ts-ignore
+if (TextInput.defaultProps == null) TextInput.defaultProps = {};
+// @ts-ignore
+TextInput.defaultProps.allowFontScaling = false;
 
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
