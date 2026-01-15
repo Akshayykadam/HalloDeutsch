@@ -8,10 +8,11 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Linking,
-    Alert,
+    Modal,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'
 import { SafeArea, Card } from '../../components/ui';
 import { MarkdownRenderer } from '../../components/common/MarkdownRenderer';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
@@ -31,6 +32,12 @@ export const AboutScreen = () => {
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
 
+    // Modal states
+    const [showUpToDateModal, setShowUpToDateModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [showInstallIssueModal, setShowInstallIssueModal] = useState(false);
+
     const currentVersion = getCurrentVersion();
 
     const handleCheckUpdate = async () => {
@@ -40,10 +47,11 @@ export const AboutScreen = () => {
             setUpdateStatus(status);
 
             if (!status.updateAvailable) {
-                Alert.alert('Up to Date', 'You have the latest version installed.');
+                setShowUpToDateModal(true);
             }
         } catch (error) {
-            Alert.alert('Error', 'Could not check for updates. Please try again later.');
+            setErrorMessage('Could not check for updates. Please try again later.');
+            setShowErrorModal(true);
         } finally {
             setChecking(false);
         }
@@ -51,7 +59,8 @@ export const AboutScreen = () => {
 
     const handleDownloadUpdate = async () => {
         if (!updateStatus?.releaseInfo?.downloadUrl) {
-            Alert.alert('Error', 'No download URL available.');
+            setErrorMessage('No download URL available.');
+            setShowErrorModal(true);
             return;
         }
 
@@ -65,20 +74,7 @@ export const AboutScreen = () => {
             );
 
             if (!success) {
-                // Offer fallback to browser download
-                Alert.alert(
-                    'Installation Issue',
-                    'Would you like to download the update from GitHub instead?',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                            text: 'Open GitHub',
-                            onPress: () => Linking.openURL(
-                                `https://github.com/Akshayykadam/HalloDeutsch/releases/tag/${updateStatus.releaseInfo?.tagName}`
-                            ),
-                        },
-                    ]
-                );
+                setShowInstallIssueModal(true);
             }
         } finally {
             setDownloading(false);
@@ -88,6 +84,13 @@ export const AboutScreen = () => {
 
     const openGitHub = () => {
         Linking.openURL('https://github.com/Akshayykadam/HalloDeutsch');
+    };
+
+    const openReleaseOnGitHub = () => {
+        if (updateStatus?.releaseInfo?.tagName) {
+            Linking.openURL(`https://github.com/Akshayykadam/HalloDeutsch/releases/tag/${updateStatus.releaseInfo.tagName}`);
+        }
+        setShowInstallIssueModal(false);
     };
 
     const styles = getStyles(theme);
@@ -216,6 +219,102 @@ export const AboutScreen = () => {
                     </Card>
                 </View>
             </ScrollView>
+
+            {/* Up to Date Modal */}
+            <Modal
+                visible={showUpToDateModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowUpToDateModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.background.primary }]}>
+                        <LinearGradient
+                            colors={[Colors.success[400], Colors.success[600]]}
+                            style={styles.modalIconContainer}
+                        >
+                            <Ionicons name="checkmark-circle" size={40} color={Colors.white} />
+                        </LinearGradient>
+                        <Text style={styles.modalTitle}>You're Up to Date!</Text>
+                        <Text style={styles.modalMessage}>
+                            Version {currentVersion} is the latest version.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowUpToDateModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Great!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Error Modal */}
+            <Modal
+                visible={showErrorModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowErrorModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.background.primary }]}>
+                        <LinearGradient
+                            colors={[Colors.error[400], Colors.error[600]]}
+                            style={styles.modalIconContainer}
+                        >
+                            <Ionicons name="alert-circle" size={40} color={Colors.white} />
+                        </LinearGradient>
+                        <Text style={styles.modalTitle}>Oops!</Text>
+                        <Text style={styles.modalMessage}>{errorMessage}</Text>
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: Colors.error[500] }]}
+                            onPress={() => setShowErrorModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>OK</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Install Issue Modal */}
+            <Modal
+                visible={showInstallIssueModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowInstallIssueModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.background.primary }]}>
+                        <LinearGradient
+                            colors={[Colors.warning[400], Colors.warning[600]]}
+                            style={styles.modalIconContainer}
+                        >
+                            <Ionicons name="warning" size={40} color={Colors.white} />
+                        </LinearGradient>
+                        <Text style={styles.modalTitle}>Installation Issue</Text>
+                        <Text style={styles.modalMessage}>
+                            Would you like to download the update from GitHub instead?
+                        </Text>
+                        <View style={styles.modalButtonRow}>
+                            <TouchableOpacity
+                                style={[styles.modalButtonSecondary, { borderColor: theme.border.medium }]}
+                                onPress={() => setShowInstallIssueModal(false)}
+                            >
+                                <Text style={[styles.modalButtonSecondaryText, { color: theme.text.primary }]}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { flex: 1 }]}
+                                onPress={openReleaseOnGitHub}
+                            >
+                                <Ionicons name="logo-github" size={18} color={Colors.white} />
+                                <Text style={styles.modalButtonText}>Open GitHub</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeArea>
     );
 };
@@ -396,6 +495,83 @@ const getStyles = (theme: any) => StyleSheet.create({
         fontSize: FontSize.sm,
         color: theme.text.tertiary,
         marginTop: Spacing.xs,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.xl,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 320,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xl,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    modalIconContainer: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.md,
+    },
+    modalTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.bold,
+        color: theme.text.primary,
+        textAlign: 'center',
+        marginBottom: Spacing.xs,
+    },
+    modalMessage: {
+        fontSize: FontSize.sm,
+        color: theme.text.secondary,
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: Spacing.lg,
+    },
+    modalButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.primary[500],
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.xl,
+        borderRadius: BorderRadius.lg,
+        gap: Spacing.xs,
+        minWidth: 120,
+    },
+    modalButtonText: {
+        color: Colors.white,
+        fontWeight: FontWeight.semibold,
+        fontSize: FontSize.sm,
+    },
+    modalButtonRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+        width: '100%',
+    },
+    modalButtonSecondary: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        borderColor: Colors.neutral[300],
+    },
+    modalButtonSecondaryText: {
+        fontWeight: FontWeight.medium,
+        fontSize: FontSize.sm,
     },
 });
 

@@ -311,45 +311,52 @@ export const ChatScreen = () => {
                     )}
                 </ScrollView>
 
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        style={styles.textInput}
-                        placeholder="Type in German..."
-                        placeholderTextColor={Colors.neutral[400]}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        multiline
-                        maxLength={500}
-                        editable={!isLoading}
-                    />
-                    <TouchableOpacity
-                        style={styles.micButton}
-                        onPress={() => {
-                            // TODO: Implement voice input
-                            alert('Voice input coming soon!');
-                        }}
+                <View style={[styles.inputContainer, { paddingBottom: 0 }]}>
+                    <SuggestedResponses
+                        suggestions={suggestions}
+                        onSelect={(text) => handleSend(text)}
                         disabled={isLoading}
-                    >
-                        <Ionicons
-                            name="mic"
-                            size={22}
-                            color={isLoading ? Colors.neutral[400] : Colors.primary[500]}
+                    />
+                    <View style={styles.inputRow}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Type in German..."
+                            placeholderTextColor={Colors.neutral[400]}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            multiline
+                            maxLength={500}
+                            editable={!isLoading}
                         />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.sendButton,
-                            (!inputText.trim() || isLoading) && styles.sendButtonDisabled
-                        ]}
-                        onPress={() => handleSend()}
-                        disabled={!inputText.trim() || isLoading}
-                    >
-                        <Ionicons
-                            name="send"
-                            size={20}
-                            color={inputText.trim() && !isLoading ? Colors.white : Colors.neutral[400]}
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.micButton}
+                            onPress={() => {
+                                // TODO: Implement voice input
+                                alert('Voice input coming soon!');
+                            }}
+                            disabled={isLoading}
+                        >
+                            <Ionicons
+                                name="mic"
+                                size={22}
+                                color={isLoading ? Colors.neutral[400] : Colors.primary[500]}
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.sendButton,
+                                (!inputText.trim() || isLoading) && styles.sendButtonDisabled
+                            ]}
+                            onPress={() => handleSend()}
+                            disabled={!inputText.trim() || isLoading}
+                        >
+                            <Ionicons
+                                name="send"
+                                size={20}
+                                color={inputText.trim() && !isLoading ? Colors.white : Colors.neutral[400]}
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </KeyboardAvoidingView>
         </SafeArea>
@@ -540,12 +547,14 @@ const getStyles = (theme: any) => StyleSheet.create({
         color: theme.text.tertiary,
     },
     inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center', // Changed to center for single line default
-        padding: Spacing.base,
         backgroundColor: theme.background.primary,
         borderTopWidth: 1,
         borderTopColor: theme.border.light,
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.base,
         gap: Spacing.sm,
     },
     textInput: {

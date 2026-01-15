@@ -382,6 +382,68 @@ When to use Dative:
     },
 
     {
+        id: 'a2-haben-sein',
+        title: 'Haben vs. Sein in Perfekt',
+        titleDe: 'Haben oder Sein im Perfekt',
+        description: 'Learn when to use haben or sein as the auxiliary verb in the Perfekt tense.',
+        level: 'A2',
+        order: 2,
+        lessons: 5,
+        completedLessons: 0,
+        explanation: `In German Perfekt, you need an auxiliary verb (haben or sein) + past participle.
+
+Most verbs use HABEN:
+• All transitive verbs (with direct object): Ich habe das Buch gelesen.
+• Reflexive verbs: Ich habe mich gewaschen.
+
+Use SEIN with:
+• Intransitive verbs of MOVEMENT: gehen, fahren, fliegen, laufen
+• Verbs of CHANGE OF STATE: werden, sterben, aufwachen, einschlafen
+• sein, bleiben, passieren, geschehen`,
+        tables: [
+            {
+                title: 'Haben vs. Sein',
+                headers: ['Use HABEN', 'Use SEIN'],
+                rows: [
+                    ['essen, trinken, lesen', 'gehen, kommen, fahren'],
+                    ['arbeiten, spielen', 'fliegen, laufen, schwimmen'],
+                    ['kaufen, verkaufen', 'werden, sterben, wachsen'],
+                    ['sich waschen, sich freuen', 'sein, bleiben, passieren'],
+                ],
+            },
+        ],
+        keyRules: [
+            'Movement verbs use sein: gehen, fahren, fliegen, laufen',
+            'Change of state verbs use sein: aufwachen, einschlafen, sterben, werden',
+            'sein, bleiben, passieren always use sein',
+            'All other verbs (majority) use haben',
+            'Reflexive verbs use haben: sich waschen → hat sich gewaschen',
+        ],
+        tips: [
+            'Think: Did something MOVE or CHANGE? → probably sein',
+            'Common sein verbs to memorize: gehen, kommen, fahren, fliegen',
+            'When in doubt, haben is more likely (more verbs use it)',
+        ],
+        commonMistakes: [
+            '❌ "Ich habe gegangen" → ✅ "Ich bin gegangen"',
+            '❌ "Er ist das Buch gelesen" → ✅ "Er hat das Buch gelesen"',
+            '❌ "Ich bin mich gewaschen" → ✅ "Ich habe mich gewaschen"',
+        ],
+        examples: [
+            { german: 'Ich habe gegessen.', english: 'I ate. (haben + most verbs)' },
+            { german: 'Ich bin gegangen.', english: 'I went. (sein + movement)' },
+            { german: 'Er hat gearbeitet.', english: 'He worked.' },
+            { german: 'Sie ist gelaufen.', english: 'She ran.' },
+            { german: 'Wir haben das Buch gelesen.', english: 'We read the book.' },
+            { german: 'Er ist nach Berlin geflogen.', english: 'He flew to Berlin.' },
+            { german: 'Sie hat gut geschlafen.', english: 'She slept well.' },
+            { german: 'Ich bin aufgewacht.', english: 'I woke up. (sein + change of state)' },
+            { german: 'Du hast telefoniert.', english: 'You called.' },
+            { german: 'Sie ist eingeschlafen.', english: 'She fell asleep.' },
+        ],
+    },
+
+    {
         id: 'a2-modal-verbs',
         title: 'Modal Verbs',
         titleDe: 'Modalverben',
