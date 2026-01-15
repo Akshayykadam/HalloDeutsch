@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.akshaykadam.germanlearnerapp"
+      "bundleIdentifier": "com.akshaykadam.germanlearnerapp",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.akshaykadam.germanlearnerapp",
@@ -31,7 +32,16 @@
     },
     "plugins": [
       "@react-native-firebase/auth",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0",
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ]
   }
 }

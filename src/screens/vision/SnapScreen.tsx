@@ -9,6 +9,7 @@ import {
     Modal,
     StatusBar,
     Dimensions,
+    Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +29,7 @@ export const SnapScreen: React.FC = () => {
     const cameraRef = useRef<CameraView>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [imageLoaded, setImageLoaded] = useState(false);
     const [result, setResult] = useState<{
         word: string;
         gender: string;
@@ -67,11 +69,17 @@ export const SnapScreen: React.FC = () => {
             setIsProcessing(true);
             const photo = await cameraRef.current.takePictureAsync({
                 base64: true,
-                quality: 0.5,
-                skipProcessing: true,
+                quality: 0.7,
+                exif: false,
             });
 
             if (photo && photo.uri) {
+                // On Android, add a small delay to ensure the file is fully written
+                if (Platform.OS === 'android') {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                setImageLoaded(false);
                 setCapturedImage(photo.uri);
 
                 if (photo.base64) {
@@ -90,6 +98,7 @@ export const SnapScreen: React.FC = () => {
     const reset = () => {
         setResult(null);
         setCapturedImage(null);
+        setImageLoaded(false);
     };
 
     return (
@@ -129,10 +138,20 @@ export const SnapScreen: React.FC = () => {
                 </CameraView>
             ) : (
                 <View style={[styles.previewContainer, { backgroundColor: 'black' }]}>
+                    {!imageLoaded && (
+                        <View style={styles.imageLoadingContainer}>
+                            <ActivityIndicator size="large" color={Colors.primary[400]} />
+                        </View>
+                    )}
                     <Image
                         source={{ uri: capturedImage }}
-                        style={StyleSheet.absoluteFillObject}
+                        style={[StyleSheet.absoluteFillObject, { opacity: imageLoaded ? 1 : 0 }]}
                         resizeMode="cover"
+                        onLoad={() => setImageLoaded(true)}
+                        onError={(e) => {
+                            console.error('Image load error:', e.nativeEvent.error);
+                            setImageLoaded(true); // Still show the overlay even if image fails
+                        }}
                     />
                     <SafeArea style={styles.previewOverlay}>
                         <View style={styles.header}>
@@ -291,6 +310,12 @@ const styles = StyleSheet.create({
     },
     previewContainer: {
         flex: 1,
+    },
+    imageLoadingContainer: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'black',
     },
     previewOverlay: {
         flex: 1,
