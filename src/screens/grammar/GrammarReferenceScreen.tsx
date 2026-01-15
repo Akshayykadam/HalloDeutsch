@@ -37,6 +37,14 @@ export const GrammarReferenceScreen = () => {
         t.tables && t.tables.length > 0
     );
 
+    // Mapping of CEFR levels to friendly names
+    const levelLabels: Record<string, string> = {
+        'All': 'All',
+        'A1': 'Beginner',
+        'A2': 'Elementary',
+        'B1': 'Intermediate',
+        'B2': 'Upper Int.',
+    };
     const levels = ['All', 'A1', 'A2', 'B1', 'B2'];
 
     const styles = getStyles(theme);
@@ -68,7 +76,7 @@ export const GrammarReferenceScreen = () => {
                                 styles.filterText,
                                 selectedLevel === level && styles.activeFilterText
                             ]}>
-                                {level}
+                                {levelLabels[level]}
                             </Text>
                         </TouchableOpacity>
                     ))}
@@ -90,7 +98,7 @@ export const GrammarReferenceScreen = () => {
                         filteredTopics.map((topic) => (
                             <View key={topic.id} style={styles.topicSection}>
                                 <View style={styles.topicHeader}>
-                                    <Badge variant="default" size="small" label={topic.level} />
+                                    <Badge variant="default" size="small" label={levelLabels[topic.level] || topic.level} />
                                     <Text style={styles.topicTitle}>{topic.title}</Text>
                                 </View>
 
