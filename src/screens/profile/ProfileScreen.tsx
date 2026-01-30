@@ -503,7 +503,7 @@ export const ProfileScreen: React.FC = () => {
                 {/* App Info Footer */}
                 <FadeInView delay={500}>
                     <View style={styles.footer}>
-                        <Text style={styles.footerVersion}>HalloDeutsch v1.0.0</Text>
+                        <Text style={styles.footerVersion}>HalloDeutsch v1.0.1</Text>
                         <View style={styles.footerRow}>
                             <Text style={styles.footerText}>Made with </Text>
                             <Ionicons name="heart" size={12} color={Colors.error[400]} />
