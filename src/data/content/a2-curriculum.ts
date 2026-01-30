@@ -2,7 +2,14 @@
 import { CurriculumModule, CurriculumLesson } from '../../types';
 
 // Helper to create lessons for a module
-const createLessons = (moduleId: string, count: number, topic: string): CurriculumLesson[] => {
+const createLessons = (
+    moduleId: string,
+    count: number,
+    topic: string,
+    options?: { vocabularyDomains?: string[], grammarTopics?: string[] }
+): CurriculumLesson[] => {
+    const vocabDomains = options?.vocabularyDomains || ['food', 'household'];
+    const grammarIds = options?.grammarTopics || ['a2-perfekt']; // Default to real A2 grammar topic
     return Array.from({ length: count }).map((_, i) => ({
         id: `${moduleId}-l${i + 1}`,
         moduleId: moduleId,
@@ -14,7 +21,8 @@ const createLessons = (moduleId: string, count: number, topic: string): Curricul
         whyLearning: 'Essential for A2 proficiency',
         whereUsed: 'Daily conversations',
         estimatedMinutes: 15,
-        grammarTopics: [`${moduleId}-topic`],
+        grammarTopics: grammarIds,
+        vocabularyDomains: vocabDomains,
         exercises: [],
         masteryThreshold: 80,
         isLocked: i > 0, // Lock all except first

@@ -14,7 +14,8 @@ const createLessons = (moduleId: string, count: number, topic: string): Curricul
         whyLearning: 'B1 level requirement',
         whereUsed: 'Work and social life',
         estimatedMinutes: 20,
-        vocabularyDomains: ['general'],
+        vocabularyDomains: ['food', 'household', 'family'],
+        grammarTopics: ['b1-relative-clauses', 'b1-konjunktiv2'], // Real B1 grammar topics
         exercises: [],
         masteryThreshold: 80,
         isLocked: i > 0,

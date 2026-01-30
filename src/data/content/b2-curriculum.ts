@@ -14,7 +14,8 @@ const createLessons = (moduleId: string, count: number, topic: string): Curricul
         whyLearning: 'B2 level proficiency',
         whereUsed: 'Academic and formal contexts',
         estimatedMinutes: 25,
-        vocabularyDomains: ['academic'],
+        vocabularyDomains: ['food', 'household', 'family'],
+        grammarTopics: ['b2-konjunktiv1', 'b2-advanced-passive'], // Real B2 grammar topics
         exercises: [],
         masteryThreshold: 80,
         isLocked: i > 0,

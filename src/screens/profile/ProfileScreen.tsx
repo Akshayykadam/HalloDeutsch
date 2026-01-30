@@ -23,6 +23,8 @@ import { isModelDownloaded, downloadModel, deleteModel, getModelSize } from '../
 import { FadeInView } from '../../components/common/FadeInView';
 import { getLevelDescription } from '../../utils/levelUtils';
 import { AuthSection } from '../../components/auth';
+import { seedDatabase } from '../../services/adminService';
+import { isAuthenticated, getCurrentUser } from '../../services/authService';
 
 export const ProfileScreen: React.FC = () => {
     const { progress, updateProgress, reset: resetProgress, profile } = useUserStore();
@@ -39,7 +41,8 @@ export const ProfileScreen: React.FC = () => {
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [modelSize, setModelSize] = useState<string>('0 MB');
     const [showResultModal, setShowResultModal] = useState<'success' | 'error' | null>(null);
-    const [showConfirmModal, setShowConfirmModal] = useState<'deleteModel' | 'resetProgress' | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState<'deleteModel' | 'resetProgress' | 'seedDatabase' | null>(null);
+    const [isSeeding, setIsSeeding] = useState(false);
 
 
     // Check model status when settings modal opens
@@ -80,6 +83,32 @@ export const ProfileScreen: React.FC = () => {
     const handleResetProgress = () => {
         setShowConfirmModal(null);
         resetProgress();
+    };
+
+    const handleSeedDatabase = async () => {
+        setShowConfirmModal(null);
+
+        // Check auth state before seeding
+        const user = getCurrentUser();
+        console.log('Auth state before seeding:', { isAuth: isAuthenticated(), userId: user?.uid, email: user?.email });
+
+        if (!isAuthenticated()) {
+            Alert.alert('Error', 'You must be signed in to seed the database. Please sign in first.');
+            return;
+        }
+
+        setIsSeeding(true);
+        try {
+            await seedDatabase((status, p) => {
+                console.log('Seed progress:', status, p);
+            });
+            Alert.alert('Success', 'Database seeded successfully with local content.');
+        } catch (error: any) {
+            Alert.alert('Error', `Failed to seed database: ${error.message || 'Unknown error'}`);
+            console.error(error);
+        } finally {
+            setIsSeeding(false);
+        }
     };
 
 
@@ -398,6 +427,16 @@ export const ProfileScreen: React.FC = () => {
                         <Text style={[styles.settingSectionTitle, { color: Colors.error[500] }]}>Danger Zone</Text>
                         <View style={[styles.settingsCard, { backgroundColor: theme.background.primary, borderColor: Colors.error[200], borderWidth: 1 }]}>
                             <TouchableOpacity
+                                style={[styles.dangerButton, { borderBottomWidth: 1, borderBottomColor: theme.border.light }]}
+                                onPress={() => setShowConfirmModal('seedDatabase')}
+                                activeOpacity={0.7}
+                                disabled={isSeeding}
+                            >
+                                {isSeeding ? <ActivityIndicator size="small" color={Colors.warning[500]} /> : <Ionicons name="cloud-upload-outline" size={20} color={Colors.warning[500]} />}
+                                <Text style={[styles.dangerButtonText, { color: Colors.warning[600] }]}>{isSeeding ? 'Seeding...' : 'Seed Database (Dev)'}</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
                                 style={styles.dangerButton}
                                 onPress={() => setShowConfirmModal('resetProgress')}
                                 activeOpacity={0.7}
@@ -541,13 +580,15 @@ export const ProfileScreen: React.FC = () => {
                         </LinearGradient>
 
                         <Text style={[styles.resultTitle, { color: theme.text.primary }]}>
-                            {showConfirmModal === 'deleteModel' ? 'Delete Voice Model?' : 'Reset Progress?'}
+                            {showConfirmModal === 'deleteModel' ? 'Delete Voice Model?' : showConfirmModal === 'seedDatabase' ? 'Seed Database?' : 'Reset Progress?'}
                         </Text>
 
                         <Text style={[styles.resultMessage, { color: theme.text.secondary }]}>
                             {showConfirmModal === 'deleteModel'
                                 ? 'You will need to download it again to use offline TTS.'
-                                : 'All your learning progress will be lost. This cannot be undone.'}
+                                : showConfirmModal === 'seedDatabase'
+                                    ? 'This will overwrite cloud data with local static content. This is a developer action.'
+                                    : 'All your learning progress will be lost. This cannot be undone.'}
                         </Text>
 
                         <View style={styles.confirmButtonRow}>
@@ -560,12 +601,12 @@ export const ProfileScreen: React.FC = () => {
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.confirmButton, { backgroundColor: Colors.error[500] }]}
-                                onPress={showConfirmModal === 'deleteModel' ? handleDeleteModel : handleResetProgress}
+                                style={[styles.confirmButton, { backgroundColor: showConfirmModal === 'seedDatabase' ? Colors.warning[500] : Colors.error[500] }]}
+                                onPress={showConfirmModal === 'deleteModel' ? handleDeleteModel : showConfirmModal === 'seedDatabase' ? handleSeedDatabase : handleResetProgress}
                                 activeOpacity={0.8}
                             >
                                 <Text style={styles.resultButtonText}>
-                                    {showConfirmModal === 'deleteModel' ? 'Delete' : 'Reset'}
+                                    {showConfirmModal === 'deleteModel' ? 'Delete' : showConfirmModal === 'seedDatabase' ? 'Seed' : 'Reset'}
                                 </Text>
                             </TouchableOpacity>
                         </View>

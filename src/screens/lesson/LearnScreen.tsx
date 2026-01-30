@@ -241,7 +241,8 @@ const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
             return;
         }
 
-        navigation.navigate('LessonDetail', { lessonId: lesson.id });
+        // Route 'mixed' and other types to vocabulary by default (no AI chat)
+        navigation.navigate('VocabularyLesson', { lessonId: lesson.id });
     };
 
     return (
@@ -299,8 +300,8 @@ const ModuleDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
 
                     const globalIndex = previousLessonsCount + index;
                     const isLessonCompleted = globalIndex < progress.lessonsCompleted;
-                    const isLessonUnlocked = globalIndex <= progress.lessonsCompleted; // Unlocked if all previous completed
-                    const isLessonLocked = !isLessonUnlocked;
+                    const isLessonUnlocked = true; // All lessons unlocked
+                    const isLessonLocked = false; // All lessons unlocked
 
                     return (
                         <View key={lesson.id} style={styles.lessonItem}>
@@ -464,13 +465,13 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         // Determine lock status based on completed lessons
         // Module is unlocked if we have completed enough lessons to reach it
         // Special case: If level is not A1, it might be locked entirely, but for now we assume A1 logic
-        const isModuleLocked = progress.lessonsCompleted < moduleStart;
+        const isModuleLocked = false; // All modules unlocked
 
         // Update lessons with completion status for the card count
         const updatedLessons = m.lessons.map((l, idx) => ({
             ...l,
             isCompleted: progress.lessonsCompleted > (moduleStart + idx),
-            isLocked: progress.lessonsCompleted <= (moduleStart + idx) // Current lesson is unlocked, future are locked
+            isLocked: false // All lessons unlocked
         }));
 
         return {

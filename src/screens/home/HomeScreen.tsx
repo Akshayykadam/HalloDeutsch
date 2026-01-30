@@ -276,15 +276,10 @@ export const HomeScreen: React.FC = () => {
                     })()}
                 </FadeInView>
 
-                {/* Smart Learning Features - New Widget */}
+                {/* Smart Learning Features - 2x2 Grid */}
                 <FadeInView delay={400}>
                     <Text style={styles.sectionTitle}>Smart Learning</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.featuresScroll}
-                        style={styles.featuresScrollContainer}
-                    >
+                    <View style={styles.featuresGrid}>
                         <TouchableOpacity
                             style={styles.featureCard}
                             onPress={() => navigation.navigate('Snap')}
@@ -335,10 +330,27 @@ export const HomeScreen: React.FC = () => {
                                 <Text style={styles.featureSubtitle}>Spaced repetition</Text>
                             </LinearGradient>
                         </TouchableOpacity>
-                    </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.featureCard}
+                            onPress={() => navigation.navigate('FillInBlank')}
+                            activeOpacity={0.9}
+                        >
+                            <LinearGradient
+                                colors={['#8B5CF6', '#6D28D9']}
+                                style={styles.featureGradient}
+                            >
+                                <View style={styles.featureIconBubble}>
+                                    <Ionicons name="help-circle" size={24} color={Colors.white} />
+                                </View>
+                                <Text style={styles.featureTitle}>Fill in Blank</Text>
+                                <Text style={styles.featureSubtitle}>AI quiz maker</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </FadeInView>
 
-                {/* Daily Challenges Section */}
+                {/* Daily Challenges Section - Hidden
                 <FadeInView delay={500}>
                     <Text style={styles.sectionTitle}>Daily Challenges</Text>
                     <View style={[styles.quickActions, !isPhone && styles.quickActionsTablet]}>
@@ -372,6 +384,7 @@ export const HomeScreen: React.FC = () => {
                         />
                     </View>
                 </FadeInView>
+                */}
 
                 {/* Quick Reference Section */}
                 <FadeInView delay={600}>
@@ -410,7 +423,7 @@ export const HomeScreen: React.FC = () => {
                     </View>
                 </FadeInView>
 
-                {/* Stats Summary */}
+                {/* Stats Summary - Hidden
                 <FadeInView delay={700}>
                     <Text style={styles.sectionTitle}>Your Progress</Text>
                     <Card style={styles.statsCard}>
@@ -421,6 +434,7 @@ export const HomeScreen: React.FC = () => {
                         </View>
                     </Card>
                 </FadeInView>
+                */}
 
                 <View style={{ height: 20 }} />
             </ScrollView>
@@ -815,16 +829,15 @@ const getStyles = (theme: any) => StyleSheet.create({
         color: theme.text.secondary,
     },
     // Smart Features Widget Styles
-    featuresScrollContainer: {
+    featuresGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
         marginBottom: Spacing.md,
     },
-    featuresScroll: {
-        paddingRight: Spacing.lg,
-        gap: Spacing.md,
-    },
     featureCard: {
-        width: 140,
-        height: 160,
+        width: '48.5%',
+        height: 130,
         borderRadius: BorderRadius.xl,
         overflow: 'hidden',
         ...Shadows.sm,

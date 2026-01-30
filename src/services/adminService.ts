@@ -1,5 +1,7 @@
 import { getFirestore, collection, writeBatch, doc, serverTimestamp } from '@react-native-firebase/firestore';
 import { extendedVocabulary } from '../data/content/extended-vocabulary';
+import { a1Vocabulary } from '../data/content/a1-vocabulary';
+import { A1_VOCABULARY } from '../data/content/vocabulary-comprehensive';
 import { A1_MODULES } from '../data/content/a1-curriculum';
 import { A2_MODULES } from '../data/content/a2-curriculum';
 import { B1_MODULES } from '../data/content/b1-curriculum';
@@ -33,24 +35,52 @@ export const seedDatabase = async (
 };
 
 export const seedVocabulary = async (onProgress?: (progress: number) => void) => {
-    console.log(`Starting migration of ${extendedVocabulary.length} words...`);
+    // Merge all vocabulary sources, using German word as key to avoid duplicate words
+    const allVocabularyMap = new Map<string, typeof extendedVocabulary[0]>();
+
+    // Add extended vocabulary first (will be the primary source for duplicates)
+    extendedVocabulary.forEach(word => {
+        const key = word.german.toLowerCase().trim();
+        allVocabularyMap.set(key, word);
+    });
+
+    // Add a1Vocabulary (only if German word doesn't already exist)
+    a1Vocabulary.forEach(word => {
+        const key = word.german.toLowerCase().trim();
+        if (!allVocabularyMap.has(key)) {
+            allVocabularyMap.set(key, word);
+        }
+    });
+
+    // Add A1_VOCABULARY from vocabulary-comprehensive.ts (only if German word doesn't already exist)
+    A1_VOCABULARY.forEach(word => {
+        const key = word.german.toLowerCase().trim();
+        if (!allVocabularyMap.has(key)) {
+            allVocabularyMap.set(key, word);
+        }
+    });
+
+    const allVocabulary = Array.from(allVocabularyMap.values());
+
+    console.log(`Starting migration of ${allVocabulary.length} unique words...`);
     const batchSize = 400; // Firestore limit is 500
     const chunks = [];
 
-    for (let i = 0; i < extendedVocabulary.length; i += batchSize) {
-        chunks.push(extendedVocabulary.slice(i, i + batchSize));
+    for (let i = 0; i < allVocabulary.length; i += batchSize) {
+        chunks.push(allVocabulary.slice(i, i + batchSize));
     }
 
     let processed = 0;
     for (const chunk of chunks) {
         const batch = writeBatch(db);
         chunk.forEach(word => {
-            const docRef = doc(collection(db, 'content', 'static', 'vocabulary'));
+            // Use word.id as document ID to prevent duplicates on re-seed
+            const docRef = doc(db, 'content', 'static', 'vocabulary', word.id);
             batch.set(docRef, { ...word, updatedAt: serverTimestamp() });
         });
         await batch.commit();
         processed += chunk.length;
-        if (onProgress) onProgress(processed / extendedVocabulary.length);
+        if (onProgress) onProgress(processed / allVocabulary.length);
     }
     return true;
 };

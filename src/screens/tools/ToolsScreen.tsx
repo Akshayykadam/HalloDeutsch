@@ -167,6 +167,17 @@ export const ToolsScreen: React.FC = () => {
                         <Text style={styles.miniCardTitle}>Grammar Tables</Text>
                         <Text style={styles.miniCardDesc}>Quick reference</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.miniCard}
+                        onPress={() => navigation.navigate('FillInBlank')}
+                    >
+                        <View style={[styles.miniCardIconBg, { backgroundColor: '#8B5CF6' + '15' }]}>
+                            <Ionicons name="help-circle-outline" size={32} color="#8B5CF6" />
+                        </View>
+                        <Text style={styles.miniCardTitle}>Fill in Blank</Text>
+                        <Text style={styles.miniCardDesc}>AI quiz maker</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeArea>

@@ -102,10 +102,22 @@ export const getVocabularyByDomains = async (domains: string[]): Promise<Vocabul
         const q = query(vocabRef, where('domain', 'in', domains.slice(0, 10)));
 
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc: any) => ({
+        const allWords = querySnapshot.docs.map((doc: any) => ({
             id: doc.id,
             ...doc.data()
         } as VocabularyWord));
+
+        // Deduplicate by ID to handle any duplicate entries from seeding
+        const seenIds = new Set<string>();
+        const uniqueWords = allWords.filter((word: VocabularyWord) => {
+            if (seenIds.has(word.id)) {
+                return false;
+            }
+            seenIds.add(word.id);
+            return true;
+        });
+
+        return uniqueWords;
     } catch (error) {
         console.error('Error fetching vocabulary by domains:', error);
         return [];

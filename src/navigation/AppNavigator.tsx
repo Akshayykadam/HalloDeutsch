@@ -34,6 +34,7 @@ import { PenPalScreen } from '../screens/penpal';
 import { ExamPrepScreen } from '../screens/exam';
 import { CulturalGuideScreen } from '../screens/culture';
 import { IdiomsSlangScreen } from '../screens/idioms';
+import { FillInBlankScreen } from '../screens/fillInBlank';
 import { useUserStore } from '../store';
 import { Colors, FontSize, FontWeight, Shadows } from '../theme';
 import { useTheme } from '../context/ThemeContext';
@@ -236,6 +237,11 @@ export const AppNavigator: React.FC = () => {
                         <RootStack.Screen
                             name="About"
                             component={AboutScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <RootStack.Screen
+                            name="FillInBlank"
+                            component={FillInBlankScreen}
                             options={{ headerShown: false }}
                         />
                     </>

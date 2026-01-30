@@ -626,3 +626,72 @@ export const generateFlashcards = async (
         return [];
     }
 };
+
+// Type for fill-in-the-blank question
+export interface FillInBlankQuestion {
+    id: string;
+    sentence: string;           // German sentence with ___ blank
+    correctAnswer: string;      // The correct word
+    options: string[];          // 4 options including correct
+    translation: string;        // English translation
+    explanation?: string;       // Optional explanation
+}
+
+// Generate fill-in-the-blank questions for a topic
+export const generateFillInBlankQuestions = async (
+    topic: string,
+    level: CEFRLevel,
+    count: number = 10
+): Promise<FillInBlankQuestion[]> => {
+    try {
+        const prompt = `Generate ${count} fill-in-the-blank German sentences for ${level} level learners.
+Topic: ${topic}
+
+Each question should have a German sentence with ONE word replaced by "___".
+Provide 4 options where only one is correct.
+
+IMPORTANT:
+- Make sentences appropriate for ${level} level
+- The blank should test understanding of ${topic}
+- Options should be plausible but only one correct
+- Include common mistakes as distractors
+
+Respond in JSON format as an array:
+[
+  {
+    "sentence": "German sentence with ___ for the blank",
+    "correctAnswer": "the correct word",
+    "options": ["option1", "option2", "option3", "option4"],
+    "translation": "English translation (with the correct word filled in)",
+    "explanation": "Brief explanation why this is correct"
+  }
+]
+
+IMPORTANT: Return ONLY valid JSON array, no additional text.`;
+
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: prompt,
+        });
+
+        const text = response.text;
+        if (!text) return [];
+
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) return [];
+
+        const parsed: any[] = JSON.parse(jsonMatch[0]);
+
+        return parsed.map((item, index) => ({
+            id: `fib-${Date.now()}-${index}`,
+            sentence: item.sentence,
+            correctAnswer: item.correctAnswer,
+            options: item.options,
+            translation: item.translation,
+            explanation: item.explanation || '',
+        }));
+    } catch (error) {
+        console.error('Error generating fill-in-blank questions:', error);
+        return [];
+    }
+};
