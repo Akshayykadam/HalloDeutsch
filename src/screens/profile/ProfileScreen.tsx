@@ -348,7 +348,7 @@ export const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
-                        {/* Audio & Feedback */}
+                        {/* Audio & Feedback - Hidden
                         <Text style={styles.settingSectionTitle}>Audio & Feedback</Text>
                         <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <SettingRow
@@ -381,8 +381,9 @@ export const ProfileScreen: React.FC = () => {
                                 theme={theme}
                             />
                         </View>
+                        */}
 
-                        {/* Notifications */}
+                        {/* Notifications - Hidden
                         <Text style={styles.settingSectionTitle}>Notifications</Text>
                         <View style={[styles.settingsCard, { backgroundColor: theme.background.primary }]}>
                             <SettingRow
@@ -395,6 +396,7 @@ export const ProfileScreen: React.FC = () => {
                                 theme={theme}
                             />
                         </View>
+                        */}
 
                         {/* Daily Goal */}
                         <Text style={styles.settingSectionTitle}>Daily Goal</Text>
@@ -426,6 +428,7 @@ export const ProfileScreen: React.FC = () => {
                         {/* Danger Zone */}
                         <Text style={[styles.settingSectionTitle, { color: Colors.error[500] }]}>Danger Zone</Text>
                         <View style={[styles.settingsCard, { backgroundColor: theme.background.primary, borderColor: Colors.error[200], borderWidth: 1 }]}>
+                            {/* Seed Database button - Hidden
                             <TouchableOpacity
                                 style={[styles.dangerButton, { borderBottomWidth: 1, borderBottomColor: theme.border.light }]}
                                 onPress={() => setShowConfirmModal('seedDatabase')}
@@ -435,6 +438,7 @@ export const ProfileScreen: React.FC = () => {
                                 {isSeeding ? <ActivityIndicator size="small" color={Colors.warning[500]} /> : <Ionicons name="cloud-upload-outline" size={20} color={Colors.warning[500]} />}
                                 <Text style={[styles.dangerButtonText, { color: Colors.warning[600] }]}>{isSeeding ? 'Seeding...' : 'Seed Database (Dev)'}</Text>
                             </TouchableOpacity>
+                            */}
 
                             <TouchableOpacity
                                 style={styles.dangerButton}

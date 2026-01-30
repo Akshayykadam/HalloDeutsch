@@ -485,7 +485,20 @@ export const FlashcardScreen = () => {
                         <Text style={styles.cardTextSecondary}>{currentCard?.back}</Text>
                         {currentCard?.example && (
                             <View style={styles.exampleContainer}>
-                                <Text style={styles.exampleText}>{currentCard.example}</Text>
+                                <View style={styles.exampleRow}>
+                                    <Text style={styles.exampleText}>{currentCard.example}</Text>
+                                    <TouchableOpacity
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            if (currentCard.example) {
+                                                speak(currentCard.example);
+                                            }
+                                        }}
+                                        style={styles.exampleSpeaker}
+                                    >
+                                        <Ionicons name="volume-high" size={18} color={Colors.primary[500]} />
+                                    </TouchableOpacity>
+                                </View>
                                 <Text style={styles.exampleTranslation}>{currentCard.exampleEn}</Text>
                             </View>
                         )}
@@ -601,12 +614,21 @@ const getStyles = (theme: any) => StyleSheet.create({
         borderRadius: BorderRadius.md,
         width: '100%',
     },
+    exampleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        marginBottom: 4,
+    },
+    exampleSpeaker: {
+        padding: 4,
+    },
     exampleText: {
         fontSize: FontSize.md,
         color: theme.text.primary,
         textAlign: 'center',
         fontStyle: 'italic',
-        marginBottom: 4,
     },
     exampleTranslation: {
         fontSize: FontSize.sm,
