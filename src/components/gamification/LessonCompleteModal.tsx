@@ -1,10 +1,12 @@
 // Lesson Complete Modal - Success celebration with XP summary
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Modal, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { ConfettiOverlay } from './ConfettiOverlay';
+import { haptics } from '../../utils/haptics';
 
 interface LessonCompleteModalProps {
     visible: boolean;
@@ -28,9 +30,12 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
     const { theme, isDark } = useTheme();
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
+    const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
         if (visible) {
+            haptics.success();
+            setShowConfetti(true);
             // Reset animations
             scaleAnim.setValue(0);
             rotateAnim.setValue(0);
@@ -65,6 +70,11 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
+                <ConfettiOverlay
+                    visible={showConfetti}
+                    onComplete={() => setShowConfetti(false)}
+                    count={60}
+                />
                 <Animated.View
                     style={[
                         styles.container,

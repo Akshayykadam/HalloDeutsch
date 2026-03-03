@@ -10,16 +10,18 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as audioService from '../../services/audioService';
 import { searchVocabulary } from '../../services/contentService';
-import { Card, Badge, Button, SafeArea } from '../../components/ui';
-import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
+import { Badge, SafeArea } from '../../components/ui';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
 import { CEFRLevel } from '../../types';
 import { Config, Models } from '../../config';
 import { GoogleGenAI } from '@google/genai';
+import { haptics } from '../../utils/haptics';
 
 // Initialize AI
 const ai = new GoogleGenAI({ apiKey: Config.GEMINI_API_KEY });
@@ -39,97 +41,50 @@ interface DictionaryEntry {
     level: CEFRLevel;
 }
 
+const LEVEL_COLORS: Record<string, [string, string]> = {
+    A1: [Colors.success[400], Colors.success[600]],
+    A2: [Colors.primary[400], Colors.primary[600]],
+    B1: ['#8B5CF6', '#6D28D9'],
+    B2: [Colors.secondary[400], Colors.secondary[600]],
+};
+
+const LEVEL_LABELS: Record<string, string> = {
+    A1: 'Beginner',
+    A2: 'Elementary',
+    B1: 'Intermediate',
+    B2: 'Advanced',
+};
+
 // Categorized word lists for browsing
-const categorizedData: Record<CEFRLevel, Array<{ category: string; icon: string; words: string[] }>> = {
+const categorizedData: Record<CEFRLevel, Array<{ category: string; icon: keyof typeof Ionicons.glyphMap; words: string[] }>> = {
     A1: [
-        {
-            category: 'Essentials',
-            icon: 'star',
-            words: ['Hallo', 'Danke', 'Bitte', 'Ja', 'Nein', 'Guten Morgen', 'Entschuldigung']
-        },
-        {
-            category: 'Common Adjectives',
-            icon: 'color-palette',
-            words: ['Gut', 'Schlecht', 'Groß', 'Klein', 'Schön', 'Neu', 'Kalt', 'Warm']
-        },
-        {
-            category: 'Home & Living',
-            icon: 'home',
-            words: ['Haus', 'Tisch', 'Stuhl', 'Fenster', 'Tür', 'Bett', 'Küche', 'Bad']
-        },
-        {
-            category: 'Food & Drink',
-            icon: 'restaurant',
-            words: ['Wasser', 'Essen', 'Trinken', 'Brot', 'Milch', 'Kaffee', 'Apfel']
-        },
-        {
-            category: 'Actions',
-            icon: 'walk',
-            words: ['Gehen', 'Kommen', 'Laufen', 'Essen', 'Trinken', 'Schlafen', 'Sehen']
-        },
-        {
-            category: 'Time',
-            icon: 'time',
-            words: ['Heute', 'Morgen', 'Gestern', 'Zeit', 'Tag', 'Nacht', 'Woche', 'Jahr']
-        },
-        {
-            category: 'Places',
-            icon: 'map',
-            words: ['Stadt', 'Land', 'Schule', 'Arbeit', 'Park', 'Straße', 'Bahnhof']
-        }
+        { category: 'Essentials', icon: 'star', words: ['Hallo', 'Danke', 'Bitte', 'Ja', 'Nein', 'Guten Morgen', 'Entschuldigung'] },
+        { category: 'Common Adjectives', icon: 'color-palette', words: ['Gut', 'Schlecht', 'Groß', 'Klein', 'Schön', 'Neu', 'Kalt', 'Warm'] },
+        { category: 'Home & Living', icon: 'home', words: ['Haus', 'Tisch', 'Stuhl', 'Fenster', 'Tür', 'Bett', 'Küche', 'Bad'] },
+        { category: 'Food & Drink', icon: 'restaurant', words: ['Wasser', 'Essen', 'Trinken', 'Brot', 'Milch', 'Kaffee', 'Apfel'] },
+        { category: 'Actions', icon: 'walk', words: ['Gehen', 'Kommen', 'Laufen', 'Essen', 'Trinken', 'Schlafen', 'Sehen'] },
+        { category: 'Time', icon: 'time', words: ['Heute', 'Morgen', 'Gestern', 'Zeit', 'Tag', 'Nacht', 'Woche', 'Jahr'] },
+        { category: 'Places', icon: 'map', words: ['Stadt', 'Land', 'Schule', 'Arbeit', 'Park', 'Straße', 'Bahnhof'] },
     ],
     A2: [
-        {
-            category: 'Communication',
-            icon: 'chatbubbles',
-            words: ['Erfahrung', 'Meinung', 'Frage', 'Antwort', 'Gespräch', 'Nachricht']
-        },
-        {
-            category: 'Abstract',
-            icon: 'bulb',
-            words: ['Unterschied', 'Vorteil', 'Nachteil', 'Erfolg', 'Fehler', 'Problem']
-        },
-        {
-            category: 'Work & Career',
-            icon: 'briefcase',
-            words: ['Beruf', 'Büro', 'Kollege', 'Chef', 'Gehalt', 'Bewerbung']
-        }
+        { category: 'Communication', icon: 'chatbubbles', words: ['Erfahrung', 'Meinung', 'Frage', 'Antwort', 'Gespräch', 'Nachricht'] },
+        { category: 'Abstract', icon: 'bulb', words: ['Unterschied', 'Vorteil', 'Nachteil', 'Erfolg', 'Fehler', 'Problem'] },
+        { category: 'Work & Career', icon: 'briefcase', words: ['Beruf', 'Büro', 'Kollege', 'Chef', 'Gehalt', 'Bewerbung'] },
     ],
     B1: [
-        {
-            category: 'Society',
-            icon: 'people',
-            words: ['Gesellschaft', 'Kultur', 'Bevölkerung', 'Bürger', 'Gemeinschaft']
-        },
-        {
-            category: 'Technology',
-            icon: 'hardware-chip',
-            words: ['Wissenschaft', 'Technologie', 'Forschung', 'Entwicklung', 'Daten']
-        },
-        {
-            category: 'Environment',
-            icon: 'leaf',
-            words: ['Umwelt', 'Klima', 'Natur', 'Schutz', 'Verschmutzung']
-        }
+        { category: 'Society', icon: 'people', words: ['Gesellschaft', 'Kultur', 'Bevölkerung', 'Bürger', 'Gemeinschaft'] },
+        { category: 'Technology', icon: 'hardware-chip', words: ['Wissenschaft', 'Technologie', 'Forschung', 'Entwicklung', 'Daten'] },
+        { category: 'Environment', icon: 'leaf', words: ['Umwelt', 'Klima', 'Natur', 'Schutz', 'Verschmutzung'] },
     ],
     B2: [
-        {
-            category: 'Business & Law',
-            icon: 'business',
-            words: ['Zuständigkeit', 'Inanspruchnahme', 'Vertrag', 'Verhandlung', 'Gesetz']
-        },
-        {
-            category: 'Academic',
-            icon: 'school',
-            words: ['Auseinandersetzung', 'Erörterung', 'Schlussfolgerung', 'Theorie', 'Argument']
-        }
+        { category: 'Business & Law', icon: 'business', words: ['Zuständigkeit', 'Inanspruchnahme', 'Vertrag', 'Verhandlung', 'Gesetz'] },
+        { category: 'Academic', icon: 'school', words: ['Auseinandersetzung', 'Erörterung', 'Schlussfolgerung', 'Theorie', 'Argument'] },
     ],
 };
 
 export const DictionaryScreen: React.FC = () => {
     const navigation = useNavigation();
-    const { theme } = useTheme();
-    const styles = getStyles(theme);
+    const { theme, isDark } = useTheme();
     const { progress } = useUserStore();
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
     const [searchQuery, setSearchQuery] = useState('');
@@ -141,41 +96,34 @@ export const DictionaryScreen: React.FC = () => {
 
     const lookupWord = async (query: string) => {
         if (!query.trim()) return;
-
+        haptics.light();
         setIsLoading(true);
         setError(null);
         setEntry(null);
 
         try {
-            // Priority 1: Check Firestore (Cloud Content)
             const results = await searchVocabulary(query.trim());
             if (results && results.length > 0) {
-                // Find exact match or use first result
                 const exactMatch = results.find(w => w.german.toLowerCase() === query.trim().toLowerCase());
                 const bestMatch = exactMatch || results[0];
-
-                // Adapting VocabularyWord to DictionaryEntry format
-                // Our VocabularyWord type is slightly different, so we map it
                 const dictEntry: DictionaryEntry = {
                     word: bestMatch.german,
-                    // @ts-ignore: Assuming gender exists on bestMatch
+                    // @ts-ignore
                     gender: bestMatch.gender,
                     // @ts-ignore
                     plural: bestMatch.plural,
                     pronunciation: bestMatch.pronunciation || '',
                     partOfSpeech: bestMatch.partOfSpeech,
                     // @ts-ignore
-                    meanings: [bestMatch.english], // Simple string to array
-                    examples: [], // VocabularyWord doesn't have examples yet
+                    meanings: [bestMatch.english],
+                    examples: [],
                     level: bestMatch.level as CEFRLevel,
                 };
-
                 setEntry(dictEntry);
                 setIsLoading(false);
                 return;
             }
 
-            // Priority 2: AI Fallback
             const prompt = `Define the German word "${query}". Look up the German word "${query}".
       
       Provide a comprehensive dictionary entry in JSON format:
@@ -214,15 +162,15 @@ export const DictionaryScreen: React.FC = () => {
 
             const text = response.text;
             if (!text) throw new Error('No response');
-
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error('Invalid response format');
-
             const parsed = JSON.parse(jsonMatch[0]);
             setEntry(parsed as DictionaryEntry);
+            haptics.success();
         } catch (err) {
             console.error('Dictionary lookup error:', err);
             setError('Could not find this word. Please try another.');
+            haptics.error();
         } finally {
             setIsLoading(false);
         }
@@ -230,240 +178,263 @@ export const DictionaryScreen: React.FC = () => {
 
     const handleSpeak = async () => {
         if (!entry) return;
+        haptics.light();
         await audioService.stopAudio();
         await audioService.speak(entry.word);
     };
 
     return (
-        <SafeArea style={styles.container}>
+        <SafeArea style={[styles.container, { backgroundColor: theme.background.primary }]}>
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerTitleRow}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
-                        <Ionicons name="arrow-back" size={24} color={Colors.primary[500]} />
-                    </TouchableOpacity>
-                    <Ionicons name="book" size={24} color={Colors.primary[500]} />
-                    <Text style={styles.headerTitle}>Dictionary</Text>
-                </View>
-                <Text style={styles.headerSubtitle}>Look up any German word</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={22} color={theme.text.primary} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: theme.text.primary }]}>Dictionary</Text>
+                <View style={{ width: 36 }} />
             </View>
 
             {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color={Colors.neutral[400]} style={styles.searchIcon} />
+            <View style={styles.searchSection}>
+                <View style={[styles.searchBar, {
+                    backgroundColor: theme.background.secondary,
+                    borderColor: searchQuery.trim() ? Colors.primary[500] : 'transparent',
+                }]}>
+                    <Ionicons name="search" size={20} color={theme.text.tertiary} />
                     <TextInput
-                        style={styles.searchInput}
-                        placeholder="Enter a German word..."
-                        placeholderTextColor={Colors.neutral[400]}
+                        style={[styles.searchInput, { color: theme.text.primary }]}
+                        placeholder="Search a German word..."
+                        placeholderTextColor={theme.text.tertiary}
                         value={searchQuery}
                         onChangeText={(text) => {
                             setSearchQuery(text);
-                            if (text.trim() === '') {
-                                setEntry(null);
-                                setError(null);
-                            }
+                            if (text.trim() === '') { setEntry(null); setError(null); }
                         }}
                         onSubmitEditing={() => lookupWord(searchQuery)}
                         autoCapitalize="none"
                         autoCorrect={false}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => {
-                            setSearchQuery('');
-                            setEntry(null);
-                            setError(null);
-                        }}>
-                            <Ionicons name="close-circle" size={18} color={Colors.neutral[400]} style={styles.clearButton} />
+                        <TouchableOpacity onPress={() => { setSearchQuery(''); setEntry(null); setError(null); }}>
+                            <Ionicons name="close-circle" size={20} color={theme.text.tertiary} />
                         </TouchableOpacity>
                     )}
+                    <TouchableOpacity
+                        onPress={() => lookupWord(searchQuery)}
+                        disabled={!searchQuery.trim() || isLoading}
+                        style={[styles.searchBtn, { opacity: searchQuery.trim() ? 1 : 0.4 }]}
+                    >
+                        <LinearGradient
+                            colors={[Colors.primary[500], Colors.primary[600]]}
+                            style={styles.searchBtnGradient}
+                        >
+                            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
-                <Button
-                    title="Search"
-                    onPress={() => lookupWord(searchQuery)}
-                    size="medium"
-                    disabled={isLoading || !searchQuery.trim()}
-                />
             </View>
 
             {/* Level Tabs */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.levelTabs}
-                contentContainerStyle={styles.levelTabsContent}
-            >
-                {levels.map((level) => (
-                    <TouchableOpacity
-                        key={level}
-                        onPress={() => setSelectedLevel(level)}
-                        style={[
-                            styles.levelTab,
-                            selectedLevel === level && styles.levelTabActive,
-                        ]}
-                    >
-                        <Text style={[
-                            styles.levelTabText,
-                            selectedLevel === level && styles.levelTabTextActive,
-                        ]}>
-                            {level} Words
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+            <View style={styles.tabsRow}>
+                {levels.map((level) => {
+                    const isActive = selectedLevel === level;
+                    return (
+                        <TouchableOpacity
+                            key={level}
+                            onPress={() => { setSelectedLevel(level); haptics.selection(); }}
+                            style={{ flex: 1 }}
+                            activeOpacity={0.7}
+                        >
+                            {isActive ? (
+                                <LinearGradient
+                                    colors={LEVEL_COLORS[level]}
+                                    style={styles.tabActive}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Text style={styles.tabTextActive}>{LEVEL_LABELS[level]}</Text>
+                                </LinearGradient>
+                            ) : (
+                                <View style={[styles.tab, { backgroundColor: theme.background.secondary }]}>
+                                    <Text style={[styles.tabText, { color: theme.text.secondary }]}>{LEVEL_LABELS[level]}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
 
             <ScrollView
                 style={styles.content}
-                contentContainerStyle={styles.contentContainer}
+                contentContainerStyle={styles.contentInner}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Loading State */}
                 {isLoading && (
-                    <View style={styles.loadingContainer}>
+                    <View style={styles.loadingBox}>
                         <ActivityIndicator size="large" color={Colors.primary[500]} />
-                        <Text style={styles.loadingText}>Looking up word...</Text>
+                        <Text style={[styles.loadingText, { color: theme.text.secondary }]}>Looking up word...</Text>
                     </View>
                 )}
 
                 {/* Error State */}
                 {error && (
-                    <Card variant="flat" style={styles.errorCard}>
-                        <Ionicons name="alert-circle" size={32} color={Colors.error[500]} style={{ marginBottom: 8 }} />
-                        <Text style={styles.errorText}>{error}</Text>
-                    </Card>
+                    <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : Colors.error[50] }]}>
+                        <Ionicons name="alert-circle" size={24} color={Colors.error[500]} />
+                        <Text style={[styles.errorText, { color: Colors.error[500] }]}>{error}</Text>
+                    </View>
                 )}
 
                 {/* Dictionary Entry */}
                 {entry && !isLoading && (
-                    <Card style={styles.entryCard}>
-                        <View style={styles.entryHeader}>
-                            <View>
-                                <View style={styles.wordRow}>
+                    <View style={[styles.entryCard, { backgroundColor: theme.background.secondary }]}>
+                        {/* Word header */}
+                        <View style={styles.entryTop}>
+                            <View style={{ flex: 1 }}>
+                                <View style={styles.entryWordRow}>
                                     {entry.gender && (
-                                        <Text style={styles.gender}>{entry.gender}</Text>
+                                        <Text style={[styles.entryGender, { color: Colors.primary[500] }]}>{entry.gender}</Text>
                                     )}
-                                    <Text style={styles.word}>{entry.word}</Text>
-                                    <TouchableOpacity onPress={handleSpeak} style={{ marginLeft: 8 }}>
-                                        <Ionicons name="volume-high" size={24} color={Colors.primary[500]} />
-                                    </TouchableOpacity>
+                                    <Text style={[styles.entryWord, { color: theme.text.primary }]}>{entry.word}</Text>
                                 </View>
-                                <Text style={styles.pronunciation}>[{entry.pronunciation}]</Text>
+                                {entry.pronunciation ? (
+                                    <Text style={[styles.entryPronunciation, { color: theme.text.tertiary }]}>[{entry.pronunciation}]</Text>
+                                ) : null}
                             </View>
-                            <Badge label={entry.level} variant="level" level={entry.level as CEFRLevel} />
+                            <TouchableOpacity onPress={handleSpeak} activeOpacity={0.7}>
+                                <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={styles.speakBtn}>
+                                    <Ionicons name="volume-high" size={18} color={Colors.white} />
+                                </LinearGradient>
+                            </TouchableOpacity>
                         </View>
 
-                        <Badge label={entry.partOfSpeech} variant="default" size="small" />
+                        {/* Badges */}
+                        <View style={styles.entryBadges}>
+                            <View style={[styles.posBadge, { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50] }]}>
+                                <Text style={[styles.posBadgeText, { color: Colors.primary[500] }]}>{entry.partOfSpeech}</Text>
+                            </View>
+                            <View style={[styles.levelBadge]}>
+                                <LinearGradient colors={LEVEL_COLORS[entry.level] || LEVEL_COLORS.A1} style={styles.levelBadgeGradient}>
+                                    <Text style={styles.levelBadgeText}>{entry.level}</Text>
+                                </LinearGradient>
+                            </View>
+                        </View>
 
                         {entry.plural && (
-                            <Text style={styles.plural}>Plural: {entry.plural}</Text>
+                            <Text style={[styles.entryPlural, { color: theme.text.secondary }]}>Plural: <Text style={{ fontWeight: FontWeight.semibold as any }}>{entry.plural}</Text></Text>
                         )}
 
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Meanings</Text>
+                        {/* Meanings */}
+                        <View style={styles.entrySection}>
+                            <Text style={[styles.entrySectionTitle, { color: theme.text.tertiary }]}>Meanings</Text>
                             {entry.meanings.map((meaning, idx) => (
-                                <Text key={idx} style={styles.meaning}>• {meaning}</Text>
+                                <View key={idx} style={styles.meaningRow}>
+                                    <View style={[styles.meaningDot, { backgroundColor: Colors.primary[500] }]} />
+                                    <Text style={[styles.meaningText, { color: theme.text.primary }]}>{meaning}</Text>
+                                </View>
                             ))}
                         </View>
 
+                        {/* Examples */}
                         {entry.examples && entry.examples.length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Examples</Text>
+                            <View style={styles.entrySection}>
+                                <Text style={[styles.entrySectionTitle, { color: theme.text.tertiary }]}>Examples</Text>
                                 {entry.examples.map((ex, idx) => (
-                                    <View key={idx} style={styles.example}>
-                                        <Text style={styles.exampleGerman}>{ex.german}</Text>
-                                        <Text style={styles.exampleEnglish}>{ex.english}</Text>
+                                    <View key={idx} style={[styles.exampleCard, { backgroundColor: theme.background.tertiary }]}>
+                                        <Text style={[styles.exampleDe, { color: theme.text.primary }]}>{ex.german}</Text>
+                                        <Text style={[styles.exampleEn, { color: theme.text.secondary }]}>{ex.english}</Text>
                                     </View>
                                 ))}
                             </View>
                         )}
 
+                        {/* Conjugation */}
                         {entry.conjugation && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Conjugation (Present)</Text>
-                                <View style={styles.conjugationGrid}>
+                            <View style={styles.entrySection}>
+                                <Text style={[styles.entrySectionTitle, { color: theme.text.tertiary }]}>Conjugation (Present)</Text>
+                                <View style={styles.conjGrid}>
                                     {Object.entries(entry.conjugation).map(([pronoun, form]) => (
-                                        <View key={pronoun} style={styles.conjugationItem}>
-                                            <Text style={styles.pronoun}>{pronoun}</Text>
-                                            <Text style={styles.conjugatedForm}>{form}</Text>
+                                        <View key={pronoun} style={[styles.conjItem, { backgroundColor: theme.background.tertiary }]}>
+                                            <Text style={[styles.conjPronoun, { color: theme.text.tertiary }]}>{pronoun}</Text>
+                                            <Text style={[styles.conjForm, { color: theme.text.primary }]}>{form}</Text>
                                         </View>
                                     ))}
                                 </View>
                             </View>
                         )}
 
+                        {/* Synonyms */}
                         {entry.synonyms && entry.synonyms.length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Synonyms</Text>
-                                <View style={styles.tagContainer}>
+                            <View style={styles.entrySection}>
+                                <Text style={[styles.entrySectionTitle, { color: theme.text.tertiary }]}>Synonyms</Text>
+                                <View style={styles.chipRow}>
                                     {entry.synonyms.map((syn, idx) => (
                                         <TouchableOpacity
                                             key={idx}
-                                            style={styles.tag}
-                                            onPress={() => {
-                                                setSearchQuery(syn);
-                                                lookupWord(syn);
-                                            }}
+                                            style={[styles.linkedChip, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50] }]}
+                                            onPress={() => { setSearchQuery(syn); lookupWord(syn); }}
                                         >
-                                            <Text style={styles.tagText}>{syn}</Text>
+                                            <Text style={[styles.linkedChipText, { color: Colors.primary[500] }]}>{syn}</Text>
+                                            <Ionicons name="arrow-forward" size={12} color={Colors.primary[500]} />
                                         </TouchableOpacity>
                                     ))}
                                 </View>
                             </View>
                         )}
 
+                        {/* Related Words */}
                         {entry.relatedWords && entry.relatedWords.length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Related Words</Text>
-                                <View style={styles.tagContainer}>
+                            <View style={styles.entrySection}>
+                                <Text style={[styles.entrySectionTitle, { color: theme.text.tertiary }]}>Related Words</Text>
+                                <View style={styles.chipRow}>
                                     {entry.relatedWords.map((word, idx) => (
                                         <TouchableOpacity
                                             key={idx}
-                                            style={styles.tag}
-                                            onPress={() => {
-                                                setSearchQuery(word);
-                                                lookupWord(word);
-                                            }}
+                                            style={[styles.linkedChip, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50] }]}
+                                            onPress={() => { setSearchQuery(word); lookupWord(word); }}
                                         >
-                                            <Text style={styles.tagText}>{word}</Text>
+                                            <Text style={[styles.linkedChipText, { color: Colors.primary[500] }]}>{word}</Text>
+                                            <Ionicons name="arrow-forward" size={12} color={Colors.primary[500]} />
                                         </TouchableOpacity>
                                     ))}
                                 </View>
                             </View>
                         )}
-                    </Card>
+                    </View>
                 )}
 
-                {/* Word List for Selected Level */}
+                {/* Browse Categories */}
                 {!entry && !isLoading && (
                     <>
-                        <Text style={styles.browseTitle}>
-                            Browse {selectedLevel} Vocabulary
-                        </Text>
-                        <View style={styles.categoriesContainer}>
-                            {categorizedData[selectedLevel].map((category, catIdx) => (
-                                <View key={catIdx} style={styles.categorySection}>
-                                    <View style={styles.categoryHeader}>
-                                        <View style={[styles.categoryIcon, { backgroundColor: Colors.primary[500] + '15' }]}>
-                                            <Ionicons name={category.icon as any} size={18} color={Colors.primary[500]} />
-                                        </View>
-                                        <Text style={styles.categoryTitle}>{category.category}</Text>
+                        {categorizedData[selectedLevel].map((cat, catIdx) => (
+                            <View key={catIdx} style={[styles.catCard, { backgroundColor: theme.background.secondary }]}>
+                                {/* Category header */}
+                                <View style={styles.catHeader}>
+                                    <View style={[styles.catIconCircle, { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50] }]}>
+                                        <Ionicons name={cat.icon} size={18} color={Colors.primary[500]} />
                                     </View>
-                                    <View style={styles.wordGrid}>
-                                        {category.words.map((word, wordIdx) => (
-                                            <TouchableOpacity
-                                                key={wordIdx}
-                                                style={styles.wordChip}
-                                                onPress={() => {
-                                                    setSearchQuery(word);
-                                                    lookupWord(word);
-                                                }}
-                                            >
-                                                <Text style={styles.wordChipText}>{word}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
+                                    <Text style={[styles.catTitle, { color: theme.text.primary }]}>{cat.category}</Text>
+                                    <Text style={[styles.catCount, { color: theme.text.tertiary }]}>{cat.words.length}</Text>
                                 </View>
-                            ))}
-                        </View>
+                                {/* Word chips */}
+                                <View style={styles.catWords}>
+                                    {cat.words.map((word, wordIdx) => (
+                                        <TouchableOpacity
+                                            key={wordIdx}
+                                            style={[styles.wordChip, {
+                                                backgroundColor: theme.background.tertiary,
+                                                borderColor: theme.border.light,
+                                            }]}
+                                            onPress={() => { setSearchQuery(word); lookupWord(word); }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={[styles.wordChipText, { color: theme.text.primary }]}>{word}</Text>
+                                            <Ionicons name="chevron-forward" size={14} color={theme.text.tertiary} />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        ))}
                     </>
                 )}
             </ScrollView>
@@ -471,262 +442,188 @@ export const DictionaryScreen: React.FC = () => {
     );
 };
 
-const getStyles = (theme: any) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.background.secondary,
-    },
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+
+    // Header
     header: {
-        padding: Spacing.base,
-        paddingTop: Spacing.lg,
-        backgroundColor: theme.background.primary,
-    },
-    headerTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.xs,
-    },
-    headerTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 2,
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
-        padding: Spacing.base,
-        backgroundColor: theme.background.primary,
-    },
-    searchInputContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.background.tertiary,
-        borderRadius: BorderRadius.md,
+        justifyContent: 'space-between',
         paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
     },
-    searchIcon: {
-        marginRight: Spacing.sm,
+    backBtn: { padding: Spacing.xs },
+    headerTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+
+    // Search
+    searchSection: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.md },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: BorderRadius.xl,
+        paddingLeft: Spacing.md,
+        paddingRight: 4,
+        borderWidth: 1.5,
+        gap: Spacing.sm,
     },
     searchInput: {
         flex: 1,
-        fontSize: FontSize.base,
-        color: theme.text.primary,
-        paddingVertical: Spacing.sm,
+        fontSize: FontSize.md,
+        paddingVertical: Spacing.md,
     },
-    clearButton: {
-        padding: Spacing.xs,
+    searchBtn: { marginLeft: Spacing.xs },
+    searchBtnGradient: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    levelTabs: {
-        flexGrow: 0,
-        backgroundColor: theme.background.primary,
-        marginBottom: Spacing.sm,
-        maxHeight: 60,
-    },
-    levelTabsContent: {
+
+    // Tabs
+    tabsRow: {
+        flexDirection: 'row',
         paddingHorizontal: Spacing.base,
         gap: Spacing.sm,
-        paddingBottom: Spacing.xs,
+        marginBottom: Spacing.md,
     },
-    levelTab: {
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.full,
-        backgroundColor: theme.background.tertiary,
-        height: 36,
-        justifyContent: 'center',
+    tab: {
+        borderRadius: BorderRadius.lg,
+        paddingVertical: Spacing.sm + 2,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: theme.border.light,
     },
-    levelTabActive: {
-        backgroundColor: Colors.primary[50],
-        borderColor: Colors.primary[500],
-    },
-    levelTabText: {
-        fontSize: FontSize.sm,
-        fontWeight: FontWeight.medium,
-        color: theme.text.secondary,
-    },
-    levelTabTextActive: {
-        color: Colors.primary[700],
-        fontWeight: FontWeight.bold,
-    },
-    content: {
-        flex: 1,
-    },
-    contentContainer: {
-        padding: Spacing.base,
-        paddingBottom: Spacing['3xl'],
-    },
-    loadingContainer: {
+    tabActive: {
+        borderRadius: BorderRadius.lg,
+        paddingVertical: Spacing.sm + 2,
         alignItems: 'center',
-        padding: Spacing['2xl'],
     },
-    loadingText: {
-        fontSize: FontSize.base,
-        color: theme.text.secondary,
-        marginTop: Spacing.md,
-    },
-    errorCard: {
+    tabText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+    tabTextActive: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.white },
+
+    // Content
+    content: { flex: 1 },
+    contentInner: { padding: Spacing.base, paddingBottom: Spacing['3xl'] },
+
+    // Loading
+    loadingBox: { alignItems: 'center', padding: Spacing['2xl'] },
+    loadingText: { fontSize: FontSize.md, marginTop: Spacing.md },
+
+    // Error
+    errorBox: {
+        flexDirection: 'row',
         alignItems: 'center',
-        padding: Spacing.lg,
+        gap: Spacing.sm,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        marginBottom: Spacing.md,
     },
-    errorText: {
-        fontSize: FontSize.base,
-        color: Colors.error[500],
-    },
+    errorText: { fontSize: FontSize.sm, flex: 1 },
+
+    // Entry Card
     entryCard: {
+        borderRadius: BorderRadius['2xl'],
+        padding: Spacing.lg,
         marginBottom: Spacing.lg,
     },
-    entryHeader: {
+    entryTop: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'flex-start',
+        justifyContent: 'space-between',
         marginBottom: Spacing.md,
     },
-    wordRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.xs,
-    },
-    gender: {
-        fontSize: FontSize.lg,
-        color: Colors.primary[500],
-        fontWeight: FontWeight.medium,
-    },
-    word: {
-        fontSize: FontSize['2xl'],
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    pronunciation: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: Spacing.xs,
-    },
-    plural: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: Spacing.sm,
-    },
-    section: {
-        marginTop: Spacing.lg,
-    },
-    sectionTitle: {
-        fontSize: FontSize.sm,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.tertiary,
-        textTransform: 'uppercase',
-        marginBottom: Spacing.sm,
-    },
-    meaning: {
-        fontSize: FontSize.base,
-        color: theme.text.primary,
-        marginBottom: Spacing.xs,
-        lineHeight: 22,
-    },
-    example: {
-        backgroundColor: theme.background.tertiary,
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        marginBottom: Spacing.sm,
-    },
-    // Category Styles
-    categoriesContainer: {
-        paddingBottom: Spacing.xl,
-    },
-    categorySection: {
-        marginBottom: Spacing.xl,
-    },
-    categoryHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
-    },
-    categoryIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: BorderRadius.md,
+    entryWordRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.xs },
+    entryGender: { fontSize: FontSize.md, fontWeight: FontWeight.medium },
+    entryWord: { fontSize: 26, fontWeight: FontWeight.bold },
+    entryPronunciation: { fontSize: FontSize.sm, marginTop: 2 },
+    speakBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.sm,
     },
-    categoryTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-    },
-    exampleGerman: {
-        fontSize: FontSize.base,
-        color: theme.text.primary,
-        fontStyle: 'italic',
-        marginBottom: Spacing.xs,
-    },
-    exampleEnglish: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-    },
-    conjugationGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-    },
-    conjugationItem: {
-        backgroundColor: theme.background.tertiary,
-        padding: Spacing.sm,
-        borderRadius: BorderRadius.sm,
-        minWidth: '30%',
-    },
-    pronoun: {
-        fontSize: FontSize.xs,
-        color: theme.text.tertiary,
-    },
-    conjugatedForm: {
-        fontSize: FontSize.base,
-        color: theme.text.primary,
-        fontWeight: FontWeight.medium,
-    },
-    tagContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.xs,
-    },
-    tag: {
-        backgroundColor: Colors.primary[100],
-        paddingHorizontal: Spacing.sm,
+    entryBadges: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+    posBadge: {
+        paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.xs,
         borderRadius: BorderRadius.full,
     },
-    tagText: {
-        fontSize: FontSize.sm,
-        color: Colors.primary[700],
+    posBadgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+    levelBadge: { borderRadius: BorderRadius.full, overflow: 'hidden' },
+    levelBadgeGradient: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
     },
-    browseTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-        marginBottom: Spacing.md,
+    levelBadgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.white },
+    entryPlural: { fontSize: FontSize.sm, marginBottom: Spacing.md },
+    entrySection: { marginTop: Spacing.lg },
+    entrySectionTitle: {
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.bold,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: Spacing.sm,
     },
-    wordGrid: {
+    meaningRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginBottom: Spacing.xs },
+    meaningDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+    meaningText: { fontSize: FontSize.md, lineHeight: 22, flex: 1 },
+    exampleCard: {
+        padding: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        marginBottom: Spacing.sm,
+    },
+    exampleDe: { fontSize: FontSize.md, fontStyle: 'italic', marginBottom: Spacing.xs },
+    exampleEn: { fontSize: FontSize.sm },
+    conjGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    conjItem: {
+        width: '31%',
+        padding: Spacing.sm,
+        borderRadius: BorderRadius.md,
+    },
+    conjPronoun: { fontSize: FontSize.xs },
+    conjForm: { fontSize: FontSize.md, fontWeight: FontWeight.medium },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    linkedChip: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-    },
-    wordChip: {
-        backgroundColor: theme.background.primary,
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.sm,
-        borderRadius: BorderRadius.md,
-        ...Shadows.sm,
+        borderRadius: BorderRadius.full,
     },
-    wordChipText: {
-        fontSize: FontSize.sm,
-        color: theme.text.primary,
+    linkedChipText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+
+    // Category Cards
+    catCard: {
+        borderRadius: BorderRadius['2xl'],
+        padding: Spacing.lg,
+        marginBottom: Spacing.md,
     },
+    catHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+        gap: Spacing.sm,
+    },
+    catIconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    catTitle: { fontSize: FontSize.md, fontWeight: FontWeight.bold, flex: 1 },
+    catCount: { fontSize: FontSize.xs },
+    catWords: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    wordChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm + 2,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+    },
+    wordChipText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
 });

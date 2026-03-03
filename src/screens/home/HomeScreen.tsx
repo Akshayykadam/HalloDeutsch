@@ -14,52 +14,31 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getLevelTitle } from '../../utils/levelUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, ProgressBar, Badge, SafeArea } from '../../components/ui';
-import { StreakCounter, XPCounter, GoalCounter } from '../../components/gamification/StreakCounter';
-import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
+import { SafeArea } from '../../components/ui';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
-import { useResponsive } from '../../hooks';
 import { generateWordOfDay } from '../../services/geminiService';
 import * as audioService from '../../services/audioService';
 import { getModulesForLevel } from '../../data/content/curriculum-service';
-import { FadeInView } from '../../components/common/FadeInView';
-import { BookStack } from '../../components/illustrations/BookStack';
+import { haptics } from '../../utils/haptics';
 
 export const HomeScreen: React.FC = () => {
     const { progress } = useUserStore();
     const { theme, isDark } = useTheme();
-    const styles = getStyles(theme);
-    const { isPhone } = useResponsive();
+    const s = getStyles(theme);
     const navigation = useNavigation<any>();
-
     const { checkStreak } = useUserStore();
 
-    useFocusEffect(
-        useCallback(() => {
-            checkStreak();
-        }, [checkStreak])
-    );
-
-    const navigateToLearn = (screen: string) => {
-        navigation.navigate('Learn', { screen });
-    };
-
-    const navigateToPractice = () => {
-        navigation.navigate('Practice');
-    };
+    useFocusEffect(useCallback(() => { checkStreak(); }, [checkStreak]));
 
     // Word of the Day state
     const [wordOfDay, setWordOfDay] = useState<{
-        word: string;
-        translation: string;
-        example: string;
-        exampleTranslation: string;
-        partOfSpeech: string;
+        word: string; translation: string; example: string;
+        exampleTranslation: string; partOfSpeech: string;
     } | null>(null);
     const [loadingWord, setLoadingWord] = useState(false);
 
-    // Fetch new word when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             const loadWordOfDay = async () => {
@@ -67,890 +46,315 @@ export const HomeScreen: React.FC = () => {
                     setLoadingWord(true);
                     const today = new Date().toISOString().split('T')[0];
                     const cachedData = await AsyncStorage.getItem('wordOfDay');
-
                     if (cachedData) {
                         const { date, data } = JSON.parse(cachedData);
-                        if (date === today) {
-                            setWordOfDay(data);
-                            setLoadingWord(false);
-                            return;
-                        }
+                        if (date === today) { setWordOfDay(data); setLoadingWord(false); return; }
                     }
-
-                    // Fetch new if no cache or outdated
                     const data = await generateWordOfDay(progress.level);
                     setWordOfDay(data);
-
-                    // Cache the new word
-                    await AsyncStorage.setItem('wordOfDay', JSON.stringify({
-                        date: today,
-                        data: data
-                    }));
-
+                    await AsyncStorage.setItem('wordOfDay', JSON.stringify({ date: today, data }));
                 } catch (error) {
                     console.error('Failed to load word of day:', error);
-                } finally {
-                    setLoadingWord(false);
-                }
+                } finally { setLoadingWord(false); }
             };
             loadWordOfDay();
         }, [progress.level])
     );
 
+    // Current lesson calculation
+    const modules = getModulesForLevel(progress.level);
+    let lessonsCounted = 0, currentModule = modules[0], currentModuleIndex = 0, currentModuleProgress = 0;
+    for (let i = 0; i < modules.length; i++) {
+        if (progress.lessonsCompleted < lessonsCounted + modules[i].lessons.length) {
+            currentModule = modules[i]; currentModuleIndex = i;
+            currentModuleProgress = Math.round(((progress.lessonsCompleted - lessonsCounted) / modules[i].lessons.length) * 100);
+            break;
+        }
+        lessonsCounted += modules[i].lessons.length;
+    }
+
+    const dailyPercent = Math.min((progress.minutesToday / progress.dailyGoal) * 100, 100);
+
     return (
-        <SafeArea style={styles.container}>
+        <SafeArea style={s.container}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-            {/* Header */}
-            <View style={styles.header}>
+            {/* Compact Header */}
+            <View style={s.header}>
                 <View>
-                    <Text style={styles.greeting}>Guten Tag!</Text>
-                    <Text style={styles.subtitle}>Ready to learn German?</Text>
+                    <Text style={s.greeting}>Guten Tag!</Text>
+                    <Text style={s.subtitle}>Ready to learn German?</Text>
                 </View>
-                <View style={styles.headerStats}>
-                    <TouchableOpacity
-                        style={styles.profileButton}
-                        onPress={() => navigation.navigate('Dictionary')}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.searchIconBg}>
-                            <Ionicons name="search" size={20} color={Colors.primary[500]} />
+                <View style={s.headerRight}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Dictionary')} activeOpacity={0.7}>
+                        <View style={s.headerIconBtn}>
+                            <Ionicons name="search" size={18} color={theme.text.secondary} />
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.profileButton}
-                        onPress={() => navigation.navigate('Profile')}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.profileAvatar}>
-                            <Ionicons name="person" size={20} color={Colors.primary[500]} />
-                        </View>
+                    <TouchableOpacity onPress={() => navigation.navigate('Profile')} activeOpacity={0.7}>
+                        <LinearGradient colors={[Colors.primary[400], Colors.primary[600]]} style={s.avatarBtn}>
+                            <Ionicons name="person" size={16} color={Colors.white} />
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Decorative header accents */}
-            <View style={styles.headerAccents} pointerEvents="none">
-                <View style={[styles.accentCircle, styles.accentCircle1]} />
-                <View style={[styles.accentCircle, styles.accentCircle2]} />
-            </View>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.base, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.contentContainer}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Daily Progress Card */}
-                <FadeInView delay={100}>
-                    <Card variant="gradient" gradientColors={[Colors.primary[600], Colors.primary[800]]} style={styles.progressCard}>
-                        <View style={styles.progressHeader}>
-                            <Text style={styles.progressTitle}>Daily Progress</Text>
-                            <Badge label={`${progress.minutesToday}/${progress.dailyGoal} min`} variant="info" />
+                {/* Stats Strip */}
+                <View style={s.statsStrip}>
+                    {[
+                        { icon: 'flame' as const, value: progress.streak || 0, label: 'Streak', color: Colors.secondary[500] },
+                        { icon: 'flash' as const, value: progress.totalXP || 0, label: 'XP', color: Colors.primary[500] },
+                        { icon: 'time' as const, value: `${progress.minutesToday}/${progress.dailyGoal}`, label: 'Min', color: Colors.success[500] },
+                    ].map(stat => (
+                        <View key={stat.label} style={[s.statCard, { backgroundColor: theme.background.primary }]}>
+                            <Ionicons name={stat.icon} size={18} color={stat.color} />
+                            <Text style={[s.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
+                            <Text style={[s.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
                         </View>
+                    ))}
+                </View>
 
-                        <ProgressBar
-                            progress={(progress.minutesToday / progress.dailyGoal) * 100}
-                            height={8}
-                            variant="success"
-                            style={{ marginBottom: Spacing.md }}
+                {/* Daily Progress Bar */}
+                <View style={[s.progressWrap, { backgroundColor: theme.background.primary }]}>
+                    <View style={s.progressText}>
+                        <Text style={[s.progressLabel, { color: theme.text.secondary }]}>Daily Goal</Text>
+                        <Text style={[s.progressPercent, { color: theme.text.primary }]}>{Math.round(dailyPercent)}%</Text>
+                    </View>
+                    <View style={[s.progressTrack, { backgroundColor: theme.background.tertiary }]}>
+                        <LinearGradient
+                            colors={[Colors.success[400], Colors.success[600]]}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                            style={[s.progressFill, { width: `${dailyPercent}%` }]}
                         />
+                    </View>
+                </View>
 
-                        <View style={styles.statsRowInCard}>
-                            <View style={styles.statPillInCard}>
-                                <StreakCounter streak={progress.streak || 0} size="small" variant="card" label="Day Streak" vertical={true} />
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statPillInCard}>
-                                <XPCounter xp={progress.totalXP || 0} size="small" variant="card" label="Total XP" vertical={true} />
-                            </View>
+                {/* Word of the Day */}
+                <View style={[s.wordCard, { backgroundColor: theme.background.primary }]}>
+                    <View style={s.wordHeader}>
+                        <View style={s.wordBadge}>
+                            <Ionicons name="calendar" size={12} color={Colors.primary[500]} />
+                            <Text style={[s.wordBadgeText, { color: Colors.primary[500] }]}>Word of the Day</Text>
                         </View>
-                    </Card>
-                </FadeInView>
-
-                {/* Word of the Day Widget */}
-                <FadeInView delay={200}>
-                    <Card style={styles.wordCard}>
-                        <View style={styles.wordHeader}>
-                            <View style={styles.wordTitleRow}>
-                                <Ionicons name="calendar-outline" size={18} color={Colors.primary[500]} />
-                                <Text style={styles.wordCardTitle}>Word of the Day</Text>
+                        {loadingWord && <ActivityIndicator size="small" color={Colors.primary[500]} />}
+                    </View>
+                    {wordOfDay && !loadingWord && (
+                        <>
+                            <View style={s.wordRow}>
+                                <Text style={[s.germanWord, { color: theme.text.primary }]} numberOfLines={2}>{wordOfDay.word}</Text>
+                                <TouchableOpacity onPress={() => audioService.speak(wordOfDay.word)} activeOpacity={0.7} style={s.speakerBtn}>
+                                    <Ionicons name="volume-high" size={20} color={Colors.primary[500]} />
+                                </TouchableOpacity>
                             </View>
-                            {loadingWord && <ActivityIndicator size="small" color={Colors.primary[500]} />}
-                        </View>
-                        {wordOfDay && !loadingWord && (
-                            <>
-                                <View style={styles.wordMain}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.germanWord} numberOfLines={2}>
-                                            {wordOfDay.word}
-                                        </Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.speakerButton}
-                                        onPress={() => audioService.speak(wordOfDay.word)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons name="volume-high" size={22} color={Colors.primary[500]} />
+                            <View style={s.wordMeta}>
+                                <View style={[s.posBadge, { backgroundColor: Colors.primary[500] + '18' }]}>
+                                    <Text style={{ fontSize: 11, fontWeight: '600' as any, color: Colors.primary[500] }}>{wordOfDay.partOfSpeech}</Text>
+                                </View>
+                                <Text style={[s.translation, { color: theme.text.secondary }]}>{wordOfDay.translation}</Text>
+                            </View>
+                            <View style={[s.exampleBox, { backgroundColor: theme.background.tertiary }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                    <Text style={[s.exampleText, { color: theme.text.primary, flex: 1 }]}>"{wordOfDay.example}"</Text>
+                                    <TouchableOpacity onPress={() => audioService.speak(wordOfDay.example)} activeOpacity={0.7}>
+                                        <Ionicons name="volume-medium" size={16} color={Colors.primary[400]} />
                                     </TouchableOpacity>
                                 </View>
-
-                                <View style={styles.wordMetaContainer}>
-                                    <Badge label={wordOfDay.partOfSpeech} variant="info" size="small" />
-                                    <Text style={styles.wordTranslation}>{wordOfDay.translation}</Text>
-                                </View>
-
-                                <View style={styles.exampleContainer}>
-                                    <View style={styles.exampleRow}>
-                                        <Text style={[styles.exampleText, { flex: 1 }]}>"{wordOfDay.example}"</Text>
-                                        <TouchableOpacity
-                                            onPress={() => audioService.speak(wordOfDay.example)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="volume-medium" size={18} color={Colors.primary[400]} />
-                                        </TouchableOpacity>
-                                    </View>
-                                    <Text style={styles.exampleTranslation}>{wordOfDay.exampleTranslation}</Text>
-                                </View>
-                            </>
-                        )}
-                        {!wordOfDay && !loadingWord && (
-                            <Text style={styles.wordTranslation}>Fetching your word...</Text>
-                        )}
-                    </Card>
-                </FadeInView>
-
-                {/* Current Lesson Card */}
-                <FadeInView delay={300}>
-                    {(() => {
-                        const modules = getModulesForLevel(progress.level);
-                        let lessonsCounted = 0;
-                        let currentModule = modules[0];
-                        let currentModuleIndex = 0;
-                        let currentModuleProgress = 0;
-                        let found = false;
-
-                        for (let i = 0; i < modules.length; i++) {
-                            const module = modules[i];
-                            if (progress.lessonsCompleted < lessonsCounted + module.lessons.length) {
-                                currentModule = module;
-                                currentModuleIndex = i;
-                                const completedInModule = progress.lessonsCompleted - lessonsCounted;
-                                currentModuleProgress = Math.round((completedInModule / module.lessons.length) * 100);
-                                found = true;
-                                break;
-                            }
-                            lessonsCounted += module.lessons.length;
-                        }
-
-                        // Fallback if all completed (only if not found in loop)
-                        if (!found && modules.length > 0) {
-                            currentModule = modules[modules.length - 1];
-                            currentModuleIndex = modules.length - 1;
-                            currentModuleProgress = 100;
-                        }
-
-                        return (
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={() => navigateToLearn('LearnHome')}
-                            >
-                                <Card style={styles.lessonCard}>
-                                    <View style={styles.lessonHeader}>
-                                        <Badge label={getLevelTitle(progress.level)} variant="level" level={progress.level} />
-                                        <Text style={styles.lessonUnit}>Unit {currentModuleIndex + 1}</Text>
-                                    </View>
-                                    <Text style={styles.lessonTitle}>{currentModule?.title || 'Loading...'}</Text>
-                                    <Text style={styles.lessonDescription}>
-                                        {currentModule?.description || 'Start your learning journey'}
-                                    </Text>
-                                    <View style={styles.lessonProgress}>
-                                        <ProgressBar progress={currentModuleProgress} height={6} />
-                                        <Text style={styles.lessonProgressText}>{currentModuleProgress}% complete</Text>
-                                    </View>
-                                    <View style={styles.continueButton}>
-                                        <LinearGradient
-                                            colors={[Colors.primary[500], Colors.primary[600]]}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={styles.continueButtonGradient}
-                                        >
-                                            <Text style={styles.continueButtonText}>
-                                                {currentModuleProgress === 0 ? 'Start Learning' : 'Continue Learning'}
-                                            </Text>
-                                        </LinearGradient>
-                                    </View>
-                                </Card>
-                            </TouchableOpacity>
-                        );
-                    })()}
-                </FadeInView>
-
-                {/* Smart Learning Features - 2x2 Grid */}
-                <FadeInView delay={400}>
-                    <Text style={styles.sectionTitle}>Smart Learning</Text>
-                    <View style={styles.featuresGrid}>
-                        <TouchableOpacity
-                            style={styles.featureCard}
-                            onPress={() => navigation.navigate('Snap')}
-                            activeOpacity={0.9}
-                        >
-                            <LinearGradient
-                                colors={[Colors.primary[500], Colors.primary[700]]}
-                                style={styles.featureGradient}
-                            >
-                                <View style={styles.featureIconBubble}>
-                                    <Ionicons name="camera" size={24} color={Colors.white} />
-                                </View>
-                                <Text style={styles.featureTitle}>Snap & Learn</Text>
-                                <Text style={styles.featureSubtitle}>Identify objects</Text>
-                                {/* Camera lens illustration */}
-                                <View style={styles.featureDecoContainer} pointerEvents="none">
-                                    <View style={[styles.decoCircle, { width: 50, height: 50, borderRadius: 25 }]} />
-                                    <View style={[styles.decoCircle, { width: 34, height: 34, borderRadius: 17, position: 'absolute', top: 8, left: 8 }]} />
-                                    <View style={[styles.decoCircleFilled, { width: 18, height: 18, borderRadius: 9, position: 'absolute', top: 16, left: 16 }]} />
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.featureCard}
-                            onPress={() => navigation.navigate('Story')}
-                            activeOpacity={0.9}
-                        >
-                            <LinearGradient
-                                colors={[Colors.secondary[500], Colors.secondary[700]]}
-                                style={styles.featureGradient}
-                            >
-                                <View style={styles.featureIconBubble}>
-                                    <Ionicons name="book" size={24} color={Colors.white} />
-                                </View>
-                                <Text style={styles.featureTitle}>AI Stories</Text>
-                                <Text style={styles.featureSubtitle}>Interactive reading</Text>
-                                {/* Book pages illustration */}
-                                <View style={styles.featureDecoContainer} pointerEvents="none">
-                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, transform: [{ rotate: '-8deg' }] }]} />
-                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, position: 'absolute', top: 3, left: 5, transform: [{ rotate: '0deg' }] }]} />
-                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, position: 'absolute', top: 6, left: 10, transform: [{ rotate: '8deg' }] }]} />
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.featureCard}
-                            onPress={() => navigation.navigate('Flashcards')}
-                            activeOpacity={0.9}
-                        >
-                            <LinearGradient
-                                colors={[Colors.warning[500], Colors.warning[700]]}
-                                style={styles.featureGradient}
-                            >
-                                <View style={styles.featureIconBubble}>
-                                    <Ionicons name="albums" size={24} color={Colors.white} />
-                                </View>
-                                <Text style={styles.featureTitle}>Flashcards</Text>
-                                <Text style={styles.featureSubtitle}>Spaced repetition</Text>
-                                {/* Stacked cards illustration */}
-                                <View style={styles.featureDecoContainer} pointerEvents="none">
-                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, transform: [{ rotate: '-12deg' }] }]} />
-                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, position: 'absolute', top: 6, left: 4, transform: [{ rotate: '-4deg' }] }]} />
-                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, position: 'absolute', top: 12, left: 8, transform: [{ rotate: '4deg' }] }]} />
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.featureCard}
-                            onPress={() => navigation.navigate('FillInBlank')}
-                            activeOpacity={0.9}
-                        >
-                            <LinearGradient
-                                colors={['#8B5CF6', '#6D28D9']}
-                                style={styles.featureGradient}
-                            >
-                                <View style={styles.featureIconBubble}>
-                                    <Ionicons name="help-circle" size={24} color={Colors.white} />
-                                </View>
-                                <Text style={styles.featureTitle}>Fill in Blank</Text>
-                                <Text style={styles.featureSubtitle}>AI quiz maker</Text>
-                                {/* Puzzle/blank illustration */}
-                                <View style={styles.featureDecoContainer} pointerEvents="none">
-                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4 }]} />
-                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4, position: 'absolute', top: 0, left: 22 }]} />
-                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4, position: 'absolute', top: 22, left: 0 }]} />
-                                    <View style={[styles.decoCircleFilled, { width: 20, height: 20, borderRadius: 10, position: 'absolute', top: 22, left: 22 }]} />
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </FadeInView>
-
-                {/* Daily Challenges Section - Hidden
-                <FadeInView delay={500}>
-                    <Text style={styles.sectionTitle}>Daily Challenges</Text>
-                    <View style={[styles.quickActions, !isPhone && styles.quickActionsTablet]}>
-                        <QuickActionCard
-                            icon="flash"
-                            title="Speed Review"
-                            description="Quick vocab quiz"
-                            color={Colors.warning[500]}
-                            onPress={() => navigation.navigate('Practice', { mode: 'vocabulary' })}
-                        />
-                        <QuickActionCard
-                            icon="mic"
-                            title="Pronunciation"
-                            description="Speak a sentence"
-                            color={Colors.primary[500]}
-                            onPress={() => navigation.navigate('Learn', { screen: 'Pronunciation' })}
-                        />
-                        <QuickActionCard
-                            icon="headset"
-                            title="Listening"
-                            description="Audio quiz"
-                            color={Colors.success[500]}
-                            onPress={() => navigation.navigate('Practice', { mode: 'listening' })}
-                        />
-                        <QuickActionCard
-                            icon="construct"
-                            title="Grammar Drill"
-                            description="Quick exercise"
-                            color={Colors.primary[500]}
-                            onPress={() => navigation.navigate('Practice', { mode: 'grammar' })}
-                        />
-                    </View>
-                </FadeInView>
-                */}
-
-                {/* Quick Reference Section */}
-                <FadeInView delay={600}>
-                    <Text style={styles.sectionTitle}>Quick Reference</Text>
-                    <View style={styles.referenceRow}>
-                        <TouchableOpacity
-                            style={styles.referenceCard}
-                            onPress={() => navigation.navigate('Grammar')}
-                            activeOpacity={0.8}
-                        >
-                            <View style={[styles.referenceIcon, { backgroundColor: Colors.success[500] + '20' }]}>
-                                <Ionicons name="git-branch" size={24} color={Colors.success[500]} />
+                                <Text style={[s.exampleTrans, { color: theme.text.tertiary }]}>{wordOfDay.exampleTranslation}</Text>
                             </View>
-                            <Text style={styles.referenceTitle}>Grammar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.referenceCard}
-                            onPress={() => navigation.navigate('Vocabulary')}
-                            activeOpacity={0.8}
-                        >
-                            <View style={[styles.referenceIcon, { backgroundColor: Colors.secondary[500] + '20' }]}>
-                                <Ionicons name="layers" size={24} color={Colors.secondary[500]} />
-                            </View>
-                            <Text style={styles.referenceTitle}>Vocabulary</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.referenceCard}
-                            onPress={() => navigation.navigate('Dictionary')}
-                            activeOpacity={0.8}
-                        >
-                            <View style={[styles.referenceIcon, { backgroundColor: Colors.primary[500] + '20' }]}>
-                                <Ionicons name="search" size={24} color={Colors.primary[500]} />
-                            </View>
-                            <Text style={styles.referenceTitle}>Dictionary</Text>
-                        </TouchableOpacity>
-                    </View>
-                </FadeInView>
+                        </>
+                    )}
+                    {!wordOfDay && !loadingWord && (
+                        <Text style={[s.translation, { color: theme.text.tertiary }]}>Fetching your word...</Text>
+                    )}
+                </View>
 
-                {/* Stats Summary - Hidden
-                <FadeInView delay={700}>
-                    <Text style={styles.sectionTitle}>Your Progress</Text>
-                    <Card style={styles.statsCard}>
-                        <View style={styles.statsRow}>
-                            <StatItem value={progress.wordsLearned} label="Words Learned" icon="book" color={Colors.primary[500]} />
-                            <StatItem value={progress.lessonsCompleted} label="Lessons Done" icon="checkmark-circle" color={Colors.success[500]} />
-                            <StatItem value={progress.grammarTopicsCompleted || 0} label="Grammar Topics" icon="school" color={Colors.secondary[500]} />
+                {/* Continue Learning Card */}
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => { haptics.light(); navigation.navigate('Learn', { screen: 'LearnHome' }); }}
+                >
+                    <LinearGradient
+                        colors={[Colors.primary[500], Colors.primary[700]]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                        style={s.continueCard}
+                    >
+                        <View style={s.continueTop}>
+                            <View style={s.continueLevelPill}>
+                                <Text style={s.continueLevelText}>{getLevelTitle(progress.level)}</Text>
+                            </View>
+                            <Text style={s.continueUnit}>Unit {currentModuleIndex + 1}</Text>
                         </View>
-                    </Card>
-                </FadeInView>
-                */}
+                        <Text style={s.continueTitle}>{currentModule?.title || 'Loading...'}</Text>
+                        <View style={s.continueProgress}>
+                            <View style={s.continueTrack}>
+                                <View style={[s.continueFill, { width: `${currentModuleProgress}%` }]} />
+                            </View>
+                            <Text style={s.continuePercent}>{currentModuleProgress}%</Text>
+                        </View>
+                        <View style={s.continueBtn}>
+                            <Text style={s.continueBtnText}>
+                                {currentModuleProgress === 0 ? 'Start Learning' : 'Continue'}
+                            </Text>
+                            <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
 
-                <View style={{ height: 20 }} />
+                {/* Quick Access Section */}
+                <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Quick Access</Text>
+                <View style={s.quickGrid}>
+                    {[
+                        { icon: 'camera' as const, title: 'Snap & Learn', grad: [Colors.primary[400], Colors.primary[600]] as [string, string], route: 'Snap' },
+                        { icon: 'book' as const, title: 'AI Stories', grad: [Colors.secondary[400], Colors.secondary[600]] as [string, string], route: 'Story' },
+                        { icon: 'albums' as const, title: 'Flashcards', grad: [Colors.warning[400], Colors.warning[600]] as [string, string], route: 'Flashcards' },
+                        { icon: 'help-circle' as const, title: 'Fill in Blank', grad: ['#8B5CF6', '#6D28D9'] as [string, string], route: 'FillInBlank' },
+                    ].map(item => (
+                        <TouchableOpacity
+                            key={item.route}
+                            style={s.quickCard}
+                            activeOpacity={0.8}
+                            onPress={() => { haptics.light(); navigation.navigate(item.route); }}
+                        >
+                            <LinearGradient colors={item.grad} style={s.quickIcon}>
+                                <Ionicons name={item.icon} size={20} color={Colors.white} />
+                            </LinearGradient>
+                            <Text style={[s.quickTitle, { color: theme.text.primary }]}>{item.title}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* Reference Row */}
+                <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Reference</Text>
+                <View style={s.refRow}>
+                    {[
+                        { icon: 'git-branch' as const, title: 'Grammar', color: Colors.success[500], route: 'Grammar' },
+                        { icon: 'layers' as const, title: 'Vocabulary', color: Colors.secondary[500], route: 'Vocabulary' },
+                        { icon: 'search' as const, title: 'Dictionary', color: Colors.primary[500], route: 'Dictionary' },
+                    ].map(item => (
+                        <TouchableOpacity
+                            key={item.route}
+                            style={[s.refCard, { backgroundColor: theme.background.primary }]}
+                            onPress={() => { haptics.light(); navigation.navigate(item.route); }}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[s.refIcon, { backgroundColor: item.color + '18' }]}>
+                                <Ionicons name={item.icon} size={20} color={item.color} />
+                            </View>
+                            <Text style={[s.refTitle, { color: theme.text.primary }]}>{item.title}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
             </ScrollView>
         </SafeArea>
     );
 };
 
-// Quick Action Card Component
-const QuickActionCard: React.FC<{
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    description: string;
-    color: string;
-    onPress: () => void;
-}> = ({ icon, title, description, color, onPress }) => {
-    const { theme } = useTheme();
-    const styles = getStyles(theme);
-    return (
-        <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.quickActionWrapper}
-            onPress={onPress}
-        >
-            <Card style={styles.quickActionCard}>
-                <View style={[styles.quickActionIcon, { backgroundColor: color + '20' }]}>
-                    <Ionicons name={icon} size={24} color={color} />
-                </View>
-                <Text style={styles.quickActionTitle}>{title}</Text>
-                <Text style={styles.quickActionDescription}>{description}</Text>
-            </Card>
-        </TouchableOpacity>
-    );
-};
-
-// Stat Item Component
-const StatItem: React.FC<{
-    value: number;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    color: string;
-}> = ({ value, label, icon, color }) => {
-    const { theme } = useTheme();
-    const styles = getStyles(theme);
-    return (
-        <View style={styles.statItem}>
-            <Ionicons name={icon} size={24} color={color} style={{ marginBottom: 4 }} />
-            <Text style={styles.statValue}>{value}</Text>
-            <Text style={styles.statLabel}>{label}</Text>
-        </View>
-    );
-};
-
 const getStyles = (theme: any) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.background.secondary,
-    },
+    container: { flex: 1, backgroundColor: theme.background.secondary },
+
+    /* Header */
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: Spacing.base,
-        paddingTop: Spacing.lg,
-        backgroundColor: theme.background.primary,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm,
     },
-    greeting: {
-        fontSize: FontSize.xl,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    subtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 2,
-    },
-    profileButton: {
-        padding: 4,
-    },
-    profileAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.primary[100],
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    searchIconBg: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    greeting: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: theme.text.primary },
+    subtitle: { fontSize: FontSize.xs, color: theme.text.tertiary, marginTop: 2 },
+    headerRight: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+    headerIconBtn: {
+        width: 36, height: 36, borderRadius: 18,
         backgroundColor: theme.background.tertiary,
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'center',
     },
-    headerStats: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
+    avatarBtn: {
+        width: 36, height: 36, borderRadius: 18,
+        alignItems: 'center', justifyContent: 'center',
     },
-    headerAccents: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: 120,
-        height: 80,
-        overflow: 'hidden',
+
+    /* Stats strip */
+    statsStrip: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+    statCard: {
+        flex: 1, alignItems: 'center', paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.xl, borderWidth: 1, borderColor: theme.border.light,
     },
-    accentCircle: {
-        position: 'absolute',
-        borderRadius: 100,
-        opacity: 0.06,
+    statValue: { fontSize: FontSize.base, fontWeight: FontWeight.bold, marginTop: 4 },
+    statLabel: { fontSize: 10, fontWeight: FontWeight.medium, marginTop: 1 },
+
+    /* Daily progress */
+    progressWrap: {
+        padding: Spacing.md, borderRadius: BorderRadius.xl,
+        marginBottom: Spacing.md, borderWidth: 1, borderColor: theme.border.light,
     },
-    accentCircle1: {
-        width: 80,
-        height: 80,
-        top: -20,
-        right: -20,
-        backgroundColor: Colors.primary[500],
-    },
-    accentCircle2: {
-        width: 50,
-        height: 50,
-        top: 10,
-        right: 40,
-        backgroundColor: Colors.secondary[500],
-    },
-    content: {
-        flex: 1,
-    },
-    contentContainer: {
-        padding: Spacing.base,
-        paddingBottom: Spacing['3xl'],
-    },
-    progressCard: {
-        marginBottom: Spacing.base,
-    },
-    progressHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: Spacing.lg,
-    },
-    progressTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        marginBottom: 4,
-    },
-    progressSubtitle: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.8)',
-    },
-    goalBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: BorderRadius.full,
-        gap: 4,
-    },
-    goalBadgeText: {
-        color: Colors.white,
-        fontSize: FontSize.xs,
-        fontWeight: FontWeight.bold,
-    },
-    statsRowInCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around', // Better spacing
-        backgroundColor: 'rgba(0,0,0,0.15)', // Darker glass
-        paddingVertical: Spacing.md,
-        paddingHorizontal: Spacing.lg,
-        borderRadius: BorderRadius.xl,
-    },
-    statDivider: {
-        width: 1,
-        height: 30, // Taller divider
-        backgroundColor: 'rgba(255,255,255,0.15)',
-    },
-    statPillInCard: {
-        alignItems: 'center',
-    },
-    // Word of Day Widget styles
+    progressText: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm },
+    progressLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+    progressPercent: { fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+    progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 3 },
+
+    /* Word of day */
     wordCard: {
-        marginBottom: Spacing.lg,
-        padding: Spacing.lg,
+        padding: Spacing.lg, borderRadius: BorderRadius.xl,
+        marginBottom: Spacing.md, borderWidth: 1, borderColor: theme.border.light,
     },
-    wordHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
-    },
-    wordTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-    },
-    wordCardTitle: {
-        fontSize: FontSize.sm,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.secondary,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    wordMain: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        marginBottom: Spacing.xs,
-    },
-    germanWord: {
-        fontSize: FontSize['2xl'],
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    speakerButton: {
-        marginLeft: 'auto',
-        padding: Spacing.xs,
-    },
-    wordMetaContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        marginBottom: Spacing.md,
-        flexWrap: 'wrap',
-    },
-    wordTranslation: {
-        fontSize: FontSize.base,
-        color: theme.text.secondary,
-    },
-    exampleContainer: {
-        backgroundColor: theme.background.tertiary,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.md,
-    },
-    exampleRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: Spacing.sm,
-    },
-    exampleText: {
-        fontSize: FontSize.sm,
-        fontStyle: 'italic',
-        color: theme.text.primary,
-        marginBottom: Spacing.xs,
-    },
-    exampleTranslation: {
-        fontSize: FontSize.xs,
-        color: theme.text.tertiary,
-    },
-    lessonCard: {
-        marginBottom: Spacing.xl,
-    },
-    lessonHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
-    },
-    lessonUnit: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-    },
-    lessonTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-        marginBottom: Spacing.xs,
-    },
-    lessonDescription: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginBottom: Spacing.md,
-        lineHeight: 20,
-    },
-    lessonProgress: {
-        marginBottom: Spacing.md,
-    },
-    lessonProgressText: {
-        fontSize: FontSize.xs,
-        color: theme.text.tertiary,
-        marginTop: Spacing.xs,
-    },
-    continueButton: {
-        marginBottom: 0,
-    },
-    continueButtonGradient: {
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        alignItems: 'center',
-    },
-    continueButtonText: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.semibold,
-        color: Colors.white,
-    },
-    sectionTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-        marginBottom: Spacing.md,
-        marginTop: Spacing.md,
-    },
-    bookIllustration: {
-        position: 'absolute',
-        right: -5,
-        top: -10,
-        opacity: 0.25,
-        transform: [{ rotate: '10deg' }],
-    },
-    quickActions: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-        marginBottom: Spacing.md,
-    },
-    quickActionsTablet: {
-        gap: Spacing.md,
-    },
-    quickActionWrapper: {
-        width: '48%',
-    },
-    quickActionCard: {
-        alignItems: 'center',
-        padding: Spacing.md,
-    },
-    quickActionIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: Spacing.sm,
-    },
-    quickActionTitle: {
-        fontSize: FontSize.sm,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-        marginBottom: 2,
-    },
-    quickActionDescription: {
-        fontSize: FontSize.xs,
-        color: theme.text.secondary,
-        textAlign: 'center',
-    },
-    referenceRow: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
-        marginBottom: Spacing.md,
-    },
-    referenceCard: {
-        flex: 1,
-        backgroundColor: theme.background.primary,
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        alignItems: 'center',
-        ...Shadows.sm,
-    },
-    referenceIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: Spacing.sm,
-    },
-    referenceTitle: {
-        fontSize: FontSize.sm,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-    },
-    statsCard: {
-        marginBottom: Spacing.base,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-    },
-    statItem: {
-        alignItems: 'center',
-    },
-    statValue: {
-        fontSize: FontSize.xl,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    statLabel: {
-        fontSize: FontSize.xs,
-        color: theme.text.secondary,
-        marginTop: 2,
-    },
-    leagueCard: {
-        marginBottom: Spacing.base,
-    },
-    leagueHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-    },
-    leagueTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-    },
-    leagueTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
-    },
-    leagueDescription: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginBottom: Spacing.md,
-    },
-    leagueRank: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: Spacing.sm,
-    },
-    leagueRankNumber: {
-        fontSize: FontSize['2xl'],
-        fontWeight: FontWeight.bold,
-        color: Colors.primary[500],
-    },
-    leagueRankLabel: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-    },
-    // Smart Features Widget Styles
-    featuresGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-        marginBottom: Spacing.md,
-    },
-    featureCard: {
-        width: '48.5%',
-        height: 130,
-        borderRadius: BorderRadius.xl,
-        overflow: 'hidden',
-        ...Shadows.sm,
-    },
-    featureGradient: {
-        flex: 1,
-        padding: Spacing.md,
-        justifyContent: 'space-between',
-    },
-    featureIconBubble: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    wordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+    wordBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    wordBadgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, textTransform: 'uppercase', letterSpacing: 0.5 },
+    wordRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.xs },
+    germanWord: { fontSize: FontSize['2xl'], fontWeight: FontWeight.bold, flex: 1 },
+    speakerBtn: { padding: Spacing.xs },
+    wordMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+    posBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: BorderRadius.sm },
+    translation: { fontSize: FontSize.base },
+    exampleBox: { borderRadius: BorderRadius.lg, padding: Spacing.md },
+    exampleText: { fontSize: FontSize.sm, fontStyle: 'italic', marginBottom: 4 },
+    exampleTrans: { fontSize: FontSize.xs },
+
+    /* Continue learning */
+    continueCard: { borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.lg },
+    continueTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+    continueLevelPill: {
         backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingHorizontal: 10, paddingVertical: 3, borderRadius: BorderRadius.full,
     },
-    featureTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        marginTop: Spacing.xs,
+    continueLevelText: { fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white },
+    continueUnit: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.7)' },
+    continueTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.white, marginBottom: Spacing.md },
+    continueProgress: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+    continueTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
+    continueFill: { height: '100%', backgroundColor: Colors.white, borderRadius: 3 },
+    continuePercent: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: 'rgba(255,255,255,0.8)' },
+    continueBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
+        backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.lg,
     },
-    featureSubtitle: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.9)',
+    continueBtnText: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.white },
+
+    /* Section title */
+    sectionTitle: {
+        fontSize: FontSize.sm, fontWeight: FontWeight.bold,
+        textTransform: 'uppercase', letterSpacing: 1,
+        marginBottom: Spacing.md,
     },
-    featureDecoContainer: {
-        position: 'absolute',
-        bottom: 8,
-        right: 8,
-        opacity: 0.15,
+
+    /* Quick access 2x2 */
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.lg },
+    quickCard: {
+        width: '48%', flexDirection: 'row', alignItems: 'center',
+        backgroundColor: theme.background.primary, borderRadius: BorderRadius.xl,
+        padding: Spacing.md, gap: Spacing.md,
+        borderWidth: 1, borderColor: theme.border.light,
     },
-    decoCircle: {
-        borderWidth: 3,
-        borderColor: Colors.white,
+    quickIcon: { width: 40, height: 40, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center' },
+    quickTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, flex: 1 },
+
+    /* Reference row */
+    refRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+    refCard: {
+        flex: 1, alignItems: 'center', paddingVertical: Spacing.lg,
+        borderRadius: BorderRadius.xl, borderWidth: 1, borderColor: theme.border.light,
     },
-    decoCircleFilled: {
-        backgroundColor: Colors.white,
-    },
-    decoRect: {
-        borderWidth: 2.5,
-        borderColor: Colors.white,
-    },
+    refIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+    refTitle: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
 });

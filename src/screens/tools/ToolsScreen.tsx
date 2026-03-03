@@ -9,291 +9,281 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeArea } from '../../components/ui';
-import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
+import { haptics } from '../../utils/haptics';
+
+interface ToolItem {
+    id: string;
+    title: string;
+    desc: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    route: keyof RootStackParamList;
+    gradient: [string, string];
+}
+
+const FEATURED_TOOLS: ToolItem[] = [
+    {
+        id: 'snap',
+        title: 'Snap & Learn',
+        desc: 'Point your camera at anything',
+        icon: 'camera',
+        route: 'Snap',
+        gradient: [Colors.primary[400], Colors.primary[600]],
+    },
+    {
+        id: 'flashcards',
+        title: 'Flashcards',
+        desc: 'Spaced repetition system',
+        icon: 'albums',
+        route: 'Flashcards',
+        gradient: [Colors.secondary[400], Colors.secondary[600]],
+    },
+];
+
+const MORE_TOOLS: ToolItem[] = [
+    {
+        id: 'pronunciation',
+        title: 'Pronunciation',
+        desc: 'Perfect your accent',
+        icon: 'mic',
+        route: 'Pronunciation',
+        gradient: [Colors.primary[400], Colors.primary[600]],
+    },
+    {
+        id: 'article',
+        title: 'Article Drill',
+        desc: 'Der, Die, or Das?',
+        icon: 'flash',
+        route: 'ArticleDrill',
+        gradient: [Colors.secondary[400], Colors.secondary[600]],
+    },
+    {
+        id: 'dictation',
+        title: 'Dictation',
+        desc: 'Practice listening',
+        icon: 'pencil',
+        route: 'Dictation',
+        gradient: ['#8B5CF6', '#6D28D9'],
+    },
+    {
+        id: 'penpal',
+        title: 'AI Pen Pal',
+        desc: 'Write letters with AI',
+        icon: 'mail',
+        route: 'PenPal',
+        gradient: [Colors.success[400], Colors.success[600]],
+    },
+    {
+        id: 'exam',
+        title: 'Exam Prep',
+        desc: 'Goethe / Telc prep',
+        icon: 'school',
+        route: 'ExamPrep',
+        gradient: [Colors.warning[400], Colors.warning[600]],
+    },
+    {
+        id: 'culture',
+        title: 'Culture',
+        desc: 'Life in Germany',
+        icon: 'globe',
+        route: 'CulturalGuide',
+        gradient: [Colors.error[400], Colors.error[600]],
+    },
+    {
+        id: 'idioms',
+        title: 'Idioms',
+        desc: 'Slang & Phrases',
+        icon: 'chatbubbles',
+        route: 'IdiomsSlang',
+        gradient: [Colors.info[400], Colors.info[600]],
+    },
+    {
+        id: 'grammar',
+        title: 'Grammar Tables',
+        desc: 'Quick reference',
+        icon: 'grid',
+        route: 'GrammarReference',
+        gradient: [Colors.gold[400], Colors.gold[600]],
+    },
+    {
+        id: 'fillinblank',
+        title: 'Fill in Blank',
+        desc: 'AI quiz maker',
+        icon: 'help-circle',
+        route: 'FillInBlank',
+        gradient: ['#8B5CF6', '#7C3AED'],
+    },
+];
 
 export const ToolsScreen: React.FC = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { theme, isDark } = useTheme();
-    const styles = getStyles(theme, isDark);
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
+
+    const navigateTo = (route: keyof RootStackParamList) => {
+        haptics.light();
+        navigation.navigate(route as any);
+    };
 
     return (
         <SafeArea style={styles.container}>
+            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Learning Tools</Text>
-                <Text style={styles.headerSubtitle}>Helper tools to boost your learning</Text>
+                <Text style={styles.headerTitle}>Tools</Text>
             </View>
 
             <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Main Feature Cards */}
-                <View style={styles.featuresContainer}>
+                {/* Featured Tools */}
+                {FEATURED_TOOLS.map(tool => (
                     <TouchableOpacity
-                        style={[styles.featureCard]}
-                        onPress={() => navigation.navigate('Snap')}
-                        activeOpacity={0.9}
+                        key={tool.id}
+                        activeOpacity={0.8}
+                        onPress={() => navigateTo(tool.route)}
+                        style={styles.featuredCard}
                     >
                         <LinearGradient
-                            colors={[Colors.primary[500], Colors.primary[700]]}
-                            style={styles.featureGradient}
+                            colors={tool.gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.featuredGradient}
                         >
-                            <View style={styles.featureIcon}>
-                                <Ionicons name="camera" size={32} color={Colors.white} />
+                            <View style={styles.featuredIconWrap}>
+                                <Ionicons name={tool.icon} size={24} color={Colors.white} />
                             </View>
-                            <View style={styles.featureContent}>
-                                <Text style={styles.featureTitle}>Snap & Learn</Text>
-                                <Text style={styles.featureDesc}>Identify objects instantly</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.featuredTitle}>{tool.title}</Text>
+                                <Text style={styles.featuredDesc}>{tool.desc}</Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={24} color={Colors.white} />
+                            <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
                         </LinearGradient>
                     </TouchableOpacity>
+                ))}
 
-                    <TouchableOpacity
-                        style={[styles.featureCard]}
-                        onPress={() => navigation.navigate('Flashcards')}
-                        activeOpacity={0.9}
-                    >
-                        <LinearGradient
-                            colors={[Colors.secondary[500], Colors.secondary[700]]}
-                            style={styles.featureGradient}
+                {/* Section Label */}
+                <Text style={[styles.sectionLabel, { color: theme.text.tertiary }]}>More Tools</Text>
+
+                {/* Tool List */}
+                <View style={styles.toolList}>
+                    {MORE_TOOLS.map(tool => (
+                        <TouchableOpacity
+                            key={tool.id}
+                            activeOpacity={0.7}
+                            onPress={() => navigateTo(tool.route)}
+                            style={[styles.toolRow, { backgroundColor: theme.background.primary }]}
                         >
-                            <View style={styles.featureIcon}>
-                                <Ionicons name="albums" size={32} color={Colors.white} />
+                            <LinearGradient
+                                colors={tool.gradient}
+                                style={styles.toolIconWrap}
+                            >
+                                <Ionicons name={tool.icon} size={18} color={Colors.white} />
+                            </LinearGradient>
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.toolTitle, { color: theme.text.primary }]}>{tool.title}</Text>
+                                <Text style={[styles.toolDesc, { color: theme.text.tertiary }]}>{tool.desc}</Text>
                             </View>
-                            <View style={styles.featureContent}>
-                                <Text style={styles.featureTitle}>Flashcards</Text>
-                                <Text style={styles.featureDesc}>Spaced repetition</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={24} color={Colors.white} />
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>More Tools</Text>
-                </View>
-
-                <View style={styles.miniCardsContainer}>
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('Pronunciation')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.primary[500] + '15' }]}>
-                            <Ionicons name="mic-outline" size={32} color={Colors.primary[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Pronunciation</Text>
-                        <Text style={styles.miniCardDesc}>Perfect your accent</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('ArticleDrill')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.secondary[500] + '15' }]}>
-                            <Ionicons name="flash-outline" size={32} color={Colors.secondary[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Article Drill</Text>
-                        <Text style={styles.miniCardDesc}>Der, Die, or Das?</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('Dictation')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.accent[500] + '15' }]}>
-                            <Ionicons name="pencil-outline" size={32} color={Colors.accent[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Dictation</Text>
-                        <Text style={styles.miniCardDesc}>Practice listening</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('PenPal')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.success[500] + '15' }]}>
-                            <Ionicons name="mail-outline" size={32} color={Colors.success[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>AI Pen Pal</Text>
-                        <Text style={styles.miniCardDesc}>Chat with AI</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('ExamPrep')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.warning[500] + '15' }]}>
-                            <Ionicons name="school-outline" size={32} color={Colors.warning[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Exam Prep</Text>
-                        <Text style={styles.miniCardDesc}>Goethe / Telc</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('CulturalGuide')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.error[500] + '15' }]}>
-                            <Ionicons name="globe-outline" size={32} color={Colors.error[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Culture</Text>
-                        <Text style={styles.miniCardDesc}>Life in Germany</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('IdiomsSlang')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.info[500] + '15' }]}>
-                            <Ionicons name="chatbubbles-outline" size={32} color={Colors.info[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Idioms</Text>
-                        <Text style={styles.miniCardDesc}>Slang & Phrases</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('GrammarReference')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: Colors.gold[500] + '15' }]}>
-                            <Ionicons name="grid-outline" size={32} color={Colors.gold[500]} />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Grammar Tables</Text>
-                        <Text style={styles.miniCardDesc}>Quick reference</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.miniCard}
-                        onPress={() => navigation.navigate('FillInBlank')}
-                    >
-                        <View style={[styles.miniCardIconBg, { backgroundColor: '#8B5CF6' + '15' }]}>
-                            <Ionicons name="help-circle-outline" size={32} color="#8B5CF6" />
-                        </View>
-                        <Text style={styles.miniCardTitle}>Fill in Blank</Text>
-                        <Text style={styles.miniCardDesc}>AI quiz maker</Text>
-                    </TouchableOpacity>
+                            <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </ScrollView>
         </SafeArea>
     );
 };
 
-const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.background.secondary,
     },
     header: {
-        padding: Spacing.lg,
-        paddingTop: Spacing.xl,
-        backgroundColor: theme.background.primary,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border.light,
+        paddingHorizontal: Spacing.base,
+        paddingVertical: Spacing.sm,
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize['2xl'],
+        fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
         color: theme.text.primary,
     },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 4,
-    },
-    content: {
-        flex: 1,
-    },
-    scrollContent: {
-        padding: Spacing.lg,
-        paddingBottom: 100,
-    },
 
-    featuresContainer: {
-        marginBottom: Spacing.xl,
-        gap: Spacing.md,
-    },
-    featureCard: {
+    /* Featured cards */
+    featuredCard: {
+        marginHorizontal: Spacing.base,
+        marginBottom: Spacing.sm,
         borderRadius: BorderRadius.xl,
         overflow: 'hidden',
-        height: 100,
-        ...Shadows.md,
     },
-    featureGradient: {
+    featuredGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: Spacing.lg,
-        height: '100%',
+        gap: Spacing.md,
     },
-    featureIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+    featuredIconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.md,
     },
-    featureContent: {
-        flex: 1,
-    },
-    featureTitle: {
-        fontSize: FontSize.lg,
+    featuredTitle: {
+        fontSize: FontSize.base,
         fontWeight: FontWeight.bold,
         color: Colors.white,
-        marginBottom: 4,
     },
-    featureDesc: {
+    featuredDesc: {
+        fontSize: FontSize.xs,
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 2,
+    },
+
+    /* Section label */
+    sectionLabel: {
         fontSize: FontSize.sm,
-        color: 'rgba(255,255,255,0.9)',
-    },
-    sectionHeader: {
+        fontWeight: FontWeight.bold,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        paddingHorizontal: Spacing.lg,
+        marginTop: Spacing.lg,
         marginBottom: Spacing.md,
     },
-    sectionTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-    },
-    miniCardsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.md,
-    },
-    miniCard: {
-        width: '47%',
-        backgroundColor: theme.background.primary,
+
+    /* Tool list rows */
+    toolList: {
+        marginHorizontal: Spacing.base,
         borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-        ...Shadows.sm,
-        borderWidth: 1,
-        borderColor: theme.border.light,
+        overflow: 'hidden',
     },
-    miniCardIconBg: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+    toolRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.md,
+        gap: Spacing.md,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.border.light,
+    },
+    toolIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: BorderRadius.lg,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: Spacing.md,
     },
-    miniCardTitle: {
-        fontSize: FontSize.md,
-        fontWeight: FontWeight.bold,
-        color: theme.text.primary,
-        textAlign: 'center',
-        marginBottom: 2,
+    toolTitle: {
+        fontSize: FontSize.base,
+        fontWeight: FontWeight.semibold,
     },
-    miniCardDesc: {
+    toolDesc: {
         fontSize: FontSize.xs,
-        color: theme.text.tertiary,
-        textAlign: 'center',
+        marginTop: 1,
     },
 });

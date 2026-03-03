@@ -171,7 +171,7 @@ export const ArticleDrillScreen: React.FC = () => {
     const renderIdleState = () => (
         <View style={styles.idleContainer}>
             <View style={styles.iconContainer}>
-                <Text style={styles.gameEmoji}>⚡</Text>
+                <Ionicons name="flash" size={72} color={Colors.warning[500]} />
             </View>
             <Text style={styles.title}>Article Drill</Text>
             <Text style={styles.subtitle}>Der • Die • Das</Text>
@@ -200,7 +200,7 @@ export const ArticleDrillScreen: React.FC = () => {
 
             {/* Pattern Hints */}
             <View style={styles.patternSection}>
-                <Text style={styles.patternTitle}>💡 Quick Tips</Text>
+                <Text style={styles.patternTitle}><Ionicons name="bulb" size={16} color={Colors.warning[500]} /> Quick Tips</Text>
                 <View style={styles.patternList}>
                     {genderPatterns.slice(0, 4).map((pattern, index) => (
                         <View key={index} style={styles.patternItem}>
@@ -236,7 +236,7 @@ export const ArticleDrillScreen: React.FC = () => {
                     <Text style={styles.scoreValue}>{score}</Text>
                 </View>
                 <Animated.View style={[styles.streakContainer, { transform: [{ scale: streakAnim }] }]}>
-                    <Text style={styles.streakEmoji}>🔥</Text>
+                    <Ionicons name="flame" size={22} color={Colors.warning[500]} />
                     <Text style={styles.streakValue}>{streak}</Text>
                 </Animated.View>
             </View>
@@ -317,9 +317,7 @@ export const ArticleDrillScreen: React.FC = () => {
     const renderFinishedState = () => (
         <View style={styles.finishedContainer}>
             <View style={styles.resultsCard}>
-                <Text style={styles.resultsEmoji}>
-                    {score > highScore * 0.8 ? '🏆' : score > highScore * 0.5 ? '⭐' : '💪'}
-                </Text>
+                <Ionicons name={score > highScore * 0.8 ? 'trophy' : score > highScore * 0.5 ? 'star' : 'fitness'} size={56} color={Colors.warning[500]} style={{ marginBottom: Spacing.md }} />
                 <Text style={styles.resultsTitle}>Game Over!</Text>
 
                 <View style={styles.finalScoreContainer}>

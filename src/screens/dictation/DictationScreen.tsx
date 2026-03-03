@@ -212,7 +212,7 @@ export const DictationScreen: React.FC = () => {
             <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
                 {/* Instructions */}
                 <View style={styles.instructionCard}>
-                    <Text style={styles.instructionIcon}>🎧</Text>
+                    <Ionicons name="headset" size={22} color={Colors.primary[500]} />
                     <Text style={styles.instructionText}>
                         Listen carefully and type what you hear
                     </Text>
@@ -318,9 +318,7 @@ export const DictationScreen: React.FC = () => {
                             ]}
                         >
                             <View style={styles.resultHeader}>
-                                <Text style={styles.resultEmoji}>
-                                    {result?.isCorrect ? '🎉' : '📝'}
-                                </Text>
+                                <Ionicons name={result?.isCorrect ? 'checkmark-circle' : 'create'} size={28} color={result?.isCorrect ? Colors.success[500] : Colors.warning[500]} />
                                 <Text style={styles.resultTitle}>
                                     {result?.isCorrect ? 'Perfect!' : 'Almost there!'}
                                 </Text>

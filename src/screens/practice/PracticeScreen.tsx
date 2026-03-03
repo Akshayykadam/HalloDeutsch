@@ -161,95 +161,99 @@ export const PracticeScreen: React.FC = () => {
         return (
             <SafeArea style={styles.container}>
                 <ScrollView
-                    style={styles.content}
-                    contentContainerStyle={styles.scrollContent}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ paddingBottom: 120 }}
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.header}>
                         <Text style={styles.headerTitle}>Practice</Text>
-                        <Text style={styles.headerSubtitle}>Test your German knowledge</Text>
                     </View>
 
                     {/* Level Tabs */}
-                    <View style={styles.levelTabs}>
-                        {levels.map((level) => (
-                            <TouchableOpacity
-                                key={level}
-                                style={[
-                                    styles.levelTab,
-                                    selectedLevel === level && { backgroundColor: LevelColors[level] }
-                                ]}
-                                onPress={() => setSelectedLevel(level)}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={[
-                                    styles.levelTabText,
-                                    selectedLevel === level && styles.levelTabTextActive
-                                ]}>
-                                    {getLevelTitle(level)}
-                                </Text>
-                            </TouchableOpacity>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.levelTabs}>
+                        {levels.map((level) => {
+                            const isActive = selectedLevel === level;
+                            const LEVEL_GRADS: Record<string, [string, string]> = {
+                                A1: [Colors.success[400], Colors.success[600]],
+                                A2: [Colors.primary[400], Colors.primary[600]],
+                                B1: ['#8B5CF6', '#6D28D9'],
+                                B2: [Colors.secondary[400], Colors.secondary[600]],
+                            };
+                            const LEVEL_NAMES: Record<string, string> = { A1: 'Beginner', A2: 'Elementary', B1: 'Intermediate', B2: 'Advanced' };
+                            return (
+                                <TouchableOpacity
+                                    key={level}
+                                    onPress={() => setSelectedLevel(level)}
+                                    activeOpacity={0.7}
+                                >
+                                    {isActive ? (
+                                        <LinearGradient
+                                            colors={LEVEL_GRADS[level]}
+                                            style={styles.levelTab}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                        >
+                                            <Text style={styles.levelTabTextActive}>{LEVEL_NAMES[level]}</Text>
+                                        </LinearGradient>
+                                    ) : (
+                                        <View style={[styles.levelTab, { backgroundColor: theme.background.tertiary }]}>
+                                            <Text style={styles.levelTabText}>{LEVEL_NAMES[level]}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+
+                    {/* Stats Row */}
+                    <View style={styles.statsRow}>
+                        {[
+                            { label: 'Correct', value: score, icon: 'checkmark-circle' as const, color: Colors.success[500] },
+                            { label: 'Answered', value: totalAnswered, icon: 'documents' as const, color: Colors.primary[500] },
+                            { label: 'Accuracy', value: `${totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%`, icon: 'analytics' as const, color: Colors.secondary[500] },
+                        ].map((stat) => (
+                            <View key={stat.label} style={[styles.statCard, { backgroundColor: theme.background.primary }]}>
+                                <Ionicons name={stat.icon} size={20} color={stat.color} />
+                                <Text style={[styles.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
+                                <Text style={[styles.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
+                            </View>
                         ))}
                     </View>
-
-                    {/* Stats Card */}
-                    <View style={styles.statsCard}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{score}</Text>
-                            <Text style={styles.statLabel}>Correct</Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: theme.border.light }]} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{totalAnswered}</Text>
-                            <Text style={styles.statLabel}>Answered</Text>
-                        </View>
-                        <View style={[styles.statDivider, { backgroundColor: theme.border.light }]} />
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>
-                                {totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%
-                            </Text>
-                            <Text style={styles.statLabel}>Accuracy</Text>
-                        </View>
-                    </View>
-
-
-
-
 
                     {/* Topics */}
-                    <View style={styles.topicsList}>
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="list" size={20} color={LevelColors[selectedLevel]} />
-                            <Text style={styles.sectionTitle}>Quiz Topics</Text>
-                        </View>
+                    <Text style={[styles.sectionTitle, { color: theme.text.tertiary }]}>Quiz Topics</Text>
 
-                        {PRACTICE_TOPICS[selectedLevel].map((topic, index) => (
-                            <TouchableOpacity
-                                key={topic}
-                                activeOpacity={0.8}
-                                onPress={() => startPractice(topic)}
-                                disabled={loading}
-                            >
-                                <LinearGradient
-                                    colors={[LevelColors[selectedLevel], LevelColors[selectedLevel] + 'DD']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.topicCard}
+                    <View style={styles.topicsList}>
+                        {PRACTICE_TOPICS[selectedLevel].map((topic, index) => {
+                            const LEVEL_GRADS: Record<string, [string, string]> = {
+                                A1: [Colors.success[400], Colors.success[600]],
+                                A2: [Colors.primary[400], Colors.primary[600]],
+                                B1: ['#8B5CF6', '#6D28D9'],
+                                B2: [Colors.secondary[400], Colors.secondary[600]],
+                            };
+                            return (
+                                <TouchableOpacity
+                                    key={topic}
+                                    activeOpacity={0.7}
+                                    onPress={() => startPractice(topic)}
+                                    disabled={loading}
+                                    style={[styles.topicCard, { backgroundColor: theme.background.primary }]}
                                 >
-                                    <View style={styles.topicLeft}>
-                                        <View style={styles.topicNumber}>
-                                            <Text style={styles.topicNumberText}>{index + 1}</Text>
-                                        </View>
-                                        <Text style={styles.topicTitle}>{topic}</Text>
-                                    </View>
+                                    <LinearGradient
+                                        colors={LEVEL_GRADS[selectedLevel]}
+                                        style={styles.topicIcon}
+                                    >
+                                        <Text style={styles.topicNumberText}>{index + 1}</Text>
+                                    </LinearGradient>
+                                    <Text style={[styles.topicTitle, { color: theme.text.primary }]}>{topic}</Text>
                                     {loading && selectedTopic === topic ? (
-                                        <ActivityIndicator color={Colors.white} />
+                                        <ActivityIndicator size="small" color={LevelColors[selectedLevel]} />
                                     ) : (
-                                        <Ionicons name="play-circle" size={28} color="rgba(255,255,255,0.9)" />
+                                        <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
                                     )}
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        ))}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </ScrollView>
             </SafeArea>
@@ -429,68 +433,63 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
         backgroundColor: theme.background.secondary,
     },
     header: {
-        padding: Spacing.lg,
-        paddingTop: Spacing.xl,
-        backgroundColor: theme.background.primary,
+        paddingHorizontal: Spacing.base,
+        paddingVertical: Spacing.sm,
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize['2xl'],
+        fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
         color: theme.text.primary,
     },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 4,
-    },
     levelTabs: {
         flexDirection: 'row',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.base,
         gap: Spacing.sm,
-        backgroundColor: theme.background.primary,
+        paddingVertical: Spacing.sm,
+        marginBottom: Spacing.sm,
     },
     levelTab: {
-        flex: 1,
         paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
         borderRadius: BorderRadius.lg,
-        backgroundColor: theme.background.tertiary,
         alignItems: 'center',
     },
     levelTabText: {
         fontSize: FontSize.sm,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.semibold,
         color: theme.text.secondary,
     },
     levelTabTextActive: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.bold,
         color: Colors.white,
     },
-    statsCard: {
+    statsRow: {
         flexDirection: 'row',
-        marginHorizontal: Spacing.lg,
+        paddingHorizontal: Spacing.base,
+        gap: Spacing.sm,
         marginTop: Spacing.md,
-        backgroundColor: theme.background.primary,
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        ...Shadows.sm,
     },
-    statItem: {
+    statCard: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.sm,
+        borderRadius: BorderRadius.xl,
+        borderWidth: 1,
+        borderColor: theme.border.light,
     },
     statValue: {
-        fontSize: FontSize.xl,
+        fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
-        color: theme.text.primary,
+        marginTop: Spacing.sm,
     },
     statLabel: {
         fontSize: FontSize.xs,
-        color: theme.text.secondary,
+        fontWeight: FontWeight.medium,
         marginTop: 2,
-    },
-    statDivider: {
-        width: 1,
-        height: '100%',
     },
     topicsContainer: {
         flex: 1,
@@ -498,43 +497,38 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     },
     sectionTitle: {
         fontSize: FontSize.base,
-        fontWeight: FontWeight.semibold,
-        color: theme.text.primary,
+        fontWeight: FontWeight.bold,
+        paddingHorizontal: Spacing.lg,
         marginTop: Spacing.xl,
         marginBottom: Spacing.md,
     },
     topicCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: Spacing.lg,
+        padding: Spacing.md,
+        marginHorizontal: Spacing.base,
+        marginBottom: Spacing.sm,
         borderRadius: BorderRadius.xl,
-        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: theme.border.light,
     },
-    topicLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    topicNumber: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.25)',
+    topicIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.full,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: Spacing.md,
     },
     topicNumberText: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.base,
         fontWeight: FontWeight.bold,
         color: Colors.white,
     },
     topicTitle: {
+        flex: 1,
         fontSize: FontSize.base,
         fontWeight: FontWeight.semibold,
-        color: Colors.white,
-        flex: 1,
     },
     // Quiz styles
     quizHeader: {
@@ -681,24 +675,7 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
         fontSize: FontSize.sm,
         color: theme.text.tertiary,
     },
-    // Styles for refactored scrollable layout
-    content: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingBottom: 120, // Space for tab bar
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        marginTop: Spacing.xl,
-        marginBottom: Spacing.md,
-        gap: Spacing.sm,
-    },
-
     topicsList: {
-        paddingHorizontal: Spacing.lg,
-        marginTop: Spacing.lg,
+        marginTop: Spacing.xs,
     },
 });

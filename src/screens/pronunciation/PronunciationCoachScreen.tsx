@@ -137,19 +137,19 @@ export const PronunciationCoachScreen: React.FC = () => {
         switch (score) {
             case 'great':
                 return {
-                    text: '🎉 Great Job!',
+                    text: 'Great Job!',
                     color: Colors.success[500],
                     subtext: 'Your pronunciation sounds excellent!',
                 };
             case 'good':
                 return {
-                    text: '👍 Good!',
+                    text: 'Good!',
                     color: Colors.primary[500],
                     subtext: 'Keep practicing to perfect it!',
                 };
             case 'tryAgain':
                 return {
-                    text: '🔄 Try Again',
+                    text: 'Try Again',
                     color: Colors.warning[500],
                     subtext: 'Listen carefully and try once more.',
                 };

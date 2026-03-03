@@ -22,14 +22,14 @@ interface BubbleConfig {
 }
 
 const bubbles: BubbleConfig[] = [
-    { emoji: '🇩🇪', size: 44, left: '5%', top: '10%', delay: 0, duration: 3000, amplitude: 12, bgColor: 'rgba(255,255,255,0.15)' },
+    { icon: 'flag', size: 44, left: '5%', top: '10%', delay: 0, duration: 3000, amplitude: 12, bgColor: 'rgba(255,255,255,0.15)' },
     { icon: 'book', size: 36, left: '75%', top: '5%', delay: 500, duration: 3500, amplitude: 10, bgColor: 'rgba(255,255,255,0.12)' },
-    { emoji: '✏️', size: 32, left: '85%', top: '45%', delay: 1000, duration: 2800, amplitude: 14, bgColor: 'rgba(255,255,255,0.10)' },
+    { icon: 'pencil', size: 32, left: '85%', top: '45%', delay: 1000, duration: 2800, amplitude: 14, bgColor: 'rgba(255,255,255,0.10)' },
     { icon: 'school', size: 40, left: '10%', top: '55%', delay: 1500, duration: 3200, amplitude: 11, bgColor: 'rgba(255,255,255,0.13)' },
-    { emoji: '📚', size: 34, left: '50%', top: '70%', delay: 800, duration: 2600, amplitude: 13, bgColor: 'rgba(255,255,255,0.11)' },
-    { emoji: '🎓', size: 38, left: '30%', top: '20%', delay: 1200, duration: 3400, amplitude: 9, bgColor: 'rgba(255,255,255,0.14)' },
+    { icon: 'library', size: 34, left: '50%', top: '70%', delay: 800, duration: 2600, amplitude: 13, bgColor: 'rgba(255,255,255,0.11)' },
+    { icon: 'school', size: 38, left: '30%', top: '20%', delay: 1200, duration: 3400, amplitude: 9, bgColor: 'rgba(255,255,255,0.14)' },
     { icon: 'chatbubble', size: 30, left: '65%', top: '60%', delay: 600, duration: 2900, amplitude: 12, bgColor: 'rgba(255,255,255,0.09)' },
-    { emoji: '⭐', size: 28, left: '45%', top: '35%', delay: 900, duration: 3100, amplitude: 10, bgColor: 'rgba(255,255,255,0.11)' },
+    { icon: 'star', size: 28, left: '45%', top: '35%', delay: 900, duration: 3100, amplitude: 10, bgColor: 'rgba(255,255,255,0.11)' },
 ];
 
 const FloatingBubble: React.FC<{ config: BubbleConfig; variant: 'light' | 'dark' }> = ({ config, variant }) => {

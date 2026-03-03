@@ -233,24 +233,33 @@ export const VocabularyScreen: React.FC = () => {
 
     return (
         <SafeArea style={styles.container}>
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIcon}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text.primary} />
-                    </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIcon}>
+                    <Ionicons name="arrow-back" size={22} color={theme.text.primary} />
+                </TouchableOpacity>
+                <View style={styles.headerCenter}>
                     <Text style={styles.headerTitle}>Vocabulary</Text>
+                    <Text style={styles.headerDomain}>{currentWord?.domain}</Text>
                 </View>
-                <Badge label={`${currentIndex + 1}/${totalCards}`} variant="info" />
+                <View style={styles.counterBadge}>
+                    <Text style={styles.counterText}>{currentIndex + 1}<Text style={styles.counterTotal}>/{totalCards}</Text></Text>
+                </View>
             </View>
 
-            <ProgressBar progress={progressPercent} height={6} />
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
+                <View style={styles.progressTrack}>
+                    <LinearGradient
+                        colors={[Colors.primary[400], Colors.primary[600]]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.progressFill, { width: `${progressPercent}%` }]}
+                    />
+                </View>
+            </View>
 
             <View style={styles.content}>
-                <View style={styles.levelInfo}>
-                    <Badge label={progress.level} variant="level" level={progress.level} />
-                    <Text style={styles.domainText}>{currentWord?.domain}</Text>
-                </View>
-
                 {currentWord && (
                     <Flashcard
                         word={currentWord}
@@ -272,36 +281,58 @@ const getStyles = (theme: any) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: Spacing.base,
-        backgroundColor: theme.background.primary,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
     },
     backIcon: {
-        padding: 4,
+        padding: Spacing.xs,
+    },
+    headerCenter: {
+        flex: 1,
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: FontSize.md,
         fontWeight: FontWeight.bold,
         color: theme.text.primary,
+    },
+    headerDomain: {
+        fontSize: FontSize.xs,
+        color: theme.text.tertiary,
+        textTransform: 'capitalize',
+    },
+    counterBadge: {
+        backgroundColor: Colors.primary[500] + '20',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.full,
+    },
+    counterText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.bold,
+        color: Colors.primary[500],
+    },
+    counterTotal: {
+        fontWeight: FontWeight.medium,
+        color: Colors.primary[400],
+    },
+    progressContainer: {
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.md,
+    },
+    progressTrack: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.background.tertiary,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 3,
     },
     content: {
         flex: 1,
         padding: Spacing.base,
-    },
-    levelInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
-        gap: Spacing.sm,
-    },
-    domainText: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        textTransform: 'capitalize',
     },
     flashcardWrapper: {
         flex: 1,

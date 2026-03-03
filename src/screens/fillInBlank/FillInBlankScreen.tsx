@@ -305,25 +305,25 @@ export const FillInBlankScreen: React.FC = () => {
     const renderResults = () => {
         const percentage = Math.round((score / questions.length) * 100);
         let message = '';
-        let emoji = '';
+        let iconName: 'trophy' | 'ribbon' | 'fitness' | 'library' = 'library';
 
         if (percentage >= 90) {
             message = 'Excellent! Outstanding performance!';
-            emoji = '🏆';
+            iconName = 'trophy';
         } else if (percentage >= 70) {
             message = 'Great job! Keep it up!';
-            emoji = '🎉';
+            iconName = 'ribbon';
         } else if (percentage >= 50) {
             message = 'Good effort! Practice more!';
-            emoji = '💪';
+            iconName = 'fitness';
         } else {
             message = 'Keep practicing! You\'ll improve!';
-            emoji = '📚';
+            iconName = 'library';
         }
 
         return (
             <View style={styles.resultsContainer}>
-                <Text style={styles.emoji}>{emoji}</Text>
+                <Ionicons name={iconName} size={56} color={theme.accent} style={{ marginBottom: 16 }} />
                 <Text style={styles.resultsTitle}>Quiz Complete!</Text>
                 <Text style={styles.resultsMessage}>{message}</Text>
 

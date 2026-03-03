@@ -494,61 +494,49 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         });
     };
 
+    const LEVEL_GRADS: Record<string, [string, string]> = {
+        A1: [Colors.success[400], Colors.success[600]],
+        A2: [Colors.primary[400], Colors.primary[600]],
+        B1: ['#8B5CF6', '#6D28D9'],
+        B2: [Colors.secondary[400], Colors.secondary[600]],
+    };
+    const LEVEL_NAMES: Record<string, string> = { A1: 'Beginner', A2: 'Elementary', B1: 'Intermediate', B2: 'Advanced' };
+
     return (
         <SafeArea style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>Learning Path</Text>
-                    <Text style={styles.headerSubtitle}>
-                        {levelInfo.name} • {levelInfo.nameDe}
-                    </Text>
-                </View>
-                <Badge label={getLevelTitle(selectedLevel)} variant="level" level={selectedLevel} />
+                <Text style={styles.headerTitle}>Learning Path</Text>
             </View>
 
-            {/* Level Selector Tabs */}
+            {/* Level Tabs */}
             <View style={styles.levelSelectorContainer}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.levelSelectorContent}
-                >
-                    {levels.map((level) => {
-                        const isActive = selectedLevel === level;
-                        const isAvailable = true; // For now assume all levels available or check elsewhere
-                        const color = LevelColors[level];
-
-                        return (
-                            <TouchableOpacity
-                                key={level}
-                                onPress={() => setSelectedLevel(level)}
-                                activeOpacity={0.7}
-                                style={[
-                                    styles.levelPill,
-                                    isActive
-                                        ? { backgroundColor: color }
-                                        : { borderColor: color, borderWidth: 1.5, backgroundColor: 'transparent' }
-                                ]}
-                            >
-                                {!isAvailable && !isActive && (
-                                    <Ionicons
-                                        name="lock-closed"
-                                        size={12}
-                                        color={color}
-                                        style={{ marginRight: 4 }}
-                                    />
-                                )}
-                                <Text style={[
-                                    styles.levelPillText,
-                                    isActive ? { color: Colors.white } : { color: color }
-                                ]}>
-                                    {getLevelTitle(level)}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
+                {levels.map((level) => {
+                    const isActive = selectedLevel === level;
+                    return (
+                        <TouchableOpacity
+                            key={level}
+                            onPress={() => setSelectedLevel(level)}
+                            activeOpacity={0.7}
+                            style={{ flex: 1 }}
+                        >
+                            {isActive ? (
+                                <LinearGradient
+                                    colors={LEVEL_GRADS[level]}
+                                    style={styles.levelPill}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Text style={styles.levelPillTextActive}>{LEVEL_NAMES[level]}</Text>
+                                </LinearGradient>
+                            ) : (
+                                <View style={[styles.levelPill, { backgroundColor: theme.background.primary }]}>
+                                    <Text style={[styles.levelPillText, { color: theme.text.secondary }]}>{LEVEL_NAMES[level]}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
 
             <ScrollView
@@ -644,46 +632,34 @@ const getStyles = (theme: any) => StyleSheet.create({
         backgroundColor: theme.background.secondary,
     },
     header: {
-        padding: Spacing.base,
-        paddingTop: Spacing.lg,
-        backgroundColor: theme.background.primary,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        paddingHorizontal: Spacing.base,
+        paddingVertical: Spacing.sm,
         alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border.light,
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
         color: theme.text.primary,
     },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 2,
-    },
     levelSelectorContainer: {
-        backgroundColor: theme.background.primary,
-        paddingVertical: Spacing.md,
-        ...Shadows.sm,
-    },
-    levelSelectorContent: {
+        flexDirection: 'row',
         paddingHorizontal: Spacing.base,
-        gap: Spacing.md,
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
     },
     levelPill: {
-        flexDirection: 'row',
+        paddingVertical: Spacing.sm + 2,
+        borderRadius: BorderRadius.lg,
         alignItems: 'center',
-        paddingHorizontal: Spacing.xl,
-        paddingVertical: Spacing.sm,
-        borderRadius: BorderRadius.full,
-        minWidth: 70,
-        justifyContent: 'center',
     },
     levelPillText: {
-        fontSize: FontSize.base,
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.semibold,
+    },
+    levelPillTextActive: {
+        fontSize: FontSize.xs,
         fontWeight: FontWeight.bold,
+        color: Colors.white,
     },
     content: {
         flex: 1,

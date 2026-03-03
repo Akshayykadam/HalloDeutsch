@@ -1,10 +1,12 @@
 // Quiz Complete Modal - Score summary and celebration
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Modal, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { ConfettiOverlay } from './ConfettiOverlay';
+import { haptics } from '../../utils/haptics';
 
 interface QuizCompleteModalProps {
     visible: boolean;
@@ -26,12 +28,19 @@ export const QuizCompleteModal: React.FC<QuizCompleteModalProps> = ({
     const { theme } = useTheme();
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const starScale = useRef(new Animated.Value(0)).current;
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const percentage = Math.round((score / total) * 100);
     const isPassing = percentage >= 60;
 
     useEffect(() => {
         if (visible) {
+            if (isPassing) {
+                haptics.success();
+                setShowConfetti(true);
+            } else {
+                haptics.warning();
+            }
             scaleAnim.setValue(0);
             starScale.setValue(0);
 
@@ -68,6 +77,13 @@ export const QuizCompleteModal: React.FC<QuizCompleteModalProps> = ({
             animationType="fade"
         >
             <View style={styles.overlay}>
+                {isPassing && (
+                    <ConfettiOverlay
+                        visible={showConfetti}
+                        onComplete={() => setShowConfetti(false)}
+                        count={40}
+                    />
+                )}
                 <Animated.View
                     style={[
                         styles.container,

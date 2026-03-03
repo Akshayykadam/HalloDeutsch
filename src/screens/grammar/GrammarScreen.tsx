@@ -149,7 +149,7 @@ export const GrammarScreen: React.FC = () => {
 
                             {selectedTopic.keyRules && selectedTopic.keyRules.length > 0 && (
                                 <>
-                                    <Text style={styles.sectionTitle}>📝 Key Rules</Text>
+                                    <Text style={styles.sectionTitle}>Key Rules</Text>
                                     {selectedTopic.keyRules.map((rule: string, idx: number) => (
                                         <Card key={idx} variant="flat" style={styles.ruleCard}>
                                             <View style={styles.ruleRow}>
@@ -166,7 +166,7 @@ export const GrammarScreen: React.FC = () => {
                             {/* Fallback: Show examples preview if no key rules */}
                             {(!selectedTopic.keyRules || selectedTopic.keyRules.length === 0) && (
                                 <Card variant="flat" style={{ marginTop: Spacing.md }}>
-                                    <Text style={styles.tipText}>💡 Tap the "Examples" tab to see usage examples with audio!</Text>
+                                    <Text style={styles.tipText}>Tap the "Examples" tab to see usage examples with audio!</Text>
                                 </Card>
                             )}
                         </>
@@ -175,7 +175,7 @@ export const GrammarScreen: React.FC = () => {
                     {/* Examples Tab */}
                     {activeTab === 'examples' && (
                         <>
-                            <Text style={styles.sectionTitle}>🔊 Tap to listen</Text>
+                            <Text style={styles.sectionTitle}>Tap to listen</Text>
                             {selectedTopic.examples.map((example, idx) => (
                                 <TouchableOpacity
                                     key={idx}

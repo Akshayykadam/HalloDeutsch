@@ -82,7 +82,7 @@ const getTabIcon = (routeName: string, focused: boolean) => {
 
 // Onboarding Navigator
 const OnboardingNavigator: React.FC = () => (
-    <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
+    <OnboardingStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <OnboardingStack.Screen name="Welcome" component={WelcomeScreen} />
         <OnboardingStack.Screen name="LevelSelection" component={LevelSelectionScreen} />
         <OnboardingStack.Screen name="Goals" component={GoalsScreen} />
@@ -149,7 +149,7 @@ export const AppNavigator: React.FC = () => {
 
     return (
         <NavigationContainer>
-            <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            <RootStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
                 {!isOnboarded ? (
                     <RootStack.Screen name="Onboarding" component={OnboardingNavigator} />
                 ) : (
@@ -202,47 +202,47 @@ export const AppNavigator: React.FC = () => {
                         <RootStack.Screen
                             name="Pronunciation"
                             component={PronunciationCoachScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="ArticleDrill"
                             component={ArticleDrillScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="Dictation"
                             component={DictationScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="PenPal"
                             component={PenPalScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="ExamPrep"
                             component={ExamPrepScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="CulturalGuide"
                             component={CulturalGuideScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="IdiomsSlang"
                             component={IdiomsSlangScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="About"
                             component={AboutScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                         <RootStack.Screen
                             name="FillInBlank"
                             component={FillInBlankScreen}
-                            options={{ headerShown: false }}
+                            options={{ headerShown: false, animation: 'slide_from_right' }}
                         />
                     </>
                 )}

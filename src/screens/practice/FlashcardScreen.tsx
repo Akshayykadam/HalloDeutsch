@@ -374,7 +374,7 @@ export const FlashcardScreen = () => {
                     </Text>
 
                     <Button
-                        title="✨ Generate AI Cards"
+                        title="Generate AI Cards"
                         onPress={() => setShowGenModal(true)}
                         style={{ marginBottom: Spacing.md, width: '100%' }}
                     />
@@ -426,7 +426,7 @@ export const FlashcardScreen = () => {
                     </View>
 
                     <Button
-                        title="✨ Generate More Cards"
+                        title="Generate More Cards"
                         onPress={handleGenerateMore}
                         style={{ marginTop: Spacing.xl, width: '100%' }}
                     />

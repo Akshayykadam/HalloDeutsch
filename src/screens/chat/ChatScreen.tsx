@@ -172,36 +172,50 @@ export const ChatScreen = () => {
         const levels: ('All' | 'A1' | 'A2' | 'B1' | 'B2')[] = ['All', 'A1', 'A2', 'B1', 'B2'];
         const filteredScenarios = SCENARIOS.filter(s => selectedLevel === 'All' || s.level === selectedLevel);
 
+        const LEVEL_GRADS: Record<string, [string, string]> = {
+            All: [Colors.primary[400], Colors.primary[600]],
+            A1: [Colors.success[400], Colors.success[600]],
+            A2: [Colors.primary[400], Colors.primary[600]],
+            B1: ['#8B5CF6', '#6D28D9'],
+            B2: [Colors.secondary[400], Colors.secondary[600]],
+        };
+        const LEVEL_NAMES: Record<string, string> = { All: 'All', A1: 'Beginner', A2: 'Elementary', B1: 'Intermediate', B2: 'Advanced' };
+
         return (
             <SafeArea style={styles.container}>
+                {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Conversation Practice</Text>
-                    <Text style={styles.headerSubtitle}>Roleplay in real-world situations</Text>
+                    <Text style={styles.headerTitle}>Conversations</Text>
                 </View>
 
-                <View style={styles.filterContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: Spacing.base }}>
-                        {levels.map(level => (
+                {/* Level Tabs */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.filterContainer}>
+                    {levels.map(level => {
+                        const isActive = selectedLevel === level;
+                        return (
                             <TouchableOpacity
                                 key={level}
-                                style={[
-                                    styles.filterChip,
-                                    selectedLevel === level && styles.filterChipActive,
-                                    { borderColor: selectedLevel === level ? Colors.primary[500] : theme.border.medium }
-                                ]}
                                 onPress={() => setSelectedLevel(level)}
+                                activeOpacity={0.7}
                             >
-                                <Text style={[
-                                    styles.filterText,
-                                    selectedLevel === level && styles.filterTextActive,
-                                    { color: selectedLevel === level ? Colors.white : theme.text.secondary }
-                                ]}>
-                                    {getLevelTitle(level)}
-                                </Text>
+                                {isActive ? (
+                                    <LinearGradient
+                                        colors={LEVEL_GRADS[level]}
+                                        style={styles.filterChip}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <Text style={styles.filterTextActive}>{LEVEL_NAMES[level]}</Text>
+                                    </LinearGradient>
+                                ) : (
+                                    <View style={[styles.filterChip, { backgroundColor: theme.background.tertiary }]}>
+                                        <Text style={[styles.filterText, { color: theme.text.secondary }]}>{LEVEL_NAMES[level]}</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
+                        );
+                    })}
+                </ScrollView>
 
                 <ScrollView style={styles.scenarioList} contentContainerStyle={styles.scenarioContent}>
                     <Text style={styles.sectionTitle}>Choose a scenario:</Text>
@@ -369,21 +383,14 @@ const getStyles = (theme: any) => StyleSheet.create({
         backgroundColor: theme.background.secondary,
     },
     header: {
-        padding: Spacing.lg,
-        paddingTop: Spacing.xl,
-        backgroundColor: theme.background.primary,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border.light,
+        paddingHorizontal: Spacing.base,
+        paddingVertical: Spacing.sm,
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: FontSize.lg,
         fontWeight: FontWeight.bold,
         color: theme.text.primary,
-    },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: theme.text.secondary,
-        marginTop: 4,
     },
     scenarioList: {
         flex: 1,
@@ -398,29 +405,26 @@ const getStyles = (theme: any) => StyleSheet.create({
         marginBottom: Spacing.md,
     },
     filterContainer: {
-        paddingVertical: Spacing.md,
-        backgroundColor: theme.background.secondary,
+        flexDirection: 'row',
+        paddingHorizontal: Spacing.base,
+        gap: Spacing.sm,
+        paddingVertical: Spacing.sm,
+        marginBottom: Spacing.sm,
     },
     filterChip: {
-        paddingHorizontal: Spacing.lg,
         paddingVertical: Spacing.sm,
-        minWidth: 60,
+        paddingHorizontal: Spacing.lg,
+        borderRadius: BorderRadius.lg,
         alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: BorderRadius.full,
-        borderWidth: 1,
-        marginRight: Spacing.sm,
-    },
-    filterChipActive: {
-        backgroundColor: Colors.primary[500],
-        borderColor: Colors.primary[500],
     },
     filterText: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.medium,
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.semibold,
     },
     filterTextActive: {
+        fontSize: FontSize.sm,
         fontWeight: FontWeight.bold,
+        color: Colors.white,
     },
     scenarioCard: {
         marginBottom: Spacing.md,

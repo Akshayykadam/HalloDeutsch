@@ -245,7 +245,7 @@ export const CulturalGuideScreen: React.FC = () => {
                     <View style={styles.phraseCard}>
                         <View style={styles.phraseHeader}>
                             <View style={styles.phraseFlagContainer}>
-                                <Text style={styles.phraseFlag}>🇩🇪</Text>
+                                <Ionicons name="flag" size={18} color={Colors.primary[500]} />
                             </View>
                             <Text style={styles.phraseLabel}>Useful Phrase</Text>
                         </View>

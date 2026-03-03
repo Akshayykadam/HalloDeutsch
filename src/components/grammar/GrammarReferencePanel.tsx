@@ -167,7 +167,7 @@ export const GrammarReferencePanel: React.FC<GrammarReferencePanelProps> = ({
                         {rule.tips && rule.tips.length > 0 && (
                             <View style={styles.tipsContainer}>
                                 <Text style={[styles.sectionLabel, { color: Colors.warning[600] }]}>
-                                    💡 Tips
+                                    Tips
                                 </Text>
                                 {rule.tips.map((tip, idx) => (
                                     <Text key={idx} style={styles.tipText}>• {tip}</Text>
