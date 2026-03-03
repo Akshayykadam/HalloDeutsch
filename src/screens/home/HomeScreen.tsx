@@ -24,6 +24,7 @@ import { generateWordOfDay } from '../../services/geminiService';
 import * as audioService from '../../services/audioService';
 import { getModulesForLevel } from '../../data/content/curriculum-service';
 import { FadeInView } from '../../components/common/FadeInView';
+import { BookStack } from '../../components/illustrations/BookStack';
 
 export const HomeScreen: React.FC = () => {
     const { progress } = useUserStore();
@@ -126,6 +127,12 @@ export const HomeScreen: React.FC = () => {
                         </View>
                     </TouchableOpacity>
                 </View>
+            </View>
+
+            {/* Decorative header accents */}
+            <View style={styles.headerAccents} pointerEvents="none">
+                <View style={[styles.accentCircle, styles.accentCircle1]} />
+                <View style={[styles.accentCircle, styles.accentCircle2]} />
             </View>
 
             <ScrollView
@@ -260,16 +267,18 @@ export const HomeScreen: React.FC = () => {
                                         <ProgressBar progress={currentModuleProgress} height={6} />
                                         <Text style={styles.lessonProgressText}>{currentModuleProgress}% complete</Text>
                                     </View>
-                                    <LinearGradient
-                                        colors={[Colors.primary[500], Colors.primary[600]]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.continueButton}
-                                    >
-                                        <Text style={styles.continueButtonText}>
-                                            {currentModuleProgress === 0 ? 'Start Learning' : 'Continue Learning'}
-                                        </Text>
-                                    </LinearGradient>
+                                    <View style={styles.continueButton}>
+                                        <LinearGradient
+                                            colors={[Colors.primary[500], Colors.primary[600]]}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.continueButtonGradient}
+                                        >
+                                            <Text style={styles.continueButtonText}>
+                                                {currentModuleProgress === 0 ? 'Start Learning' : 'Continue Learning'}
+                                            </Text>
+                                        </LinearGradient>
+                                    </View>
                                 </Card>
                             </TouchableOpacity>
                         );
@@ -294,6 +303,12 @@ export const HomeScreen: React.FC = () => {
                                 </View>
                                 <Text style={styles.featureTitle}>Snap & Learn</Text>
                                 <Text style={styles.featureSubtitle}>Identify objects</Text>
+                                {/* Camera lens illustration */}
+                                <View style={styles.featureDecoContainer} pointerEvents="none">
+                                    <View style={[styles.decoCircle, { width: 50, height: 50, borderRadius: 25 }]} />
+                                    <View style={[styles.decoCircle, { width: 34, height: 34, borderRadius: 17, position: 'absolute', top: 8, left: 8 }]} />
+                                    <View style={[styles.decoCircleFilled, { width: 18, height: 18, borderRadius: 9, position: 'absolute', top: 16, left: 16 }]} />
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -311,6 +326,12 @@ export const HomeScreen: React.FC = () => {
                                 </View>
                                 <Text style={styles.featureTitle}>AI Stories</Text>
                                 <Text style={styles.featureSubtitle}>Interactive reading</Text>
+                                {/* Book pages illustration */}
+                                <View style={styles.featureDecoContainer} pointerEvents="none">
+                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, transform: [{ rotate: '-8deg' }] }]} />
+                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, position: 'absolute', top: 3, left: 5, transform: [{ rotate: '0deg' }] }]} />
+                                    <View style={[styles.decoRect, { width: 32, height: 40, borderRadius: 4, position: 'absolute', top: 6, left: 10, transform: [{ rotate: '8deg' }] }]} />
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -328,6 +349,12 @@ export const HomeScreen: React.FC = () => {
                                 </View>
                                 <Text style={styles.featureTitle}>Flashcards</Text>
                                 <Text style={styles.featureSubtitle}>Spaced repetition</Text>
+                                {/* Stacked cards illustration */}
+                                <View style={styles.featureDecoContainer} pointerEvents="none">
+                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, transform: [{ rotate: '-12deg' }] }]} />
+                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, position: 'absolute', top: 6, left: 4, transform: [{ rotate: '-4deg' }] }]} />
+                                    <View style={[styles.decoRect, { width: 36, height: 24, borderRadius: 5, position: 'absolute', top: 12, left: 8, transform: [{ rotate: '4deg' }] }]} />
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -345,6 +372,13 @@ export const HomeScreen: React.FC = () => {
                                 </View>
                                 <Text style={styles.featureTitle}>Fill in Blank</Text>
                                 <Text style={styles.featureSubtitle}>AI quiz maker</Text>
+                                {/* Puzzle/blank illustration */}
+                                <View style={styles.featureDecoContainer} pointerEvents="none">
+                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4 }]} />
+                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4, position: 'absolute', top: 0, left: 22 }]} />
+                                    <View style={[styles.decoRect, { width: 20, height: 20, borderRadius: 4, position: 'absolute', top: 22, left: 0 }]} />
+                                    <View style={[styles.decoCircleFilled, { width: 20, height: 20, borderRadius: 10, position: 'absolute', top: 22, left: 22 }]} />
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
                     </View>
@@ -533,6 +567,33 @@ const getStyles = (theme: any) => StyleSheet.create({
         flexDirection: 'row',
         gap: Spacing.sm,
     },
+    headerAccents: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 120,
+        height: 80,
+        overflow: 'hidden',
+    },
+    accentCircle: {
+        position: 'absolute',
+        borderRadius: 100,
+        opacity: 0.06,
+    },
+    accentCircle1: {
+        width: 80,
+        height: 80,
+        top: -20,
+        right: -20,
+        backgroundColor: Colors.primary[500],
+    },
+    accentCircle2: {
+        width: 50,
+        height: 50,
+        top: 10,
+        right: 40,
+        backgroundColor: Colors.secondary[500],
+    },
     content: {
         flex: 1,
     },
@@ -693,6 +754,9 @@ const getStyles = (theme: any) => StyleSheet.create({
         marginTop: Spacing.xs,
     },
     continueButton: {
+        marginBottom: 0,
+    },
+    continueButtonGradient: {
         padding: Spacing.md,
         borderRadius: BorderRadius.md,
         alignItems: 'center',
@@ -708,6 +772,13 @@ const getStyles = (theme: any) => StyleSheet.create({
         color: theme.text.primary,
         marginBottom: Spacing.md,
         marginTop: Spacing.md,
+    },
+    bookIllustration: {
+        position: 'absolute',
+        right: -5,
+        top: -10,
+        opacity: 0.25,
+        transform: [{ rotate: '10deg' }],
     },
     quickActions: {
         flexDirection: 'row',
@@ -864,5 +935,22 @@ const getStyles = (theme: any) => StyleSheet.create({
     featureSubtitle: {
         fontSize: FontSize.xs,
         color: 'rgba(255,255,255,0.9)',
+    },
+    featureDecoContainer: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        opacity: 0.15,
+    },
+    decoCircle: {
+        borderWidth: 3,
+        borderColor: Colors.white,
+    },
+    decoCircleFilled: {
+        backgroundColor: Colors.white,
+    },
+    decoRect: {
+        borderWidth: 2.5,
+        borderColor: Colors.white,
     },
 });

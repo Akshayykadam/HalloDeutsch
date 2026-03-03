@@ -38,16 +38,17 @@ export default function App() {
   useEffect(() => {
     const setupApp = async () => {
       try {
-        // Auto-sync content if version changed
-        const storedVersion = await AsyncStorage.getItem(CONTENT_VERSION_KEY);
-        if (storedVersion !== CONTENT_VERSION) {
-          console.log(`Content sync needed: ${storedVersion} → ${CONTENT_VERSION}`);
-          await seedDatabase((status, progress) => {
-            // Silent background sync
-          });
-          await AsyncStorage.setItem(CONTENT_VERSION_KEY, CONTENT_VERSION);
-          console.log('Content sync complete');
-        }
+        // Auto-sync content disabled - triggers Firestore permission errors
+        // To re-enable, uncomment the block below and ensure Firestore rules allow writes
+        // const storedVersion = await AsyncStorage.getItem(CONTENT_VERSION_KEY);
+        // if (storedVersion !== CONTENT_VERSION) {
+        //   console.log(`Content sync needed: ${storedVersion} → ${CONTENT_VERSION}`);
+        //   await seedDatabase((status, progress) => {
+        //     // Silent background sync
+        //   });
+        //   await AsyncStorage.setItem(CONTENT_VERSION_KEY, CONTENT_VERSION);
+        //   console.log('Content sync complete');
+        // }
       } catch (error) {
         console.error('Auto-sync error:', error);
       }

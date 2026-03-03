@@ -18,6 +18,7 @@ import { Button, SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { OnboardingStackParamList } from '../../types';
 import { useUserStore } from '../../store';
+import { GermanLandscape } from '../../components/illustrations/GermanLandscape';
 
 type WelcomeScreenProps = {
     navigation: NativeStackNavigationProp<OnboardingStackParamList, 'Welcome'>;
@@ -103,14 +104,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
                                 },
                             ]}
                         >
-                            {/* Mascot */}
+                            {/* German Landscape Illustration */}
                             <Animated.View
                                 style={[
                                     styles.mascotContainer,
                                     { transform: [{ translateY: mascotAnim }] },
                                 ]}
                             >
-                                <Ionicons name="school" size={64} color={Colors.white} />
+                                <GermanLandscape width={260} height={160} variant="light" />
                             </Animated.View>
 
                             {/* Title */}
@@ -203,13 +204,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     mascotContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: Spacing.xl,
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
     },
     title: {
         fontSize: FontSize['3xl'],

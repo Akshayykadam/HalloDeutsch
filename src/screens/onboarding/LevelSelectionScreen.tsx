@@ -14,6 +14,7 @@ import { Button, SafeArea } from '../../components/ui';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, LightTheme, LevelColors } from '../../theme';
 import { OnboardingStackParamList, CEFRLevel } from '../../types';
 import { useUserStore, useSettingsStore } from '../../store';
+import { LevelBadgeIllustration } from '../../components/illustrations/LevelBadgeIllustration';
 
 type LevelSelectionScreenProps = {
     navigation: NativeStackNavigationProp<OnboardingStackParamList, 'LevelSelection'>;
@@ -75,6 +76,9 @@ export const LevelSelectionScreen: React.FC<LevelSelectionScreenProps> = ({ navi
     return (
         <SafeArea style={styles.container}>
             <View style={styles.header}>
+                <View style={styles.illustrationContainer}>
+                    <LevelBadgeIllustration size={120} />
+                </View>
                 <Text style={styles.title}>Select your Level</Text>
                 <Text style={styles.subtitle}>
                     Choose the level that best describes your current German knowledge
@@ -155,7 +159,11 @@ const styles = StyleSheet.create({
     },
     header: {
         padding: Spacing.xl,
-        paddingTop: Spacing['3xl'],
+        paddingTop: Spacing.xl,
+        alignItems: 'center',
+    },
+    illustrationContainer: {
+        marginBottom: Spacing.lg,
     },
     title: {
         fontSize: FontSize['2xl'],
