@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     ScrollView,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeArea } from '../../components/ui';
@@ -15,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { haptics } from '../../utils/haptics';
+import { useStaggeredList } from '../../hooks/useAnimations';
 
 interface ToolItem {
     id: string;
@@ -129,6 +131,9 @@ export const ToolsScreen: React.FC = () => {
         navigation.navigate(route as any);
     };
 
+    // Staggered entrance: 2 featured + 1 label + 1 list = 4 sections
+    const sectionAnims = useStaggeredList(4, 80, 50);
+
     return (
         <SafeArea style={styles.container}>
             {/* Header */}
@@ -142,57 +147,62 @@ export const ToolsScreen: React.FC = () => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Featured Tools */}
-                {FEATURED_TOOLS.map(tool => (
-                    <TouchableOpacity
-                        key={tool.id}
-                        activeOpacity={0.8}
-                        onPress={() => navigateTo(tool.route)}
-                        style={styles.featuredCard}
-                    >
-                        <LinearGradient
-                            colors={tool.gradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.featuredGradient}
-                        >
-                            <View style={styles.featuredIconWrap}>
-                                <Ionicons name={tool.icon} size={24} color={Colors.white} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.featuredTitle}>{tool.title}</Text>
-                                <Text style={styles.featuredDesc}>{tool.desc}</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
-                        </LinearGradient>
-                    </TouchableOpacity>
-                ))}
-
-                {/* Section Label */}
-                <Text style={[styles.sectionLabel, { color: theme.text.tertiary }]}>More Tools</Text>
-
-                {/* Tool List */}
-                <View style={styles.toolList}>
-                    {MORE_TOOLS.map(tool => (
+                {FEATURED_TOOLS.map((tool, i) => (
+                    <Animated.View key={tool.id} style={sectionAnims[i]}>
                         <TouchableOpacity
-                            key={tool.id}
-                            activeOpacity={0.7}
+                            activeOpacity={0.8}
                             onPress={() => navigateTo(tool.route)}
-                            style={[styles.toolRow, { backgroundColor: theme.background.primary }]}
+                            style={styles.featuredCard}
                         >
                             <LinearGradient
                                 colors={tool.gradient}
-                                style={styles.toolIconWrap}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.featuredGradient}
                             >
-                                <Ionicons name={tool.icon} size={18} color={Colors.white} />
+                                <View style={styles.featuredIconWrap}>
+                                    <Ionicons name={tool.icon} size={24} color={Colors.white} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.featuredTitle}>{tool.title}</Text>
+                                    <Text style={styles.featuredDesc}>{tool.desc}</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
                             </LinearGradient>
-                            <View style={{ flex: 1 }}>
-                                <Text style={[styles.toolTitle, { color: theme.text.primary }]}>{tool.title}</Text>
-                                <Text style={[styles.toolDesc, { color: theme.text.tertiary }]}>{tool.desc}</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
                         </TouchableOpacity>
-                    ))}
-                </View>
+                    </Animated.View>
+                ))}
+
+                {/* Section Label */}
+                <Animated.View style={sectionAnims[2]}>
+                    <Text style={[styles.sectionLabel, { color: theme.text.tertiary }]}>More Tools</Text>
+                </Animated.View>
+
+                {/* Tool List */}
+                <Animated.View style={sectionAnims[3]}>
+                    <View style={styles.toolList}>
+                        {MORE_TOOLS.map(tool => (
+                            <TouchableOpacity
+                                key={tool.id}
+                                activeOpacity={0.7}
+                                onPress={() => navigateTo(tool.route)}
+                                style={[styles.toolRow, { backgroundColor: theme.background.primary }]}
+                            >
+                                <LinearGradient
+                                    colors={tool.gradient}
+                                    style={styles.toolIconWrap}
+                                >
+                                    <Ionicons name={tool.icon} size={18} color={Colors.white} />
+                                </LinearGradient>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.toolTitle, { color: theme.text.primary }]}>{tool.title}</Text>
+                                    <Text style={[styles.toolDesc, { color: theme.text.tertiary }]}>{tool.desc}</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </Animated.View>
             </ScrollView>
         </SafeArea>
     );

@@ -12,7 +12,7 @@ interface SettingsState {
 }
 
 const defaultSettings: AppSettings = {
-    theme: 'dark',
+    theme: 'light',
     notificationsEnabled: true,
     reminderTime: '09:00',
     soundEnabled: true,

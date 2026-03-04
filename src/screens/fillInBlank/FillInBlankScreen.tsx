@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Dimensions,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeArea } from '../../components/ui';
@@ -18,6 +19,7 @@ import { FILL_IN_BLANK_TOPICS, FillInBlankTopic } from '../../data/content/fillI
 import { generateFillInBlankQuestions, FillInBlankQuestion } from '../../services/geminiService';
 import { CEFRLevel } from '../../types';
 import { Colors, FontWeight, Spacing, Shadows } from '../../theme';
+import { useEntranceAnimation, useStaggeredList } from '../../hooks/useAnimations';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +36,9 @@ export const FillInBlankScreen: React.FC = () => {
     const { theme, isDark } = useTheme();
     const navigation = useNavigation();
     const s = getStyles(theme, isDark);
+
+    // Entrance animation for topic selection
+    const topicEntrance = useEntranceAnimation(80);
 
     const [mode, setMode] = useState<ScreenMode>('topics');
     const [customTopic, setCustomTopic] = useState('');
@@ -122,32 +127,34 @@ export const FillInBlankScreen: React.FC = () => {
 
     /* ===== TOPICS ===== */
     const renderTopicSelection = () => (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
-            {/* Custom Topic */}
-            <View style={s.customWrap}>
-                <Text style={s.sectionTitle}>Create Your Own</Text>
-                <View style={s.inputRow}>
-                    <TextInput
-                        style={s.input}
-                        placeholder="e.g. Travel vocabulary"
-                        placeholderTextColor={theme.text.tertiary}
-                        value={customTopic}
-                        onChangeText={setCustomTopic}
-                        onSubmitEditing={handleCustomTopicSubmit}
-                    />
-                    <TouchableOpacity onPress={handleCustomTopicSubmit} disabled={!customTopic.trim()} activeOpacity={0.8}>
-                        <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.goBtn}>
-                            <Ionicons name="arrow-forward" size={18} color="#fff" />
-                        </LinearGradient>
-                    </TouchableOpacity>
+        <Animated.View style={[{ flex: 1 }, topicEntrance]}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+                {/* Custom Topic */}
+                <View style={s.customWrap}>
+                    <Text style={s.sectionTitle}>Create Your Own</Text>
+                    <View style={s.inputRow}>
+                        <TextInput
+                            style={s.input}
+                            placeholder="e.g. Travel vocabulary"
+                            placeholderTextColor={theme.text.tertiary}
+                            value={customTopic}
+                            onChangeText={setCustomTopic}
+                            onSubmitEditing={handleCustomTopicSubmit}
+                        />
+                        <TouchableOpacity onPress={handleCustomTopicSubmit} disabled={!customTopic.trim()} activeOpacity={0.8}>
+                            <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.goBtn}>
+                                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
-            {renderTopicCategory('grammar', 'Grammar')}
-            {renderTopicCategory('vocabulary', 'Vocabulary')}
-            {renderTopicCategory('everyday', 'Everyday German')}
-            {renderTopicCategory('intermediate', 'Intermediate')}
-            <View style={{ height: 32 }} />
-        </ScrollView>
+                {renderTopicCategory('grammar', 'Grammar')}
+                {renderTopicCategory('vocabulary', 'Vocabulary')}
+                {renderTopicCategory('everyday', 'Everyday German')}
+                {renderTopicCategory('intermediate', 'Intermediate')}
+                <View style={{ height: 32 }} />
+            </ScrollView>
+        </Animated.View>
     );
 
     /* ===== QUIZ ===== */

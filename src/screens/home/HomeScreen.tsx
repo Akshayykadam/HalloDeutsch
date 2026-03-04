@@ -9,6 +9,7 @@ import {
     StatusBar,
     ActivityIndicator,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getLevelTitle } from '../../utils/levelUtils';
@@ -22,6 +23,7 @@ import { generateWordOfDay } from '../../services/geminiService';
 import * as audioService from '../../services/audioService';
 import { getModulesForLevel } from '../../data/content/curriculum-service';
 import { haptics } from '../../utils/haptics';
+import { useStaggeredList } from '../../hooks/useAnimations';
 
 export const HomeScreen: React.FC = () => {
     const { progress } = useUserStore();
@@ -29,6 +31,9 @@ export const HomeScreen: React.FC = () => {
     const s = getStyles(theme);
     const navigation = useNavigation<any>();
     const { checkStreak } = useUserStore();
+
+    // Staggered entrance animations for 7 sections
+    const sectionAnims = useStaggeredList(7, 70, 50);
 
     useFocusEffect(useCallback(() => { checkStreak(); }, [checkStreak]));
 
@@ -102,150 +107,162 @@ export const HomeScreen: React.FC = () => {
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.base, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
                 {/* Stats Strip */}
-                <View style={s.statsStrip}>
-                    {[
-                        { icon: 'flame' as const, value: progress.streak || 0, label: 'Streak', color: Colors.secondary[500] },
-                        { icon: 'flash' as const, value: progress.totalXP || 0, label: 'XP', color: Colors.primary[500] },
-                        { icon: 'time' as const, value: `${progress.minutesToday}/${progress.dailyGoal}`, label: 'Min', color: Colors.success[500] },
-                    ].map(stat => (
-                        <View key={stat.label} style={[s.statCard, { backgroundColor: theme.background.primary }]}>
-                            <Ionicons name={stat.icon} size={18} color={stat.color} />
-                            <Text style={[s.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
-                            <Text style={[s.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
-                        </View>
-                    ))}
-                </View>
+                <Animated.View style={sectionAnims[0]}>
+                    <View style={s.statsStrip}>
+                        {[
+                            { icon: 'flame' as const, value: progress.streak || 0, label: 'Streak', color: Colors.secondary[500] },
+                            { icon: 'flash' as const, value: progress.totalXP || 0, label: 'XP', color: Colors.primary[500] },
+                            { icon: 'time' as const, value: `${progress.minutesToday}/${progress.dailyGoal}`, label: 'Min', color: Colors.success[500] },
+                        ].map(stat => (
+                            <View key={stat.label} style={[s.statCard, { backgroundColor: theme.background.primary }]}>
+                                <Ionicons name={stat.icon} size={18} color={stat.color} />
+                                <Text style={[s.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
+                                <Text style={[s.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </Animated.View>
 
                 {/* Daily Progress Bar */}
-                <View style={[s.progressWrap, { backgroundColor: theme.background.primary }]}>
-                    <View style={s.progressText}>
-                        <Text style={[s.progressLabel, { color: theme.text.secondary }]}>Daily Goal</Text>
-                        <Text style={[s.progressPercent, { color: theme.text.primary }]}>{Math.round(dailyPercent)}%</Text>
+                <Animated.View style={sectionAnims[1]}>
+                    <View style={[s.progressWrap, { backgroundColor: theme.background.primary }]}>
+                        <View style={s.progressText}>
+                            <Text style={[s.progressLabel, { color: theme.text.secondary }]}>Daily Goal</Text>
+                            <Text style={[s.progressPercent, { color: theme.text.primary }]}>{Math.round(dailyPercent)}%</Text>
+                        </View>
+                        <View style={[s.progressTrack, { backgroundColor: theme.background.tertiary }]}>
+                            <LinearGradient
+                                colors={[Colors.success[400], Colors.success[600]]}
+                                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                                style={[s.progressFill, { width: `${dailyPercent}%` }]}
+                            />
+                        </View>
                     </View>
-                    <View style={[s.progressTrack, { backgroundColor: theme.background.tertiary }]}>
-                        <LinearGradient
-                            colors={[Colors.success[400], Colors.success[600]]}
-                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                            style={[s.progressFill, { width: `${dailyPercent}%` }]}
-                        />
-                    </View>
-                </View>
+                </Animated.View>
 
                 {/* Word of the Day */}
-                <View style={[s.wordCard, { backgroundColor: theme.background.primary }]}>
-                    <View style={s.wordHeader}>
-                        <View style={s.wordBadge}>
-                            <Ionicons name="calendar" size={12} color={Colors.primary[500]} />
-                            <Text style={[s.wordBadgeText, { color: Colors.primary[500] }]}>Word of the Day</Text>
+                <Animated.View style={sectionAnims[2]}>
+                    <View style={[s.wordCard, { backgroundColor: theme.background.primary }]}>
+                        <View style={s.wordHeader}>
+                            <View style={s.wordBadge}>
+                                <Ionicons name="calendar" size={12} color={Colors.primary[500]} />
+                                <Text style={[s.wordBadgeText, { color: Colors.primary[500] }]}>Word of the Day</Text>
+                            </View>
+                            {loadingWord && <ActivityIndicator size="small" color={Colors.primary[500]} />}
                         </View>
-                        {loadingWord && <ActivityIndicator size="small" color={Colors.primary[500]} />}
-                    </View>
-                    {wordOfDay && !loadingWord && (
-                        <>
-                            <View style={s.wordRow}>
-                                <Text style={[s.germanWord, { color: theme.text.primary }]} numberOfLines={2}>{wordOfDay.word}</Text>
-                                <TouchableOpacity onPress={() => audioService.speak(wordOfDay.word)} activeOpacity={0.7} style={s.speakerBtn}>
-                                    <Ionicons name="volume-high" size={20} color={Colors.primary[500]} />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={s.wordMeta}>
-                                <View style={[s.posBadge, { backgroundColor: Colors.primary[500] + '18' }]}>
-                                    <Text style={{ fontSize: 11, fontWeight: '600' as any, color: Colors.primary[500] }}>{wordOfDay.partOfSpeech}</Text>
-                                </View>
-                                <Text style={[s.translation, { color: theme.text.secondary }]}>{wordOfDay.translation}</Text>
-                            </View>
-                            <View style={[s.exampleBox, { backgroundColor: theme.background.tertiary }]}>
-                                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                                    <Text style={[s.exampleText, { color: theme.text.primary, flex: 1 }]}>"{wordOfDay.example}"</Text>
-                                    <TouchableOpacity onPress={() => audioService.speak(wordOfDay.example)} activeOpacity={0.7}>
-                                        <Ionicons name="volume-medium" size={16} color={Colors.primary[400]} />
+                        {wordOfDay && !loadingWord && (
+                            <>
+                                <View style={s.wordRow}>
+                                    <Text style={[s.germanWord, { color: theme.text.primary }]} numberOfLines={2}>{wordOfDay.word}</Text>
+                                    <TouchableOpacity onPress={() => audioService.speak(wordOfDay.word)} activeOpacity={0.7} style={s.speakerBtn}>
+                                        <Ionicons name="volume-high" size={20} color={Colors.primary[500]} />
                                     </TouchableOpacity>
                                 </View>
-                                <Text style={[s.exampleTrans, { color: theme.text.tertiary }]}>{wordOfDay.exampleTranslation}</Text>
-                            </View>
-                        </>
-                    )}
-                    {!wordOfDay && !loadingWord && (
-                        <Text style={[s.translation, { color: theme.text.tertiary }]}>Fetching your word...</Text>
-                    )}
-                </View>
+                                <View style={s.wordMeta}>
+                                    <View style={[s.posBadge, { backgroundColor: Colors.primary[500] + '18' }]}>
+                                        <Text style={{ fontSize: 11, fontWeight: '600' as any, color: Colors.primary[500] }}>{wordOfDay.partOfSpeech}</Text>
+                                    </View>
+                                    <Text style={[s.translation, { color: theme.text.secondary }]}>{wordOfDay.translation}</Text>
+                                </View>
+                                <View style={[s.exampleBox, { backgroundColor: theme.background.tertiary }]}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                        <Text style={[s.exampleText, { color: theme.text.primary, flex: 1 }]}>"{wordOfDay.example}"</Text>
+                                        <TouchableOpacity onPress={() => audioService.speak(wordOfDay.example)} activeOpacity={0.7}>
+                                            <Ionicons name="volume-medium" size={16} color={Colors.primary[400]} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <Text style={[s.exampleTrans, { color: theme.text.tertiary }]}>{wordOfDay.exampleTranslation}</Text>
+                                </View>
+                            </>
+                        )}
+                        {!wordOfDay && !loadingWord && (
+                            <Text style={[s.translation, { color: theme.text.tertiary }]}>Fetching your word...</Text>
+                        )}
+                    </View>
+                </Animated.View>
 
                 {/* Continue Learning Card */}
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => { haptics.light(); navigation.navigate('Learn', { screen: 'LearnHome' }); }}
-                >
-                    <LinearGradient
-                        colors={[Colors.primary[500], Colors.primary[700]]}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                        style={s.continueCard}
+                <Animated.View style={sectionAnims[3]}>
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => { haptics.light(); navigation.navigate('Learn', { screen: 'LearnHome' }); }}
                     >
-                        <View style={s.continueTop}>
-                            <View style={s.continueLevelPill}>
-                                <Text style={s.continueLevelText}>{getLevelTitle(progress.level)}</Text>
+                        <LinearGradient
+                            colors={[Colors.primary[500], Colors.primary[700]]}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                            style={s.continueCard}
+                        >
+                            <View style={s.continueTop}>
+                                <View style={s.continueLevelPill}>
+                                    <Text style={s.continueLevelText}>{getLevelTitle(progress.level)}</Text>
+                                </View>
+                                <Text style={s.continueUnit}>Unit {currentModuleIndex + 1}</Text>
                             </View>
-                            <Text style={s.continueUnit}>Unit {currentModuleIndex + 1}</Text>
-                        </View>
-                        <Text style={s.continueTitle}>{currentModule?.title || 'Loading...'}</Text>
-                        <View style={s.continueProgress}>
-                            <View style={s.continueTrack}>
-                                <View style={[s.continueFill, { width: `${currentModuleProgress}%` }]} />
+                            <Text style={s.continueTitle}>{currentModule?.title || 'Loading...'}</Text>
+                            <View style={s.continueProgress}>
+                                <View style={s.continueTrack}>
+                                    <View style={[s.continueFill, { width: `${currentModuleProgress}%` }]} />
+                                </View>
+                                <Text style={s.continuePercent}>{currentModuleProgress}%</Text>
                             </View>
-                            <Text style={s.continuePercent}>{currentModuleProgress}%</Text>
-                        </View>
-                        <View style={s.continueBtn}>
-                            <Text style={s.continueBtnText}>
-                                {currentModuleProgress === 0 ? 'Start Learning' : 'Continue'}
-                            </Text>
-                            <Ionicons name="arrow-forward" size={16} color={Colors.white} />
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                            <View style={s.continueBtn}>
+                                <Text style={s.continueBtnText}>
+                                    {currentModuleProgress === 0 ? 'Start Learning' : 'Continue'}
+                                </Text>
+                                <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Animated.View>
 
                 {/* Quick Access Section */}
-                <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Quick Access</Text>
-                <View style={s.quickGrid}>
-                    {[
-                        { icon: 'camera' as const, title: 'Snap & Learn', grad: [Colors.primary[400], Colors.primary[600]] as [string, string], route: 'Snap' },
-                        { icon: 'book' as const, title: 'AI Stories', grad: [Colors.secondary[400], Colors.secondary[600]] as [string, string], route: 'Story' },
-                        { icon: 'albums' as const, title: 'Flashcards', grad: [Colors.warning[400], Colors.warning[600]] as [string, string], route: 'Flashcards' },
-                        { icon: 'help-circle' as const, title: 'Fill in Blank', grad: ['#8B5CF6', '#6D28D9'] as [string, string], route: 'FillInBlank' },
-                    ].map(item => (
-                        <TouchableOpacity
-                            key={item.route}
-                            style={s.quickCard}
-                            activeOpacity={0.8}
-                            onPress={() => { haptics.light(); navigation.navigate(item.route); }}
-                        >
-                            <LinearGradient colors={item.grad} style={s.quickIcon}>
-                                <Ionicons name={item.icon} size={20} color={Colors.white} />
-                            </LinearGradient>
-                            <Text style={[s.quickTitle, { color: theme.text.primary }]}>{item.title}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                <Animated.View style={sectionAnims[4]}>
+                    <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Quick Access</Text>
+                    <View style={s.quickGrid}>
+                        {[
+                            { icon: 'camera' as const, title: 'Snap & Learn', grad: [Colors.primary[400], Colors.primary[600]] as [string, string], route: 'Snap' },
+                            { icon: 'book' as const, title: 'AI Stories', grad: [Colors.secondary[400], Colors.secondary[600]] as [string, string], route: 'Story' },
+                            { icon: 'albums' as const, title: 'Flashcards', grad: [Colors.warning[400], Colors.warning[600]] as [string, string], route: 'Flashcards' },
+                            { icon: 'help-circle' as const, title: 'Fill in Blank', grad: ['#8B5CF6', '#6D28D9'] as [string, string], route: 'FillInBlank' },
+                        ].map(item => (
+                            <TouchableOpacity
+                                key={item.route}
+                                style={s.quickCard}
+                                activeOpacity={0.8}
+                                onPress={() => { haptics.light(); navigation.navigate(item.route); }}
+                            >
+                                <LinearGradient colors={item.grad} style={s.quickIcon}>
+                                    <Ionicons name={item.icon} size={20} color={Colors.white} />
+                                </LinearGradient>
+                                <Text style={[s.quickTitle, { color: theme.text.primary }]}>{item.title}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </Animated.View>
 
                 {/* Reference Row */}
-                <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Reference</Text>
-                <View style={s.refRow}>
-                    {[
-                        { icon: 'git-branch' as const, title: 'Grammar', color: Colors.success[500], route: 'Grammar' },
-                        { icon: 'layers' as const, title: 'Vocabulary', color: Colors.secondary[500], route: 'Vocabulary' },
-                        { icon: 'search' as const, title: 'Dictionary', color: Colors.primary[500], route: 'Dictionary' },
-                    ].map(item => (
-                        <TouchableOpacity
-                            key={item.route}
-                            style={[s.refCard, { backgroundColor: theme.background.primary }]}
-                            onPress={() => { haptics.light(); navigation.navigate(item.route); }}
-                            activeOpacity={0.7}
-                        >
-                            <View style={[s.refIcon, { backgroundColor: item.color + '18' }]}>
-                                <Ionicons name={item.icon} size={20} color={item.color} />
-                            </View>
-                            <Text style={[s.refTitle, { color: theme.text.primary }]}>{item.title}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                <Animated.View style={sectionAnims[5]}>
+                    <Text style={[s.sectionTitle, { color: theme.text.tertiary }]}>Reference</Text>
+                    <View style={s.refRow}>
+                        {[
+                            { icon: 'git-branch' as const, title: 'Grammar', color: Colors.success[500], route: 'Grammar' },
+                            { icon: 'layers' as const, title: 'Vocabulary', color: Colors.secondary[500], route: 'Vocabulary' },
+                            { icon: 'search' as const, title: 'Dictionary', color: Colors.primary[500], route: 'Dictionary' },
+                        ].map(item => (
+                            <TouchableOpacity
+                                key={item.route}
+                                style={[s.refCard, { backgroundColor: theme.background.primary }]}
+                                onPress={() => { haptics.light(); navigation.navigate(item.route); }}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[s.refIcon, { backgroundColor: item.color + '18' }]}>
+                                    <Ionicons name={item.icon} size={20} color={item.color} />
+                                </View>
+                                <Text style={[s.refTitle, { color: theme.text.primary }]}>{item.title}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </Animated.View>
             </ScrollView>
         </SafeArea>
     );

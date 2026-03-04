@@ -8,6 +8,7 @@ import {
     Animated,
     ScrollView,
 } from 'react-native';
+import ReAnimated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { getLevelTitle } from '../../utils/levelUtils';
+import { useEntranceAnimation } from '../../hooks/useAnimations';
 import { useUserStore } from '../../store';
 import {
     ArticleNoun,
@@ -30,6 +32,9 @@ export const ArticleDrillScreen: React.FC = () => {
     const { theme, isDark } = useTheme();
     const { progress } = useUserStore();
     const s = getStyles(theme, isDark);
+
+    // Entrance animation for idle state
+    const idleEntrance = useEntranceAnimation(80);
 
     const [gameState, setGameState] = useState<GameState>('idle');
     const [nouns, setNouns] = useState<ArticleNoun[]>([]);
@@ -142,60 +147,62 @@ export const ArticleDrillScreen: React.FC = () => {
 
     /* ============= IDLE STATE ============= */
     const renderIdleState = () => (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.idleContent} showsVerticalScrollIndicator={false}>
-            {/* Hero */}
-            <LinearGradient colors={isDark ? ['#312E81', '#1E1B4B'] : ['#EEF2FF', '#E0E7FF']} style={s.heroBanner}>
-                <Ionicons name="flash" size={48} color={Colors.primary[500]} />
-                <Text style={s.heroTitle}>Article Drill</Text>
-                <Text style={s.heroSub}>Der • Die • Das</Text>
-                <Text style={s.heroDesc}>
-                    30 seconds. As many articles as you can. Go!
-                </Text>
-            </LinearGradient>
-
-            {/* Stats */}
-            <View style={s.statsRow}>
-                <View style={s.statBox}>
-                    <Ionicons name="trophy" size={20} color={Colors.warning[500]} />
-                    <Text style={s.statBoxValue}>{highScore}</Text>
-                    <Text style={s.statBoxLabel}>Best</Text>
-                </View>
-                <View style={s.statBox}>
-                    <Ionicons name="school-outline" size={20} color={Colors.primary[500]} />
-                    <Text style={s.statBoxValue}>{getLevelTitle(progress.level)}</Text>
-                    <Text style={s.statBoxLabel}>Level</Text>
-                </View>
-                <View style={s.statBox}>
-                    <Ionicons name="time-outline" size={20} color={Colors.success[500]} />
-                    <Text style={s.statBoxValue}>30s</Text>
-                    <Text style={s.statBoxLabel}>Timer</Text>
-                </View>
-            </View>
-
-            {/* Start Button */}
-            <TouchableOpacity onPress={startGame} activeOpacity={0.85}>
-                <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.startBtn}>
-                    <Ionicons name="play" size={22} color={Colors.white} />
-                    <Text style={s.startBtnText}>Start Game</Text>
+        <ReAnimated.View style={[{ flex: 1 }, idleEntrance]}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={s.idleContent} showsVerticalScrollIndicator={false}>
+                {/* Hero */}
+                <LinearGradient colors={isDark ? ['#312E81', '#1E1B4B'] : ['#EEF2FF', '#E0E7FF']} style={s.heroBanner}>
+                    <Ionicons name="flash" size={48} color={Colors.primary[500]} />
+                    <Text style={s.heroTitle}>Article Drill</Text>
+                    <Text style={s.heroSub}>Der • Die • Das</Text>
+                    <Text style={s.heroDesc}>
+                        30 seconds. As many articles as you can. Go!
+                    </Text>
                 </LinearGradient>
-            </TouchableOpacity>
 
-            {/* Quick Tips */}
-            <View style={s.tipsSection}>
-                <View style={s.tipsHeader}>
-                    <Ionicons name="bulb-outline" size={16} color={Colors.warning[500]} />
-                    <Text style={s.tipsTitle}>Quick Tips</Text>
+                {/* Stats */}
+                <View style={s.statsRow}>
+                    <View style={s.statBox}>
+                        <Ionicons name="trophy" size={20} color={Colors.warning[500]} />
+                        <Text style={s.statBoxValue}>{highScore}</Text>
+                        <Text style={s.statBoxLabel}>Best</Text>
+                    </View>
+                    <View style={s.statBox}>
+                        <Ionicons name="school-outline" size={20} color={Colors.primary[500]} />
+                        <Text style={s.statBoxValue}>{getLevelTitle(progress.level)}</Text>
+                        <Text style={s.statBoxLabel}>Level</Text>
+                    </View>
+                    <View style={s.statBox}>
+                        <Ionicons name="time-outline" size={20} color={Colors.success[500]} />
+                        <Text style={s.statBoxValue}>30s</Text>
+                        <Text style={s.statBoxLabel}>Timer</Text>
+                    </View>
                 </View>
-                <View style={s.tipsList}>
-                    {genderPatterns.slice(0, 6).map((p, i) => (
-                        <View key={i} style={s.tipChip}>
-                            <Text style={[s.tipArticle, { color: getArticleColor(p.article as 'der' | 'die' | 'das') }]}>{p.article}</Text>
-                            <Text style={s.tipPattern}>{p.pattern}</Text>
-                        </View>
-                    ))}
+
+                {/* Start Button */}
+                <TouchableOpacity onPress={startGame} activeOpacity={0.85}>
+                    <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.startBtn}>
+                        <Ionicons name="play" size={22} color={Colors.white} />
+                        <Text style={s.startBtnText}>Start Game</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Quick Tips */}
+                <View style={s.tipsSection}>
+                    <View style={s.tipsHeader}>
+                        <Ionicons name="bulb-outline" size={16} color={Colors.warning[500]} />
+                        <Text style={s.tipsTitle}>Quick Tips</Text>
+                    </View>
+                    <View style={s.tipsList}>
+                        {genderPatterns.slice(0, 6).map((p, i) => (
+                            <View key={i} style={s.tipChip}>
+                                <Text style={[s.tipArticle, { color: getArticleColor(p.article as 'der' | 'die' | 'das') }]}>{p.article}</Text>
+                                <Text style={s.tipPattern}>{p.pattern}</Text>
+                            </View>
+                        ))}
+                    </View>
                 </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </ReAnimated.View>
     );
 
     /* ============= PLAYING STATE ============= */

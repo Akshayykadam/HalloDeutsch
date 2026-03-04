@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ScrollView,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +24,7 @@ import {
     CulturalTip,
     CultureQuiz,
 } from '../../data/content/cultural-guide-data';
+import { useEntranceAnimation } from '../../hooks/useAnimations';
 
 type ScreenState = 'browse' | 'detail' | 'quiz' | 'quiz-result';
 
@@ -30,6 +32,9 @@ export const CulturalGuideScreen: React.FC = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
     const s = getStyles(theme, isDark);
+
+    // Entrance animation for browse view
+    const browseEntrance = useEntranceAnimation(60);
 
     const [screenState, setScreenState] = useState<ScreenState>('browse');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -102,75 +107,77 @@ export const CulturalGuideScreen: React.FC = () => {
 
     /* ─── Browse ─── */
     const renderBrowse = () => (
-        <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
-            {/* Quiz Hero Banner */}
-            <TouchableOpacity activeOpacity={0.85} onPress={handleStartQuiz}>
-                <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.quizBanner}>
-                    <View style={s.quizBannerLeft}>
-                        <View style={s.quizBannerIcon}>
-                            <Ionicons name="school" size={22} color="#fff" />
-                        </View>
-                        <View>
-                            <Text style={s.quizBannerTitle}>Test Your Knowledge!</Text>
-                            <Text style={s.quizBannerSub}>5-question culture quiz</Text>
-                        </View>
-                    </View>
-                    <View style={s.quizBannerArrow}>
-                        <Ionicons name="chevron-forward" size={18} color="#fff" />
-                    </View>
-                </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Category Chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
-                <TouchableOpacity
-                    style={[s.chip, !selectedCategory && s.chipActive]}
-                    onPress={() => setSelectedCategory(null)}
-                >
-                    <Text style={[s.chipText, !selectedCategory && s.chipTextActive]}>All</Text>
-                </TouchableOpacity>
-                {categories.map((cat) => (
-                    <TouchableOpacity
-                        key={cat.key}
-                        style={[s.chip, selectedCategory === cat.key && s.chipActive]}
-                        onPress={() => setSelectedCategory(cat.key)}
-                    >
-                        <Ionicons name={cat.icon as any} size={14} color={selectedCategory === cat.key ? '#fff' : theme.text.tertiary} />
-                        <Text style={[s.chipText, selectedCategory === cat.key && s.chipTextActive]}>{cat.label}</Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            {/* Section Header */}
-            <View style={s.sectionRow}>
-                <Text style={s.sectionTitle}>
-                    {selectedCategory ? categories.find(c => c.key === selectedCategory)?.label : 'All Tips'}
-                </Text>
-                <View style={s.countPill}>
-                    <Text style={s.countText}>{displayTips.length}</Text>
-                </View>
-            </View>
-
-            {/* Tips List */}
-            {displayTips.map((tip) => {
-                const gradColors = getImportanceGrad(tip.importance);
-                return (
-                    <TouchableOpacity key={tip.id} style={s.tipCard} onPress={() => handleSelectTip(tip)} activeOpacity={0.8}>
-                        <LinearGradient colors={gradColors} style={s.tipIconWrap}>
-                            <Ionicons name={tip.icon as any} size={22} color="#fff" />
-                        </LinearGradient>
-                        <View style={s.tipContent}>
-                            <Text style={s.tipTitle}>{tip.title}</Text>
-                            <Text style={s.tipTitleDe}>{tip.titleDe}</Text>
-                            <View style={[s.importancePill, { backgroundColor: gradColors[0] + '18' }]}>
-                                <Text style={[s.importanceText, { color: gradColors[0] }]}>{tip.importance}</Text>
+        <Animated.View style={[{ flex: 1 }, browseEntrance]}>
+            <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+                {/* Quiz Hero Banner */}
+                <TouchableOpacity activeOpacity={0.85} onPress={handleStartQuiz}>
+                    <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.quizBanner}>
+                        <View style={s.quizBannerLeft}>
+                            <View style={s.quizBannerIcon}>
+                                <Ionicons name="school" size={22} color="#fff" />
+                            </View>
+                            <View>
+                                <Text style={s.quizBannerTitle}>Test Your Knowledge!</Text>
+                                <Text style={s.quizBannerSub}>5-question culture quiz</Text>
                             </View>
                         </View>
-                        <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
+                        <View style={s.quizBannerArrow}>
+                            <Ionicons name="chevron-forward" size={18} color="#fff" />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Category Chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
+                    <TouchableOpacity
+                        style={[s.chip, !selectedCategory && s.chipActive]}
+                        onPress={() => setSelectedCategory(null)}
+                    >
+                        <Text style={[s.chipText, !selectedCategory && s.chipTextActive]}>All</Text>
                     </TouchableOpacity>
-                );
-            })}
-        </ScrollView>
+                    {categories.map((cat) => (
+                        <TouchableOpacity
+                            key={cat.key}
+                            style={[s.chip, selectedCategory === cat.key && s.chipActive]}
+                            onPress={() => setSelectedCategory(cat.key)}
+                        >
+                            <Ionicons name={cat.icon as any} size={14} color={selectedCategory === cat.key ? '#fff' : theme.text.tertiary} />
+                            <Text style={[s.chipText, selectedCategory === cat.key && s.chipTextActive]}>{cat.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* Section Header */}
+                <View style={s.sectionRow}>
+                    <Text style={s.sectionTitle}>
+                        {selectedCategory ? categories.find(c => c.key === selectedCategory)?.label : 'All Tips'}
+                    </Text>
+                    <View style={s.countPill}>
+                        <Text style={s.countText}>{displayTips.length}</Text>
+                    </View>
+                </View>
+
+                {/* Tips List */}
+                {displayTips.map((tip) => {
+                    const gradColors = getImportanceGrad(tip.importance);
+                    return (
+                        <TouchableOpacity key={tip.id} style={s.tipCard} onPress={() => handleSelectTip(tip)} activeOpacity={0.8}>
+                            <LinearGradient colors={gradColors} style={s.tipIconWrap}>
+                                <Ionicons name={tip.icon as any} size={22} color="#fff" />
+                            </LinearGradient>
+                            <View style={s.tipContent}>
+                                <Text style={s.tipTitle}>{tip.title}</Text>
+                                <Text style={s.tipTitleDe}>{tip.titleDe}</Text>
+                                <View style={[s.importancePill, { backgroundColor: gradColors[0] + '18' }]}>
+                                    <Text style={[s.importanceText, { color: gradColors[0] }]}>{tip.importance}</Text>
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </Animated.View>
     );
 
     /* ─── Detail ─── */

@@ -12,6 +12,7 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChatBubble, SuggestedResponses } from '../../components/chat';
@@ -21,6 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { generateConversationResponse, checkGrammar } from '../../services/geminiService';
 import { useUserStore } from '../../store';
 import { getLevelTitle } from '../../utils/levelUtils';
+import { useEntranceAnimation, useStaggeredList } from '../../hooks/useAnimations';
 
 interface Message {
     id: string;
@@ -168,6 +170,9 @@ export const ChatScreen = () => {
     // ... (rest of component until return)
 
     // Scenario Selection Screen
+    // Entrance animations for scenario selection
+    const scenarioAnims = useStaggeredList(SCENARIOS.length, 60, 80);
+
     if (!chatStarted) {
         const levels: ('All' | 'A1' | 'A2' | 'B1' | 'B2')[] = ['All', 'A1', 'A2', 'B1', 'B2'];
         const filteredScenarios = SCENARIOS.filter(s => selectedLevel === 'All' || s.level === selectedLevel);
@@ -220,41 +225,42 @@ export const ChatScreen = () => {
                 <ScrollView style={styles.scenarioList} contentContainerStyle={styles.scenarioContent}>
                     <Text style={styles.sectionTitle}>Choose a scenario:</Text>
 
-                    {filteredScenarios.map((scenario) => (
-                        <TouchableOpacity
-                            key={scenario.id}
-                            style={[styles.scenarioCard, { backgroundColor: theme.background.tertiary }]}
-                            onPress={() => startConversation(scenario.id)}
-                            activeOpacity={0.7}
-                        >
-                            <LinearGradient
-                                colors={scenario.id.includes('free')
-                                    ? [Colors.secondary[500], Colors.secondary[600]]
-                                    : [Colors.primary[500], Colors.primary[600]]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.scenarioIconContainer}
+                    {filteredScenarios.map((scenario, idx) => (
+                        <Animated.View key={scenario.id} style={scenarioAnims[Math.min(idx, scenarioAnims.length - 1)]}>
+                            <TouchableOpacity
+                                style={[styles.scenarioCard, { backgroundColor: theme.background.tertiary }]}
+                                onPress={() => startConversation(scenario.id)}
+                                activeOpacity={0.7}
                             >
-                                <Ionicons name={scenario.icon as any} size={24} color={Colors.white} />
-                            </LinearGradient>
+                                <LinearGradient
+                                    colors={scenario.id.includes('free')
+                                        ? [Colors.secondary[500], Colors.secondary[600]]
+                                        : [Colors.primary[500], Colors.primary[600]]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.scenarioIconContainer}
+                                >
+                                    <Ionicons name={scenario.icon as any} size={24} color={Colors.white} />
+                                </LinearGradient>
 
-                            <View style={[styles.scenarioTextContent, { backgroundColor: theme.background.tertiary }]}>
-                                <View style={styles.scenarioHeader}>
-                                    <Text style={[styles.scenarioTitle, { color: theme.text.primary }]}>{scenario.title}</Text>
-                                    <View style={[styles.levelBadge, { borderColor: theme.border.medium }]}>
-                                        <Text style={[styles.levelText, { color: theme.text.secondary }]}>{getLevelTitle(scenario.level)}</Text>
+                                <View style={[styles.scenarioTextContent, { backgroundColor: theme.background.tertiary }]}>
+                                    <View style={styles.scenarioHeader}>
+                                        <Text style={[styles.scenarioTitle, { color: theme.text.primary }]}>{scenario.title}</Text>
+                                        <View style={[styles.levelBadge, { borderColor: theme.border.medium }]}>
+                                            <Text style={[styles.levelText, { color: theme.text.secondary }]}>{getLevelTitle(scenario.level)}</Text>
+                                        </View>
                                     </View>
+                                    <Text style={[styles.scenarioSubtitle, { color: theme.text.secondary }]}>{scenario.titleEn}</Text>
+                                    <Text style={[styles.scenarioDescription, { color: theme.text.tertiary }]} numberOfLines={2}>
+                                        {scenario.description}
+                                    </Text>
                                 </View>
-                                <Text style={[styles.scenarioSubtitle, { color: theme.text.secondary }]}>{scenario.titleEn}</Text>
-                                <Text style={[styles.scenarioDescription, { color: theme.text.tertiary }]} numberOfLines={2}>
-                                    {scenario.description}
-                                </Text>
-                            </View>
 
-                            <View style={styles.chevron}>
-                                <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
-                            </View>
-                        </TouchableOpacity>
+                                <View style={styles.chevron}>
+                                    <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
+                                </View>
+                            </TouchableOpacity>
+                        </Animated.View>
                     ))}
 
                     <View style={styles.tipCard}>

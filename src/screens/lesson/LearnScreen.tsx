@@ -9,6 +9,7 @@ import {
     Dimensions,
     ActivityIndicator,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ import { CEFRLevel, CurriculumModule, CurriculumLesson } from '../../types';
 import { getLevelStats, AVAILABLE_LEVELS, LEVEL_DESCRIPTIONS } from '../../data/content/curriculum-service';
 import { getCurriculumModules, getCurriculumModule } from '../../services/contentService';
 import { getLevelTitle } from '../../utils/levelUtils';
+import { useStaggeredList } from '../../hooks/useAnimations';
 import { VocabularyScreen } from '../vocabulary';
 import { GrammarScreen } from '../grammar';
 import { DictionaryScreen } from '../dictionary';
@@ -427,6 +429,9 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [hasInitialized, setHasInitialized] = useState(false);
 
+    // Entrance animation for level info card + modules section
+    const sectionAnims = useStaggeredList(3, 80, 60);
+
     // Sync selectedLevel with user's actual level on first load
     React.useEffect(() => {
         if (!hasInitialized && progress.level) {
@@ -545,40 +550,44 @@ const LearnHomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Level Description Card */}
-                <LinearGradient
-                    colors={[levelColor, levelColor + 'CC']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.levelInfoCard}
-                >
-                    <View style={styles.levelInfoContent}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.levelInfoTitle}>{getLevelTitle(selectedLevel)}</Text>
-                            <Text style={styles.levelInfoDesc}>{levelInfo.description}</Text>
-                            {isLevelAvailable && (
-                                <View style={styles.levelStats}>
-                                    <Text style={styles.levelStatText}>
-                                        {getLevelStats(selectedLevel).modules} modules • {getLevelStats(selectedLevel).lessons} lessons
-                                    </Text>
-                                </View>
-                            )}
+                <Animated.View style={sectionAnims[0]}>
+                    <LinearGradient
+                        colors={[levelColor, levelColor + 'CC']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.levelInfoCard}
+                    >
+                        <View style={styles.levelInfoContent}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.levelInfoTitle}>{getLevelTitle(selectedLevel)}</Text>
+                                <Text style={styles.levelInfoDesc}>{levelInfo.description}</Text>
+                                {isLevelAvailable && (
+                                    <View style={styles.levelStats}>
+                                        <Text style={styles.levelStatText}>
+                                            {getLevelStats(selectedLevel).modules} modules • {getLevelStats(selectedLevel).lessons} lessons
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Ionicons name="school" size={40} color="rgba(255,255,255,0.3)" />
                         </View>
-                        <Ionicons name="school" size={40} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </LinearGradient>
+                    </LinearGradient>
+                </Animated.View>
 
                 {/* Modules List or Coming Soon */}
                 {isLevelAvailable ? (
                     <>
                         <Text style={styles.sectionHeader}>Modules</Text>
-                        {modules.map((module) => (
-                            <ModuleCard
-                                key={module.id}
-                                module={module}
-                                levelColor={levelColor}
-                                onPress={() => handleModulePress(module)}
-                            />
-                        ))}
+                        <Animated.View style={sectionAnims[1]}>
+                            {modules.map((module) => (
+                                <ModuleCard
+                                    key={module.id}
+                                    module={module}
+                                    levelColor={levelColor}
+                                    onPress={() => handleModulePress(module)}
+                                />
+                            ))}
+                        </Animated.View>
                     </>
                 ) : (
                     <View style={styles.comingSoonContainer}>

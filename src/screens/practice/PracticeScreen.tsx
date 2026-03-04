@@ -8,6 +8,7 @@ import {
     ScrollView,
     ActivityIndicator,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -18,6 +19,7 @@ import { useUserStore, useSettingsStore } from '../../store';
 import { generateQuizBatch } from '../../services/geminiService';
 import { getLevelTitle } from '../../utils/levelUtils';
 import { CEFRLevel, Exercise } from '../../types';
+import { useStaggeredList } from '../../hooks/useAnimations';
 
 // Practice topics for each level
 const PRACTICE_TOPICS: Record<CEFRLevel, string[]> = {
@@ -37,6 +39,9 @@ export const PracticeScreen: React.FC = () => {
     const styles = getStyles(theme, isDark);
     const { progress } = useUserStore();
     const { settings } = useSettingsStore();
+
+    // Staggered entrance for topic selection view (3 sections)
+    const sectionAnims = useStaggeredList(3, 80, 50);
 
     // State
     const [selectedLevel, setSelectedLevel] = useState<CEFRLevel>(progress.level);
@@ -206,55 +211,59 @@ export const PracticeScreen: React.FC = () => {
                     </ScrollView>
 
                     {/* Stats Row */}
-                    <View style={styles.statsRow}>
-                        {[
-                            { label: 'Correct', value: score, icon: 'checkmark-circle' as const, color: Colors.success[500] },
-                            { label: 'Answered', value: totalAnswered, icon: 'documents' as const, color: Colors.primary[500] },
-                            { label: 'Accuracy', value: `${totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%`, icon: 'analytics' as const, color: Colors.secondary[500] },
-                        ].map((stat) => (
-                            <View key={stat.label} style={[styles.statCard, { backgroundColor: theme.background.primary }]}>
-                                <Ionicons name={stat.icon} size={20} color={stat.color} />
-                                <Text style={[styles.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
-                                <Text style={[styles.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
-                            </View>
-                        ))}
-                    </View>
+                    <Animated.View style={sectionAnims[0]}>
+                        <View style={styles.statsRow}>
+                            {[
+                                { label: 'Correct', value: score, icon: 'checkmark-circle' as const, color: Colors.success[500] },
+                                { label: 'Answered', value: totalAnswered, icon: 'documents' as const, color: Colors.primary[500] },
+                                { label: 'Accuracy', value: `${totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0}%`, icon: 'analytics' as const, color: Colors.secondary[500] },
+                            ].map((stat) => (
+                                <View key={stat.label} style={[styles.statCard, { backgroundColor: theme.background.primary }]}>
+                                    <Ionicons name={stat.icon} size={20} color={stat.color} />
+                                    <Text style={[styles.statValue, { color: theme.text.primary }]}>{stat.value}</Text>
+                                    <Text style={[styles.statLabel, { color: theme.text.tertiary }]}>{stat.label}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </Animated.View>
 
                     {/* Topics */}
-                    <Text style={[styles.sectionTitle, { color: theme.text.tertiary }]}>Quiz Topics</Text>
+                    <Animated.View style={sectionAnims[1]}>
+                        <Text style={[styles.sectionTitle, { color: theme.text.tertiary }]}>Quiz Topics</Text>
 
-                    <View style={styles.topicsList}>
-                        {PRACTICE_TOPICS[selectedLevel].map((topic, index) => {
-                            const LEVEL_GRADS: Record<string, [string, string]> = {
-                                A1: [Colors.success[400], Colors.success[600]],
-                                A2: [Colors.primary[400], Colors.primary[600]],
-                                B1: ['#8B5CF6', '#6D28D9'],
-                                B2: [Colors.secondary[400], Colors.secondary[600]],
-                            };
-                            return (
-                                <TouchableOpacity
-                                    key={topic}
-                                    activeOpacity={0.7}
-                                    onPress={() => startPractice(topic)}
-                                    disabled={loading}
-                                    style={[styles.topicCard, { backgroundColor: theme.background.primary }]}
-                                >
-                                    <LinearGradient
-                                        colors={LEVEL_GRADS[selectedLevel]}
-                                        style={styles.topicIcon}
+                        <View style={styles.topicsList}>
+                            {PRACTICE_TOPICS[selectedLevel].map((topic, index) => {
+                                const LEVEL_GRADS: Record<string, [string, string]> = {
+                                    A1: [Colors.success[400], Colors.success[600]],
+                                    A2: [Colors.primary[400], Colors.primary[600]],
+                                    B1: ['#8B5CF6', '#6D28D9'],
+                                    B2: [Colors.secondary[400], Colors.secondary[600]],
+                                };
+                                return (
+                                    <TouchableOpacity
+                                        key={topic}
+                                        activeOpacity={0.7}
+                                        onPress={() => startPractice(topic)}
+                                        disabled={loading}
+                                        style={[styles.topicCard, { backgroundColor: theme.background.primary }]}
                                     >
-                                        <Text style={styles.topicNumberText}>{index + 1}</Text>
-                                    </LinearGradient>
-                                    <Text style={[styles.topicTitle, { color: theme.text.primary }]}>{topic}</Text>
-                                    {loading && selectedTopic === topic ? (
-                                        <ActivityIndicator size="small" color={LevelColors[selectedLevel]} />
-                                    ) : (
-                                        <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
+                                        <LinearGradient
+                                            colors={LEVEL_GRADS[selectedLevel]}
+                                            style={styles.topicIcon}
+                                        >
+                                            <Text style={styles.topicNumberText}>{index + 1}</Text>
+                                        </LinearGradient>
+                                        <Text style={[styles.topicTitle, { color: theme.text.primary }]}>{topic}</Text>
+                                        {loading && selectedTopic === topic ? (
+                                            <ActivityIndicator size="small" color={LevelColors[selectedLevel]} />
+                                        ) : (
+                                            <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </Animated.View>
                 </ScrollView>
             </SafeArea>
         );
