@@ -68,7 +68,7 @@ const getTabIconName = (routeName: string, focused: boolean): keyof typeof Ionic
     }
 };
 
-/* ─── Animated Tab Item ─── */
+/* ─── Tab Item ─── */
 const TabItem: React.FC<{
     iconName: keyof typeof Ionicons.glyphMap;
     label: string;
@@ -76,71 +76,19 @@ const TabItem: React.FC<{
     onPress: () => void;
     isDark: boolean;
 }> = ({ iconName, label, isFocused, onPress, isDark }) => {
-    const scale = useSharedValue(isFocused ? 1 : 0);
-    const iconScale = useSharedValue(1);
-
-    React.useEffect(() => {
-        scale.value = withSpring(isFocused ? 1 : 0, { damping: 15, stiffness: 180 });
-    }, [isFocused]);
-
-    const pillStyle = useAnimatedStyle(() => ({
-        opacity: scale.value,
-        transform: [{ scale: 0.7 + scale.value * 0.3 }],
-    }));
-
-    const labelStyle = useAnimatedStyle(() => ({
-        opacity: 0.45 + scale.value * 0.55,
-        transform: [{ scale: 0.95 + scale.value * 0.05 }],
-    }));
-
-    const handlePress = () => {
-        iconScale.value = withSpring(0.85, { damping: 10 }, () => {
-            iconScale.value = withSpring(1, { damping: 10 });
-        });
-        onPress();
-    };
-
-    const activeColor = '#fff';
-    const inactiveColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
-    const activeLabelColor = isDark ? '#C7D2FE' : '#6366F1';
-    const inactiveLabelColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+    const inactiveColor = isDark ? 'rgba(255,255,255,0.5)' : '#9CA3AF';
+    const ACTIVE_BG = isDark ? '#6366F1' : '#6366F1';
 
     return (
-        <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            onPress={handlePress}
-            activeOpacity={0.8}
-            style={tabStyles.tab}
-        >
-            <View style={tabStyles.iconArea}>
-                <Animated.View style={[tabStyles.pillBg, pillStyle]}>
-                    <LinearGradient
-                        colors={['#6366F1', '#4F46E5'] as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                    />
-                </Animated.View>
-                <Ionicons
-                    name={iconName}
-                    size={21}
-                    color={isFocused ? activeColor : inactiveColor}
-                />
-            </View>
-            <Animated.Text
-                style={[
-                    tabStyles.label,
-                    {
-                        color: isFocused ? activeLabelColor : inactiveLabelColor,
-                        fontWeight: isFocused ? FontWeight.bold : FontWeight.medium,
-                    },
-                    labelStyle,
-                ]}
-                numberOfLines={1}
-            >
-                {label}
-            </Animated.Text>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={tabStyles.tab}>
+            {isFocused ? (
+                <View style={[tabStyles.activePill, { backgroundColor: ACTIVE_BG }]}>
+                    <Ionicons name={iconName} size={18} color="#FFFFFF" />
+                    <Text style={tabStyles.activeLabel} numberOfLines={1}>{label}</Text>
+                </View>
+            ) : (
+                <Ionicons name={iconName} size={23} color={inactiveColor} />
+            )}
         </TouchableOpacity>
     );
 };
@@ -150,17 +98,11 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     const { isDark } = useTheme();
 
     return (
-        <View style={tabStyles.wrapper}>
+        <View style={tabStyles.outerWrap}>
             <View style={[
-                tabStyles.container,
-                isDark ? tabStyles.containerDark : tabStyles.containerLight,
+                tabStyles.bar,
+                isDark ? tabStyles.barDark : tabStyles.barLight,
             ]}>
-                {/* Inner glow overlay for glassmorphism */}
-                <View style={[
-                    tabStyles.innerGlow,
-                    { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)' },
-                ]} />
-
                 {state.routes.map((route, index) => {
                     const { options } = descriptors[route.key];
                     const label = (options.tabBarLabel as string) ?? route.name;
@@ -177,12 +119,10 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
                         }
                     };
 
-                    const iconName = getTabIconName(route.name, isFocused);
-
                     return (
                         <TabItem
                             key={route.key}
-                            iconName={iconName}
+                            iconName={getTabIconName(route.name, isFocused)}
                             label={label}
                             isFocused={isFocused}
                             onPress={onPress}
@@ -195,78 +135,75 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
     );
 };
 
+const TAB_HEIGHT = 64;
+
 const tabStyles = StyleSheet.create({
-    wrapper: {
+    outerWrap: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
         alignItems: 'center',
-        paddingBottom: Platform.OS === 'ios' ? 30 : 18,
+        paddingBottom: Platform.OS === 'ios' ? 32 : 20,
+        paddingHorizontal: 16,
     },
-    container: {
+    bar: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '88%',
-        borderRadius: 32,
-        paddingVertical: 10,
-        paddingHorizontal: 4,
-        overflow: 'hidden',
+        width: '100%',
+        height: TAB_HEIGHT,
+        borderRadius: TAB_HEIGHT / 2,
+        paddingHorizontal: 12,
+        justifyContent: 'space-evenly',
     },
-    containerDark: {
-        backgroundColor: '#12121C',
+    barDark: {
+        backgroundColor: '#171728',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(255,255,255,0.06)',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.35,
-                shadowRadius: 24,
+                shadowOpacity: 0.4,
+                shadowRadius: 20,
             },
-            android: { elevation: 20 },
+            android: { elevation: 28 },
         }),
     },
-    containerLight: {
+    barLight: {
         backgroundColor: '#FFFFFF',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.6)',
+        borderColor: 'rgba(0,0,0,0.04)',
         ...Platform.select({
             ios: {
-                shadowColor: '#6366F1',
-                shadowOffset: { width: 0, height: 8 },
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.12,
-                shadowRadius: 24,
+                shadowRadius: 20,
             },
-            android: { elevation: 20 },
+            android: { elevation: 28 },
         }),
     },
-    innerGlow: {
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 32,
-        borderWidth: 1,
-    },
     tab: {
-        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 4,
+        height: '100%',
+        paddingHorizontal: 4,
     },
-    iconArea: {
-        width: 44,
-        height: 38,
+    activePill: {
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 7,
+        height: TAB_HEIGHT - 16,
+        paddingHorizontal: 18,
+        borderRadius: (TAB_HEIGHT - 16) / 2,
     },
-    pillBg: {
-        position: 'absolute',
-        width: 44,
-        height: 38,
-        borderRadius: 14,
-        overflow: 'hidden',
-    },
-    label: {
-        fontSize: 10,
+    activeLabel: {
+        fontSize: 14,
+        fontWeight: '600' as any,
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
 });
 
@@ -296,16 +233,11 @@ const StandaloneTabBar: React.FC<{
     const { isDark } = useTheme();
 
     return (
-        <View style={tabStyles.wrapper}>
+        <View style={tabStyles.outerWrap}>
             <View style={[
-                tabStyles.container,
-                isDark ? tabStyles.containerDark : tabStyles.containerLight,
+                tabStyles.bar,
+                isDark ? tabStyles.barDark : tabStyles.barLight,
             ]}>
-                <View style={[
-                    tabStyles.innerGlow,
-                    { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)' },
-                ]} />
-
                 {TAB_CONFIG.map((tab, index) => {
                     const isFocused = activeIndex === index;
                     const iconName = getTabIconName(tab.key, isFocused);
@@ -338,7 +270,7 @@ const MainTabNavigator: React.FC = () => {
     const handleTabPress = React.useCallback((index: number) => {
         setActiveIndex(index);
         translateX.value = withTiming(-index * width, {
-            duration: 280,
+            duration: 250,
             easing: Easing.out(Easing.cubic),
         });
     }, [width]);
