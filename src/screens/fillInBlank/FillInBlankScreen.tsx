@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -17,15 +17,23 @@ import { useNavigation } from '@react-navigation/native';
 import { FILL_IN_BLANK_TOPICS, FillInBlankTopic } from '../../data/content/fillInBlankTopics';
 import { generateFillInBlankQuestions, FillInBlankQuestion } from '../../services/geminiService';
 import { CEFRLevel } from '../../types';
+import { Colors, FontWeight, Spacing, Shadows } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
 type ScreenMode = 'topics' | 'quiz' | 'results';
 
+const categoryColors: Record<string, [string, string]> = {
+    grammar: ['#6366F1', '#4F46E5'],
+    vocabulary: ['#10B981', '#059669'],
+    everyday: ['#F59E0B', '#D97706'],
+    intermediate: ['#EF4444', '#DC2626'],
+};
+
 export const FillInBlankScreen: React.FC = () => {
     const { theme, isDark } = useTheme();
     const navigation = useNavigation();
-    const styles = getStyles(theme, isDark);
+    const s = getStyles(theme, isDark);
 
     const [mode, setMode] = useState<ScreenMode>('topics');
     const [customTopic, setCustomTopic] = useState('');
@@ -36,22 +44,21 @@ export const FillInBlankScreen: React.FC = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [userLevel] = useState<CEFRLevel>('A1'); // Could be from user profile
+    const [userLevel] = useState<CEFRLevel>('A1');
 
     const loadQuestions = useCallback(async (topicName: string) => {
         setIsLoading(true);
         setSelectedTopic(topicName);
         try {
-            const generatedQuestions = await generateFillInBlankQuestions(topicName, userLevel, 10);
-            if (generatedQuestions.length > 0) {
-                setQuestions(generatedQuestions);
+            const generated = await generateFillInBlankQuestions(topicName, userLevel, 10);
+            if (generated.length > 0) {
+                setQuestions(generated);
                 setMode('quiz');
                 setCurrentIndex(0);
                 setScore(0);
                 setSelectedAnswer(null);
                 setShowResult(false);
             } else {
-                // Fallback if AI fails
                 console.warn('No questions generated');
             }
         } catch (error) {
@@ -61,25 +68,14 @@ export const FillInBlankScreen: React.FC = () => {
         }
     }, [userLevel]);
 
-    const handleTopicSelect = (topic: FillInBlankTopic) => {
-        loadQuestions(topic.name);
-    };
-
-    const handleCustomTopicSubmit = () => {
-        if (customTopic.trim()) {
-            loadQuestions(customTopic.trim());
-        }
-    };
+    const handleTopicSelect = (topic: FillInBlankTopic) => loadQuestions(topic.name);
+    const handleCustomTopicSubmit = () => { if (customTopic.trim()) loadQuestions(customTopic.trim()); };
 
     const handleAnswerSelect = (answer: string) => {
         if (showResult) return;
-
         setSelectedAnswer(answer);
         setShowResult(true);
-
-        if (answer === questions[currentIndex].correctAnswer) {
-            setScore(prev => prev + 1);
-        }
+        if (answer === questions[currentIndex].correctAnswer) setScore(prev => prev + 1);
     };
 
     const handleNext = () => {
@@ -102,255 +98,168 @@ export const FillInBlankScreen: React.FC = () => {
         setCustomTopic('');
     };
 
+    const renderTopicCategory = (category: string, label: string) => {
+        const topics = FILL_IN_BLANK_TOPICS.filter(t => t.category === category);
+        if (topics.length === 0) return null;
+        const colors = categoryColors[category] || (['#6366F1', '#4F46E5'] as [string, string]);
+        return (
+            <View key={category}>
+                <Text style={s.sectionTitle}>{label}</Text>
+                <View style={s.topicsGrid}>
+                    {topics.map(topic => (
+                        <TouchableOpacity key={topic.id} style={s.topicCard} onPress={() => handleTopicSelect(topic)} activeOpacity={0.8}>
+                            <LinearGradient colors={colors} style={s.topicIconWrap}>
+                                <Ionicons name={topic.icon as any} size={22} color="#fff" />
+                            </LinearGradient>
+                            <Text style={s.topicName} numberOfLines={2}>{topic.name}</Text>
+                            <Text style={s.topicLevel}>{topic.level}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        );
+    };
+
+    /* ===== TOPICS ===== */
     const renderTopicSelection = () => (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {/* Custom Topic Input */}
-            <View style={styles.customTopicContainer}>
-                <Text style={styles.sectionTitle}>Create Your Own Topic</Text>
-                <View style={styles.inputRow}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+            {/* Custom Topic */}
+            <View style={s.customWrap}>
+                <Text style={s.sectionTitle}>Create Your Own</Text>
+                <View style={s.inputRow}>
                     <TextInput
-                        style={styles.input}
-                        placeholder="Enter a topic (e.g., 'Travel vocabulary')"
+                        style={s.input}
+                        placeholder="e.g. Travel vocabulary"
                         placeholderTextColor={theme.text.tertiary}
                         value={customTopic}
                         onChangeText={setCustomTopic}
                         onSubmitEditing={handleCustomTopicSubmit}
                     />
-                    <TouchableOpacity
-                        style={styles.goButton}
-                        onPress={handleCustomTopicSubmit}
-                        disabled={!customTopic.trim()}
-                    >
-                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    <TouchableOpacity onPress={handleCustomTopicSubmit} disabled={!customTopic.trim()} activeOpacity={0.8}>
+                        <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.goBtn}>
+                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </View>
-
-            {/* Grammar Topics */}
-            <Text style={styles.sectionTitle}>Grammar</Text>
-            <View style={styles.topicsGrid}>
-                {FILL_IN_BLANK_TOPICS.filter(t => t.category === 'grammar').map(topic => (
-                    <TouchableOpacity
-                        key={topic.id}
-                        style={styles.topicCard}
-                        onPress={() => handleTopicSelect(topic)}
-                    >
-                        <View style={[styles.topicIcon, { backgroundColor: '#4F46E5' }]}>
-                            <Ionicons name={topic.icon as any} size={24} color="#fff" />
-                        </View>
-                        <Text style={styles.topicName}>{topic.name}</Text>
-                        <Text style={styles.topicLevel}>{topic.level}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* Vocabulary Topics */}
-            <Text style={styles.sectionTitle}>Vocabulary</Text>
-            <View style={styles.topicsGrid}>
-                {FILL_IN_BLANK_TOPICS.filter(t => t.category === 'vocabulary').map(topic => (
-                    <TouchableOpacity
-                        key={topic.id}
-                        style={styles.topicCard}
-                        onPress={() => handleTopicSelect(topic)}
-                    >
-                        <View style={[styles.topicIcon, { backgroundColor: '#10B981' }]}>
-                            <Ionicons name={topic.icon as any} size={24} color="#fff" />
-                        </View>
-                        <Text style={styles.topicName}>{topic.name}</Text>
-                        <Text style={styles.topicLevel}>{topic.level}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* Everyday Topics */}
-            <Text style={styles.sectionTitle}>Everyday German</Text>
-            <View style={styles.topicsGrid}>
-                {FILL_IN_BLANK_TOPICS.filter(t => t.category === 'everyday').map(topic => (
-                    <TouchableOpacity
-                        key={topic.id}
-                        style={styles.topicCard}
-                        onPress={() => handleTopicSelect(topic)}
-                    >
-                        <View style={[styles.topicIcon, { backgroundColor: '#F59E0B' }]}>
-                            <Ionicons name={topic.icon as any} size={24} color="#fff" />
-                        </View>
-                        <Text style={styles.topicName}>{topic.name}</Text>
-                        <Text style={styles.topicLevel}>{topic.level}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* Intermediate Topics */}
-            <Text style={styles.sectionTitle}>Intermediate</Text>
-            <View style={styles.topicsGrid}>
-                {FILL_IN_BLANK_TOPICS.filter(t => t.category === 'intermediate').map(topic => (
-                    <TouchableOpacity
-                        key={topic.id}
-                        style={styles.topicCard}
-                        onPress={() => handleTopicSelect(topic)}
-                    >
-                        <View style={[styles.topicIcon, { backgroundColor: '#EF4444' }]}>
-                            <Ionicons name={topic.icon as any} size={24} color="#fff" />
-                        </View>
-                        <Text style={styles.topicName}>{topic.name}</Text>
-                        <Text style={styles.topicLevel}>{topic.level}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            <View style={{ height: 40 }} />
+            {renderTopicCategory('grammar', 'Grammar')}
+            {renderTopicCategory('vocabulary', 'Vocabulary')}
+            {renderTopicCategory('everyday', 'Everyday German')}
+            {renderTopicCategory('intermediate', 'Intermediate')}
+            <View style={{ height: 32 }} />
         </ScrollView>
     );
 
+    /* ===== QUIZ ===== */
     const renderQuiz = () => {
-        const currentQuestion = questions[currentIndex];
-        if (!currentQuestion) return null;
-
+        const q = questions[currentIndex];
+        if (!q) return null;
+        const pct = ((currentIndex + 1) / questions.length) * 100;
         return (
-            <View style={styles.quizContainer}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
                 {/* Progress */}
-                <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                        <View
-                            style={[
-                                styles.progressFill,
-                                { width: `${((currentIndex + 1) / questions.length) * 100}%` }
-                            ]}
-                        />
+                <View style={s.progressRow}>
+                    <View style={s.progressBg}>
+                        <LinearGradient colors={[Colors.primary[400], Colors.primary[600]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.progressFill, { width: `${pct}%` }]} />
                     </View>
-                    <Text style={styles.progressText}>
-                        {currentIndex + 1} / {questions.length}
-                    </Text>
+                    <Text style={s.progressLabel}>{currentIndex + 1}/{questions.length}</Text>
                 </View>
 
-                {/* Score */}
-                <View style={styles.scoreContainer}>
-                    <Ionicons name="star" size={20} color="#F59E0B" />
-                    <Text style={styles.scoreText}>{score}</Text>
+                {/* Score pill */}
+                <View style={s.scorePill}>
+                    <Ionicons name="star" size={16} color="#F59E0B" />
+                    <Text style={s.scorePillText}>{score}</Text>
                 </View>
 
                 {/* Question Card */}
-                <View style={styles.questionCard}>
-                    <Text style={styles.sentenceText}>
-                        {currentQuestion.sentence}
-                    </Text>
-
-                    {showResult && (
-                        <Text style={styles.translationText}>
-                            {currentQuestion.translation}
-                        </Text>
-                    )}
+                <View style={s.questionCard}>
+                    <Text style={s.sentenceText}>{q.sentence}</Text>
+                    {showResult && <Text style={s.tranText}>{q.translation}</Text>}
                 </View>
 
                 {/* Options */}
-                <View style={styles.optionsContainer}>
-                    {currentQuestion.options.map((option, index) => {
-                        const isCorrect = option === currentQuestion.correctAnswer;
-                        const isSelected = option === selectedAnswer;
-
-                        let optionStyle = styles.optionButton;
-                        let textStyle = styles.optionText;
-
-                        if (showResult) {
-                            if (isCorrect) {
-                                optionStyle = { ...optionStyle, ...styles.optionCorrect };
-                                textStyle = { ...textStyle, color: '#fff' };
-                            } else if (isSelected && !isCorrect) {
-                                optionStyle = { ...optionStyle, ...styles.optionWrong };
-                                textStyle = { ...textStyle, color: '#fff' };
-                            }
-                        } else if (isSelected) {
-                            optionStyle = { ...optionStyle, ...styles.optionSelected };
-                        }
-
+                <View style={s.optionsWrap}>
+                    {q.options.map((opt, i) => {
+                        const isCorrect = opt === q.correctAnswer;
+                        const isSelected = opt === selectedAnswer;
+                        const correctShown = showResult && isCorrect;
+                        const wrongShown = showResult && isSelected && !isCorrect;
                         return (
                             <TouchableOpacity
-                                key={index}
-                                style={optionStyle}
-                                onPress={() => handleAnswerSelect(option)}
+                                key={i}
+                                style={[
+                                    s.optionBtn,
+                                    correctShown && s.optionCorrect,
+                                    wrongShown && s.optionWrong,
+                                    !showResult && isSelected && s.optionSel,
+                                ]}
+                                onPress={() => handleAnswerSelect(opt)}
                                 disabled={showResult}
+                                activeOpacity={0.8}
                             >
-                                <Text style={textStyle}>{option}</Text>
+                                <Text style={[s.optionText, (correctShown || wrongShown) && { color: '#fff' }]}>{opt}</Text>
+                                {correctShown && <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ position: 'absolute', right: 16 }} />}
+                                {wrongShown && <Ionicons name="close-circle" size={20} color="#fff" style={{ position: 'absolute', right: 16 }} />}
                             </TouchableOpacity>
                         );
                     })}
                 </View>
 
                 {/* Explanation */}
-                {showResult && currentQuestion.explanation && (
-                    <View style={styles.explanationContainer}>
-                        <Ionicons name="information-circle" size={20} color={theme.accent} />
-                        <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
+                {showResult && q.explanation && (
+                    <View style={s.explRow}>
+                        <Ionicons name="information-circle-outline" size={18} color={Colors.primary[400]} />
+                        <Text style={s.explText}>{q.explanation}</Text>
                     </View>
                 )}
 
-                {/* Next Button */}
+                {/* Next */}
                 {showResult && (
-                    <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-                        <LinearGradient
-                            colors={[theme.accent, theme.accent]}
-                            style={styles.nextButtonGradient}
-                        >
-                            <Text style={styles.nextButtonText}>
+                    <TouchableOpacity onPress={handleNext} activeOpacity={0.85} style={{ marginTop: 16 }}>
+                        <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.nextBtnGrad}>
+                            <Text style={s.nextBtnText}>
                                 {currentIndex < questions.length - 1 ? 'Next Question' : 'See Results'}
                             </Text>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            <Ionicons name="arrow-forward" size={18} color="#fff" />
                         </LinearGradient>
                     </TouchableOpacity>
                 )}
-            </View>
+            </ScrollView>
         );
     };
 
+    /* ===== RESULTS ===== */
     const renderResults = () => {
-        const percentage = Math.round((score / questions.length) * 100);
+        const pct = Math.round((score / questions.length) * 100);
         let message = '';
         let iconName: 'trophy' | 'ribbon' | 'fitness' | 'library' = 'library';
-
-        if (percentage >= 90) {
-            message = 'Excellent! Outstanding performance!';
-            iconName = 'trophy';
-        } else if (percentage >= 70) {
-            message = 'Great job! Keep it up!';
-            iconName = 'ribbon';
-        } else if (percentage >= 50) {
-            message = 'Good effort! Practice more!';
-            iconName = 'fitness';
-        } else {
-            message = 'Keep practicing! You\'ll improve!';
-            iconName = 'library';
-        }
+        let gradColors: [string, string] = [Colors.primary[500], Colors.primary[600]];
+        if (pct >= 90) { message = 'Excellent! Outstanding!'; iconName = 'trophy'; gradColors = ['#F59E0B', '#D97706']; }
+        else if (pct >= 70) { message = 'Great job! Keep it up!'; iconName = 'ribbon'; gradColors = ['#10B981', '#059669']; }
+        else if (pct >= 50) { message = 'Good effort!'; iconName = 'fitness'; }
+        else { message = 'Keep practicing!'; iconName = 'library'; }
 
         return (
-            <View style={styles.resultsContainer}>
-                <Ionicons name={iconName} size={56} color={theme.accent} style={{ marginBottom: 16 }} />
-                <Text style={styles.resultsTitle}>Quiz Complete!</Text>
-                <Text style={styles.resultsMessage}>{message}</Text>
-
-                <View style={styles.scoreCard}>
-                    <Text style={styles.scoreBig}>{score}</Text>
-                    <Text style={styles.scoreOf}>out of</Text>
-                    <Text style={styles.scoreBig}>{questions.length}</Text>
+            <View style={s.resultsWrap}>
+                <View style={s.resultCard}>
+                    <LinearGradient colors={gradColors} style={s.resultIconCircle}>
+                        <Ionicons name={iconName} size={32} color="#fff" />
+                    </LinearGradient>
+                    <Text style={s.resultTitle}>Quiz Complete!</Text>
+                    <Text style={s.resultMsg}>{message}</Text>
+                    <Text style={s.resultScore}>{score}<Text style={s.resultOf}> / {questions.length}</Text></Text>
+                    <Text style={s.resultPct}>{pct}% correct</Text>
                 </View>
 
-                <Text style={styles.percentageText}>{percentage}% correct</Text>
-
-                <View style={styles.resultsButtons}>
-                    <TouchableOpacity
-                        style={styles.retryButton}
-                        onPress={() => loadQuestions(selectedTopic)}
-                    >
-                        <Ionicons name="refresh" size={20} color={theme.accent} />
-                        <Text style={styles.retryText}>Try Again</Text>
+                <View style={s.resultBtns}>
+                    <TouchableOpacity style={s.retryBtn} onPress={() => loadQuestions(selectedTopic)}>
+                        <Ionicons name="refresh" size={18} color={Colors.primary[500]} />
+                        <Text style={s.retryBtnText}>Try Again</Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.newTopicButton} onPress={handleRestart}>
-                        <LinearGradient
-                            colors={[theme.accent, theme.accent]}
-                            style={styles.newTopicGradient}
-                        >
-                            <Ionicons name="apps" size={20} color="#fff" />
-                            <Text style={styles.newTopicText}>New Topic</Text>
+                    <TouchableOpacity onPress={handleRestart} activeOpacity={0.85} style={{ flex: 1 }}>
+                        <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.newTopicBtn}>
+                            <Ionicons name="apps-outline" size={18} color="#fff" />
+                            <Text style={s.newTopicBtnText}>New Topic</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
@@ -359,36 +268,27 @@ export const FillInBlankScreen: React.FC = () => {
     };
 
     return (
-        <SafeArea style={styles.container}>
+        <SafeArea style={s.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => {
-                    if (mode === 'topics') {
-                        navigation.goBack();
-                    } else {
-                        handleRestart();
-                    }
-                }}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text.primary} />
+            <View style={s.header}>
+                <TouchableOpacity onPress={() => mode === 'topics' ? navigation.goBack() : handleRestart()} style={s.backBtn}>
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>
-                    {mode === 'topics' ? 'Fill in the Blank' : selectedTopic}
-                </Text>
-                <View style={{ width: 24 }} />
+                <Text style={s.headerTitle}>{mode === 'topics' ? 'Fill in the Blank' : selectedTopic}</Text>
+                <View style={{ width: 30 }} />
             </View>
 
             {/* Loading Overlay */}
             {isLoading && (
-                <View style={styles.loadingOverlay}>
-                    <View style={styles.loadingCard}>
-                        <ActivityIndicator size="large" color={theme.accent} />
-                        <Text style={styles.loadingText}>Generating questions...</Text>
-                        <Text style={styles.loadingSubtext}>AI is creating your quiz</Text>
+                <View style={s.loadingOverlay}>
+                    <View style={s.loadingCard}>
+                        <ActivityIndicator size="large" color={Colors.primary[500]} />
+                        <Text style={s.loadingTitle}>Generating questions...</Text>
+                        <Text style={s.loadingSub}>AI is creating your quiz</Text>
                     </View>
                 </View>
             )}
 
-            {/* Content */}
             {mode === 'topics' && renderTopicSelection()}
             {mode === 'quiz' && renderQuiz()}
             {mode === 'results' && renderResults()}
@@ -397,320 +297,123 @@ export const FillInBlankScreen: React.FC = () => {
 };
 
 const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.background.primary,
-    },
+    container: { flex: 1, backgroundColor: theme.background.primary },
+
+    /* Header */
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: Spacing.md, paddingVertical: 12,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: theme.text.primary,
-    },
-    scrollView: {
-        flex: 1,
-        paddingHorizontal: 20,
-    },
-    customTopicContainer: {
-        marginBottom: 24,
-        marginTop: 8,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.text.primary,
-        marginBottom: 12,
-        marginTop: 8,
-    },
-    inputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
+    backBtn: { padding: 4 },
+    headerTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
+
+    scrollPad: { paddingHorizontal: Spacing.md, paddingBottom: 20 },
+
+    /* Custom topic */
+    customWrap: { marginBottom: 20 },
+    sectionTitle: { fontSize: 16, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: 10, marginTop: 6 },
+    inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     input: {
-        flex: 1,
-        backgroundColor: isDark ? theme.background.elevated : '#F3F4F6',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 16,
-        color: theme.text.primary,
+        flex: 1, backgroundColor: theme.background.secondary, borderRadius: 12,
+        paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, color: theme.text.primary,
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
     },
-    goButton: {
-        backgroundColor: theme.accent,
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    topicsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 16,
-    },
+    goBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+    /* Topics */
+    topicsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
     topicCard: {
-        width: (width - 52) / 2,
-        backgroundColor: isDark ? theme.background.elevated : '#fff',
-        borderRadius: 16,
-        padding: 16,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: isDark ? 0.3 : 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        width: (width - 50) / 2,
+        backgroundColor: theme.background.secondary, borderRadius: 14, padding: 14, alignItems: 'center',
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
     },
-    topicIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-    },
-    topicName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.text.primary,
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    topicLevel: {
-        fontSize: 12,
-        color: theme.text.tertiary,
-    },
+    topicIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+    topicName: { fontSize: 13, fontWeight: FontWeight.bold, color: theme.text.primary, textAlign: 'center', marginBottom: 3 },
+    topicLevel: { fontSize: 11, color: theme.text.tertiary },
+
+    /* Loading */
     loadingOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
+        ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)',
+        alignItems: 'center', justifyContent: 'center', zIndex: 100,
     },
     loadingCard: {
-        backgroundColor: isDark ? theme.background.elevated : '#fff',
-        borderRadius: 20,
-        padding: 32,
-        alignItems: 'center',
-        width: width * 0.8,
+        backgroundColor: theme.background.secondary, borderRadius: 20, padding: 32,
+        alignItems: 'center', width: width * 0.78,
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
     },
-    loadingText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: theme.text.primary,
-        marginTop: 16,
+    loadingTitle: { fontSize: 17, fontWeight: FontWeight.bold, color: theme.text.primary, marginTop: 16 },
+    loadingSub: { fontSize: 13, color: theme.text.tertiary, marginTop: 4 },
+
+    /* Quiz Progress */
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+    progressBg: { flex: 1, height: 5, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200], borderRadius: 3, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 3 },
+    progressLabel: { fontSize: 12, color: theme.text.tertiary, fontWeight: FontWeight.medium },
+
+    scorePill: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 16,
     },
-    loadingSubtext: {
-        fontSize: 14,
-        color: theme.text.tertiary,
-        marginTop: 4,
-    },
-    quizContainer: {
-        flex: 1,
-        paddingHorizontal: 20,
-    },
-    progressContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-    },
-    progressBar: {
-        flex: 1,
-        height: 8,
-        backgroundColor: isDark ? theme.background.elevated : '#E5E7EB',
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: theme.accent,
-        borderRadius: 4,
-    },
-    progressText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: theme.text.tertiary,
-    },
-    scoreContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        marginBottom: 20,
-    },
-    scoreText: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#F59E0B',
-    },
+    scorePillText: { fontSize: 16, fontWeight: FontWeight.bold, color: '#F59E0B' },
+
     questionCard: {
-        backgroundColor: isDark ? theme.background.elevated : '#fff',
-        borderRadius: 20,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: isDark ? 0.3 : 0.1,
-        shadowRadius: 12,
-        elevation: 5,
+        backgroundColor: theme.background.secondary, borderRadius: 18, padding: 22, marginBottom: 20,
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
+        ...Shadows.sm,
     },
-    sentenceText: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: theme.text.primary,
-        textAlign: 'center',
-        lineHeight: 32,
+    sentenceText: { fontSize: 20, fontWeight: FontWeight.bold, color: theme.text.primary, textAlign: 'center', lineHeight: 30 },
+    tranText: { fontSize: 14, color: theme.text.tertiary, textAlign: 'center', marginTop: 12, fontStyle: 'italic' },
+
+    optionsWrap: { gap: 10 },
+    optionBtn: {
+        backgroundColor: theme.background.secondary, borderRadius: 14, padding: 16,
+        borderWidth: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200],
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     },
-    translationText: {
-        fontSize: 16,
-        color: theme.text.tertiary,
-        textAlign: 'center',
-        marginTop: 16,
-        fontStyle: 'italic',
+    optionSel: { borderColor: Colors.primary[500], backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50] },
+    optionCorrect: { borderColor: '#10B981', backgroundColor: '#10B981' },
+    optionWrong: { borderColor: '#EF4444', backgroundColor: '#EF4444' },
+    optionText: { fontSize: 16, fontWeight: FontWeight.medium, color: theme.text.primary, textAlign: 'center' },
+
+    explRow: {
+        flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+        backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : Colors.primary[50],
+        borderRadius: 12, padding: 14, marginTop: 16,
+        borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[100],
     },
-    optionsContainer: {
-        gap: 12,
+    explText: { flex: 1, fontSize: 13, color: theme.text.primary, lineHeight: 19 },
+
+    nextBtnGrad: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+        paddingVertical: 15, borderRadius: 12,
     },
-    optionButton: {
-        backgroundColor: isDark ? theme.background.elevated : '#fff',
-        borderRadius: 16,
-        padding: 18,
-        borderWidth: 2,
-        borderColor: isDark ? theme.border.medium : '#E5E7EB',
+    nextBtnText: { fontSize: 16, fontWeight: FontWeight.bold, color: '#fff' },
+
+    /* Results */
+    resultsWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: Spacing.md },
+    resultCard: {
+        backgroundColor: theme.background.secondary, borderRadius: 22, padding: 28,
+        alignItems: 'center', marginBottom: 20,
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
     },
-    optionSelected: {
-        borderColor: theme.accent,
-        backgroundColor: isDark ? `${theme.accent}20` : `${theme.accent}10`,
+    resultIconCircle: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    resultTitle: { fontSize: 24, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: 4 },
+    resultMsg: { fontSize: 14, color: theme.text.tertiary, marginBottom: 20 },
+    resultScore: { fontSize: 44, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+    resultOf: { fontSize: 20, color: theme.text.tertiary },
+    resultPct: { fontSize: 15, color: theme.text.tertiary, marginTop: 4 },
+
+    resultBtns: { flexDirection: 'row', gap: 10 },
+    retryBtn: {
+        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+        paddingVertical: 14, borderRadius: 12, backgroundColor: theme.background.secondary,
+        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
     },
-    optionCorrect: {
-        borderColor: '#10B981',
-        backgroundColor: '#10B981',
+    retryBtnText: { fontSize: 14, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+    newTopicBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+        paddingVertical: 14, borderRadius: 12,
     },
-    optionWrong: {
-        borderColor: '#EF4444',
-        backgroundColor: '#EF4444',
-    },
-    optionText: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: theme.text.primary,
-        textAlign: 'center',
-    },
-    explanationContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: isDark ? `${theme.accent}20` : `${theme.accent}10`,
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 20,
-    },
-    explanationText: {
-        flex: 1,
-        fontSize: 14,
-        color: theme.text.primary,
-        lineHeight: 20,
-    },
-    nextButton: {
-        marginTop: 24,
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    nextButtonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 18,
-    },
-    nextButtonText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#fff',
-    },
-    resultsContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 20,
-    },
-    emoji: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
-    resultsTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: theme.text.primary,
-        marginBottom: 8,
-    },
-    resultsMessage: {
-        fontSize: 16,
-        color: theme.text.tertiary,
-        marginBottom: 32,
-    },
-    scoreCard: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-        marginBottom: 8,
-    },
-    scoreBig: {
-        fontSize: 48,
-        fontWeight: '700',
-        color: theme.accent,
-    },
-    scoreOf: {
-        fontSize: 20,
-        color: theme.text.tertiary,
-    },
-    percentageText: {
-        fontSize: 18,
-        color: theme.text.tertiary,
-        marginBottom: 40,
-    },
-    resultsButtons: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    retryButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: isDark ? theme.background.elevated : '#F3F4F6',
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-        borderRadius: 16,
-    },
-    retryText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.accent,
-    },
-    newTopicButton: {
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    newTopicGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-    },
-    newTopicText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
-    },
+    newTopicBtnText: { fontSize: 14, fontWeight: FontWeight.bold, color: '#fff' },
 });
 
 export default FillInBlankScreen;

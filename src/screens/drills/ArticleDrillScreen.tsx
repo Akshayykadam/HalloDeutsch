@@ -6,10 +6,11 @@ import {
     StyleSheet,
     TouchableOpacity,
     Animated,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-
 import * as Haptics from 'expo-haptics';
 
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
@@ -28,9 +29,8 @@ export const ArticleDrillScreen: React.FC = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
     const { progress } = useUserStore();
-    const styles = getStyles(theme, isDark);
+    const s = getStyles(theme, isDark);
 
-    // Game state
     const [gameState, setGameState] = useState<GameState>('idle');
     const [nouns, setNouns] = useState<ArticleNoun[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,30 +41,19 @@ export const ArticleDrillScreen: React.FC = () => {
     const [lastResult, setLastResult] = useState<'correct' | 'wrong' | null>(null);
     const [showPattern, setShowPattern] = useState(false);
 
-    // Animations
     const shakeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const streakAnim = useRef(new Animated.Value(1)).current;
-
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-
     const currentNoun = nouns[currentIndex];
 
-    // Timer effect
     useEffect(() => {
         if (gameState === 'playing' && timeLeft > 0) {
-            timerRef.current = setTimeout(() => {
-                setTimeLeft(prev => prev - 1);
-            }, 1000);
+            timerRef.current = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
         } else if (timeLeft === 0 && gameState === 'playing') {
             endGame();
         }
-
-        return () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-            }
-        };
+        return () => { if (timerRef.current) clearTimeout(timerRef.current); };
     }, [gameState, timeLeft]);
 
     const startGame = () => {
@@ -91,67 +80,36 @@ export const ArticleDrillScreen: React.FC = () => {
 
     const handleAnswer = async (answer: 'der' | 'die' | 'das') => {
         if (gameState !== 'playing' || !currentNoun) return;
-
         const isCorrect = answer === currentNoun.article;
-
         if (isCorrect) {
-            // Correct answer
             const streakBonus = Math.floor(streak / 5);
-            const points = 10 + streakBonus * 5;
-            setScore(prev => prev + points);
+            setScore(prev => prev + 10 + streakBonus * 5);
             setStreak(prev => prev + 1);
             setLastResult('correct');
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-            // Scale animation for correct
             Animated.sequence([
-                Animated.timing(scaleAnim, {
-                    toValue: 1.1,
-                    duration: 100,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                    toValue: 1,
-                    duration: 100,
-                    useNativeDriver: true,
-                }),
+                Animated.timing(scaleAnim, { toValue: 1.08, duration: 100, useNativeDriver: true }),
+                Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
             ]).start();
-
-            // Streak animation
             if (streak > 0 && streak % 5 === 4) {
                 Animated.sequence([
-                    Animated.timing(streakAnim, {
-                        toValue: 1.3,
-                        duration: 150,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(streakAnim, {
-                        toValue: 1,
-                        duration: 150,
-                        useNativeDriver: true,
-                    }),
+                    Animated.timing(streakAnim, { toValue: 1.3, duration: 150, useNativeDriver: true }),
+                    Animated.timing(streakAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
                 ]).start();
             }
         } else {
-            // Wrong answer
             setStreak(0);
             setLastResult('wrong');
             setShowPattern(true);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-            // Shake animation for wrong
             Animated.sequence([
                 Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
                 Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
                 Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
                 Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
             ]).start();
-
-            // Show pattern briefly for learning
             setTimeout(() => setShowPattern(false), 1500);
         }
-
-        // Move to next noun after a brief delay
         setTimeout(() => {
             if (currentIndex < nouns.length - 1) {
                 setCurrentIndex(prev => prev + 1);
@@ -168,53 +126,6 @@ export const ArticleDrillScreen: React.FC = () => {
         return Colors.success[500];
     };
 
-    const renderIdleState = () => (
-        <View style={styles.idleContainer}>
-            <View style={styles.iconContainer}>
-                <Ionicons name="flash" size={72} color={Colors.warning[500]} />
-            </View>
-            <Text style={styles.title}>Article Drill</Text>
-            <Text style={styles.subtitle}>Der • Die • Das</Text>
-            <Text style={styles.description}>
-                Master German articles with rapid-fire practice!{'\n'}
-                You have 30 seconds to answer as many as you can.
-            </Text>
-
-            <View style={styles.statsCard}>
-                <View style={styles.statRow}>
-                    <Ionicons name="trophy" size={24} color={Colors.warning[500]} />
-                    <Text style={styles.statLabel}>High Score:</Text>
-                    <Text style={styles.statValue}>{highScore}</Text>
-                </View>
-                <View style={styles.statRow}>
-                    <Ionicons name="school" size={24} color={Colors.primary[500]} />
-                    <Text style={styles.statLabel}>Level:</Text>
-                    <Text style={styles.statValue}>{getLevelTitle(progress.level)}</Text>
-                </View>
-            </View>
-
-            <TouchableOpacity style={styles.startButton} onPress={startGame}>
-                <Ionicons name="play" size={24} color={Colors.white} />
-                <Text style={styles.startButtonText}>Start Game</Text>
-            </TouchableOpacity>
-
-            {/* Pattern Hints */}
-            <View style={styles.patternSection}>
-                <Text style={styles.patternTitle}><Ionicons name="bulb" size={16} color={Colors.warning[500]} /> Quick Tips</Text>
-                <View style={styles.patternList}>
-                    {genderPatterns.slice(0, 4).map((pattern, index) => (
-                        <View key={index} style={styles.patternItem}>
-                            <Text style={[styles.patternArticle, { color: getArticleColor(pattern.article as 'der' | 'die' | 'das') }]}>
-                                {pattern.article}
-                            </Text>
-                            <Text style={styles.patternEnding}>{pattern.pattern}</Text>
-                        </View>
-                    ))}
-                </View>
-            </View>
-        </View>
-    );
-
     const getArticleColor = (article: 'der' | 'die' | 'das') => {
         switch (article) {
             case 'der': return Colors.primary[500];
@@ -223,156 +134,196 @@ export const ArticleDrillScreen: React.FC = () => {
         }
     };
 
+    const articleGradients: Record<string, string[]> = {
+        der: ['#6366F1', '#4F46E5'],
+        die: ['#F43F5E', '#E11D48'],
+        das: ['#10B981', '#059669'],
+    };
+
+    /* ============= IDLE STATE ============= */
+    const renderIdleState = () => (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.idleContent} showsVerticalScrollIndicator={false}>
+            {/* Hero */}
+            <LinearGradient colors={isDark ? ['#312E81', '#1E1B4B'] : ['#EEF2FF', '#E0E7FF']} style={s.heroBanner}>
+                <Ionicons name="flash" size={48} color={Colors.primary[500]} />
+                <Text style={s.heroTitle}>Article Drill</Text>
+                <Text style={s.heroSub}>Der • Die • Das</Text>
+                <Text style={s.heroDesc}>
+                    30 seconds. As many articles as you can. Go!
+                </Text>
+            </LinearGradient>
+
+            {/* Stats */}
+            <View style={s.statsRow}>
+                <View style={s.statBox}>
+                    <Ionicons name="trophy" size={20} color={Colors.warning[500]} />
+                    <Text style={s.statBoxValue}>{highScore}</Text>
+                    <Text style={s.statBoxLabel}>Best</Text>
+                </View>
+                <View style={s.statBox}>
+                    <Ionicons name="school-outline" size={20} color={Colors.primary[500]} />
+                    <Text style={s.statBoxValue}>{getLevelTitle(progress.level)}</Text>
+                    <Text style={s.statBoxLabel}>Level</Text>
+                </View>
+                <View style={s.statBox}>
+                    <Ionicons name="time-outline" size={20} color={Colors.success[500]} />
+                    <Text style={s.statBoxValue}>30s</Text>
+                    <Text style={s.statBoxLabel}>Timer</Text>
+                </View>
+            </View>
+
+            {/* Start Button */}
+            <TouchableOpacity onPress={startGame} activeOpacity={0.85}>
+                <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.startBtn}>
+                    <Ionicons name="play" size={22} color={Colors.white} />
+                    <Text style={s.startBtnText}>Start Game</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Quick Tips */}
+            <View style={s.tipsSection}>
+                <View style={s.tipsHeader}>
+                    <Ionicons name="bulb-outline" size={16} color={Colors.warning[500]} />
+                    <Text style={s.tipsTitle}>Quick Tips</Text>
+                </View>
+                <View style={s.tipsList}>
+                    {genderPatterns.slice(0, 6).map((p, i) => (
+                        <View key={i} style={s.tipChip}>
+                            <Text style={[s.tipArticle, { color: getArticleColor(p.article as 'der' | 'die' | 'das') }]}>{p.article}</Text>
+                            <Text style={s.tipPattern}>{p.pattern}</Text>
+                        </View>
+                    ))}
+                </View>
+            </View>
+        </ScrollView>
+    );
+
+    /* ============= PLAYING STATE ============= */
     const renderPlayingState = () => (
-        <View style={styles.playingContainer}>
-            {/* Timer and Score */}
-            <View style={styles.gameHeader}>
-                <View style={styles.timerContainer}>
-                    <Ionicons name="time" size={24} color={getTimerColor()} />
-                    <Text style={[styles.timerText, { color: getTimerColor() }]}>{timeLeft}s</Text>
+        <View style={s.playWrap}>
+            {/* Game HUD */}
+            <View style={s.hud}>
+                <View style={s.hudItem}>
+                    <Ionicons name="time-outline" size={18} color={getTimerColor()} />
+                    <Text style={[s.hudValue, { color: getTimerColor() }]}>{timeLeft}s</Text>
                 </View>
-                <View style={styles.scoreContainer}>
-                    <Text style={styles.scoreLabel}>Score</Text>
-                    <Text style={styles.scoreValue}>{score}</Text>
+                <View style={[s.hudItem, s.hudCenter]}>
+                    <Text style={s.hudLabel}>Score</Text>
+                    <Text style={s.hudScoreValue}>{score}</Text>
                 </View>
-                <Animated.View style={[styles.streakContainer, { transform: [{ scale: streakAnim }] }]}>
-                    <Ionicons name="flame" size={22} color={Colors.warning[500]} />
-                    <Text style={styles.streakValue}>{streak}</Text>
+                <Animated.View style={[s.hudItem, { transform: [{ scale: streakAnim }] }]}>
+                    <Ionicons name="flame" size={18} color={Colors.warning[500]} />
+                    <Text style={[s.hudValue, { color: Colors.warning[500] }]}>{streak}</Text>
                 </Animated.View>
             </View>
 
-            {/* Current Noun */}
+            {/* Timer Bar */}
+            <View style={s.timerBarBg}>
+                <View style={[s.timerBarFill, { width: `${(timeLeft / 30) * 100}%`, backgroundColor: getTimerColor() }]} />
+            </View>
+
+            {/* Noun Card */}
             {currentNoun && (
                 <Animated.View
                     style={[
-                        styles.nounCard,
-                        lastResult === 'correct' && styles.nounCardCorrect,
-                        lastResult === 'wrong' && styles.nounCardWrong,
-                        {
-                            transform: [
-                                { translateX: shakeAnim },
-                                { scale: scaleAnim },
-                            ],
-                        },
+                        s.nounCard,
+                        lastResult === 'correct' && s.nounCorrect,
+                        lastResult === 'wrong' && s.nounWrong,
+                        { transform: [{ translateX: shakeAnim }, { scale: scaleAnim }] },
                     ]}
                 >
-                    <Text style={styles.nounText}>{currentNoun.german}</Text>
-                    <Text style={styles.nounTranslation}>{currentNoun.english}</Text>
-
+                    <Text style={s.nounText}>{currentNoun.german}</Text>
+                    <Text style={s.nounTrans}>{currentNoun.english}</Text>
                     {showPattern && currentNoun.pattern && (
-                        <View style={styles.patternHint}>
-                            <Text style={styles.patternHintText}>
-                                Tip: {currentNoun.pattern}
-                            </Text>
+                        <View style={s.patternHint}>
+                            <Text style={s.patternHintText}>Tip: {currentNoun.pattern}</Text>
                         </View>
                     )}
-
                     {lastResult === 'wrong' && (
-                        <Text style={styles.correctAnswer}>
-                            Correct: {currentNoun.article}
-                        </Text>
+                        <Text style={s.correctAns}>Correct: {currentNoun.article}</Text>
                     )}
                 </Animated.View>
             )}
 
             {/* Article Buttons */}
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={[styles.articleButton, styles.derButton]}
-                    onPress={() => handleAnswer('der')}
-                    disabled={lastResult !== null}
-                >
-                    <Text style={styles.articleButtonText}>der</Text>
-                    <Text style={styles.articleSubtext}>masculine</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.articleButton, styles.dieButton]}
-                    onPress={() => handleAnswer('die')}
-                    disabled={lastResult !== null}
-                >
-                    <Text style={styles.articleButtonText}>die</Text>
-                    <Text style={styles.articleSubtext}>feminine</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.articleButton, styles.dasButton]}
-                    onPress={() => handleAnswer('das')}
-                    disabled={lastResult !== null}
-                >
-                    <Text style={styles.articleButtonText}>das</Text>
-                    <Text style={styles.articleSubtext}>neuter</Text>
-                </TouchableOpacity>
+            <View style={s.btnRow}>
+                {(['der', 'die', 'das'] as const).map(article => (
+                    <TouchableOpacity key={article} onPress={() => handleAnswer(article)} disabled={lastResult !== null} activeOpacity={0.8}>
+                        <LinearGradient colors={articleGradients[article] as any} style={s.articleBtn}>
+                            <Text style={s.articleBtnText}>{article}</Text>
+                            <Text style={s.articleBtnSub}>{article === 'der' ? 'masc' : article === 'die' ? 'fem' : 'neut'}</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                ))}
             </View>
 
-            {/* Progress */}
-            <View style={styles.progressInfo}>
-                <Text style={styles.progressText}>
-                    {currentIndex + 1} / {nouns.length}
-                </Text>
-            </View>
+            <Text style={s.progressText}>{currentIndex + 1} / {nouns.length}</Text>
         </View>
     );
 
-    const renderFinishedState = () => (
-        <View style={styles.finishedContainer}>
-            <View style={styles.resultsCard}>
-                <Ionicons name={score > highScore * 0.8 ? 'trophy' : score > highScore * 0.5 ? 'star' : 'fitness'} size={56} color={Colors.warning[500]} style={{ marginBottom: Spacing.md }} />
-                <Text style={styles.resultsTitle}>Game Over!</Text>
+    /* ============= FINISHED STATE ============= */
+    const renderFinishedState = () => {
+        const accuracy = Math.round((score / Math.max((currentIndex + 1) * 10, 1)) * 100);
+        const isNewHigh = score >= highScore && score > 0;
+        return (
+            <View style={s.finishWrap}>
+                <View style={s.resultCard}>
+                    <LinearGradient
+                        colors={isNewHigh ? ['#F59E0B', '#D97706'] : [Colors.primary[500], Colors.primary[600]]}
+                        style={s.resultIconCircle}
+                    >
+                        <Ionicons name={isNewHigh ? 'trophy' : score > 50 ? 'star' : 'fitness'} size={36} color={Colors.white} />
+                    </LinearGradient>
 
-                <View style={styles.finalScoreContainer}>
-                    <Text style={styles.finalScoreLabel}>Final Score</Text>
-                    <Text style={styles.finalScoreValue}>{score}</Text>
+                    {isNewHigh && (
+                        <View style={s.newHighBadge}>
+                            <Ionicons name="trophy" size={14} color={Colors.warning[600]} />
+                            <Text style={s.newHighText}>New High Score!</Text>
+                        </View>
+                    )}
+
+                    <Text style={s.resultTitle}>Game Over</Text>
+                    <Text style={s.resultScoreValue}>{score}</Text>
+                    <Text style={s.resultScoreLabel}>points</Text>
+
+                    <View style={s.resultStatsRow}>
+                        <View style={s.resultStatItem}>
+                            <Text style={s.resultStatValue}>{currentIndex + 1}</Text>
+                            <Text style={s.resultStatLabel}>Answered</Text>
+                        </View>
+                        <View style={[s.resultStatDivider]} />
+                        <View style={s.resultStatItem}>
+                            <Text style={s.resultStatValue}>{accuracy}%</Text>
+                            <Text style={s.resultStatLabel}>Accuracy</Text>
+                        </View>
+                    </View>
                 </View>
 
-                {score >= highScore && score > 0 && (
-                    <View style={styles.newHighScoreBadge}>
-                        <Ionicons name="trophy" size={20} color={Colors.warning[500]} />
-                        <Text style={styles.newHighScoreText}>New High Score!</Text>
-                    </View>
-                )}
-
-                <View style={styles.statsGrid}>
-                    <View style={styles.statGridItem}>
-                        <Text style={styles.statGridValue}>{currentIndex + 1}</Text>
-                        <Text style={styles.statGridLabel}>Questions</Text>
-                    </View>
-                    <View style={styles.statGridItem}>
-                        <Text style={styles.statGridValue}>
-                            {Math.round((score / Math.max((currentIndex + 1) * 10, 1)) * 100)}%
-                        </Text>
-                        <Text style={styles.statGridLabel}>Accuracy</Text>
-                    </View>
-                </View>
-            </View>
-
-            <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.playAgainButton} onPress={startGame}>
-                    <Ionicons name="refresh" size={24} color={Colors.white} />
-                    <Text style={styles.playAgainButtonText}>Play Again</Text>
+                <TouchableOpacity onPress={startGame} activeOpacity={0.85}>
+                    <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.playAgainBtn}>
+                        <Ionicons name="refresh" size={20} color={Colors.white} />
+                        <Text style={s.playAgainText}>Play Again</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.exitButton}
-                    onPress={() => navigation.goBack()}
-                >
-                    <Text style={styles.exitButtonText}>Exit</Text>
+                <TouchableOpacity style={s.exitBtn} onPress={() => navigation.goBack()}>
+                    <Text style={s.exitBtnText}>Exit</Text>
                 </TouchableOpacity>
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
-        <View style={styles.container}>
+        <View style={s.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+            <View style={s.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>
-                    {gameState === 'playing' ? 'Quick! Choose the article!' : 'Article Drill'}
+                <Text style={s.headerTitle}>
+                    {gameState === 'playing' ? 'Choose the article!' : 'Article Drill'}
                 </Text>
-                <View style={styles.headerRight} />
+                <View style={{ width: 30 }} />
             </View>
 
             {gameState === 'idle' && renderIdleState()}
@@ -384,366 +335,127 @@ export const ArticleDrillScreen: React.FC = () => {
 
 const getStyles = (theme: any, isDark: boolean) =>
     StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: theme.background.primary,
-        },
+        container: { flex: 1, backgroundColor: theme.background.primary },
+
+        /* Header */
         header: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: Spacing.md,
-            paddingTop: 50,
-            paddingBottom: Spacing.md,
-            backgroundColor: theme.background.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border.light,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingHorizontal: Spacing.md, paddingTop: 52, paddingBottom: 12,
         },
-        backButton: {
-            padding: Spacing.xs,
-            width: 40,
-        },
-        headerTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            textAlign: 'center',
-            flex: 1,
-        },
-        headerRight: {
-            width: 40,
-        },
+        backBtn: { padding: 4 },
+        headerTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
 
-        // Idle State
-        idleContainer: {
-            flex: 1,
-            padding: Spacing.lg,
-            alignItems: 'center',
+        /* ===== IDLE ===== */
+        idleContent: { padding: Spacing.md, paddingBottom: 32 },
+        heroBanner: {
+            borderRadius: 20, padding: 28, alignItems: 'center', marginBottom: 20,
         },
-        iconContainer: {
-            marginTop: Spacing.xl,
-            marginBottom: Spacing.lg,
+        heroTitle: { fontSize: 28, fontWeight: FontWeight.bold, color: theme.text.primary, marginTop: 12 },
+        heroSub: { fontSize: 16, color: Colors.primary[500], fontWeight: FontWeight.medium, marginTop: 4 },
+        heroDesc: { fontSize: 14, color: theme.text.secondary, textAlign: 'center', marginTop: 10, lineHeight: 20 },
+
+        statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+        statBox: {
+            flex: 1, alignItems: 'center', gap: 4,
+            backgroundColor: theme.background.secondary, borderRadius: 14, paddingVertical: 14,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
-        gameEmoji: {
-            fontSize: 80,
-        },
-        title: {
-            fontSize: FontSize['3xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.xs,
-        },
-        subtitle: {
-            fontSize: FontSize.lg,
-            color: Colors.primary[500],
-            fontWeight: FontWeight.medium,
-            marginBottom: Spacing.md,
-        },
-        description: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            textAlign: 'center',
-            lineHeight: 24,
-            marginBottom: Spacing.xl,
-        },
-        statsCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            width: '100%',
-            marginBottom: Spacing.xl,
-            ...Shadows.sm,
-        },
-        statRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: Spacing.sm,
-            gap: Spacing.sm,
-        },
-        statLabel: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            flex: 1,
-        },
-        statValue: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        startButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            paddingHorizontal: Spacing['2xl'],
-            borderRadius: BorderRadius.lg,
-            gap: Spacing.sm,
+        statBoxValue: { fontSize: 16, fontWeight: FontWeight.bold, color: theme.text.primary },
+        statBoxLabel: { fontSize: 11, color: theme.text.tertiary },
+
+        startBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+            paddingVertical: 16, borderRadius: 14,
             ...Shadows.md,
         },
-        startButtonText: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        patternSection: {
-            marginTop: Spacing.xl,
-            width: '100%',
-        },
-        patternTitle: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.md,
-            textAlign: 'center',
-        },
-        patternList: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: Spacing.sm,
-        },
-        patternItem: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.background.secondary,
-            paddingVertical: Spacing.xs,
-            paddingHorizontal: Spacing.sm,
-            borderRadius: BorderRadius.md,
-            gap: Spacing.xs,
-        },
-        patternArticle: {
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.bold,
-        },
-        patternEnding: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-        },
+        startBtnText: { fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white },
 
-        // Playing State
-        playingContainer: {
-            flex: 1,
-            padding: Spacing.md,
+        tipsSection: { marginTop: 24 },
+        tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+        tipsTitle: { fontSize: 14, fontWeight: FontWeight.bold, color: theme.text.primary },
+        tipsList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+        tipChip: {
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : Colors.neutral[50],
+            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
-        gameHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: Spacing.lg,
-        },
-        timerContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.xs,
-        },
-        timerText: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-        },
-        scoreContainer: {
-            alignItems: 'center',
-        },
-        scoreLabel: {
-            fontSize: FontSize.xs,
-            color: theme.text.secondary,
-        },
-        scoreValue: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        streakContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-        },
-        streakEmoji: {
-            fontSize: 24,
-        },
-        streakValue: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: Colors.warning[500],
-        },
+        tipArticle: { fontSize: 13, fontWeight: FontWeight.bold },
+        tipPattern: { fontSize: 12, color: theme.text.secondary },
+
+        /* ===== PLAYING ===== */
+        playWrap: { flex: 1, padding: Spacing.md },
+        hud: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+        hudItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+        hudCenter: { flexDirection: 'column', alignItems: 'center', gap: 0 },
+        hudLabel: { fontSize: 10, color: theme.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.5 },
+        hudValue: { fontSize: 18, fontWeight: FontWeight.bold },
+        hudScoreValue: { fontSize: 26, fontWeight: FontWeight.bold, color: theme.text.primary },
+
+        timerBarBg: { height: 4, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200], borderRadius: 2, marginBottom: 20, overflow: 'hidden' },
+        timerBarFill: { height: '100%', borderRadius: 2 },
+
         nounCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.xl,
-            padding: Spacing['2xl'],
-            alignItems: 'center',
-            marginBottom: Spacing.xl,
-            borderWidth: 3,
-            borderColor: 'transparent',
-            ...Shadows.lg,
+            backgroundColor: theme.background.secondary, borderRadius: 20,
+            paddingVertical: 36, paddingHorizontal: 24, alignItems: 'center',
+            marginBottom: 24, borderWidth: 2, borderColor: 'transparent',
+            ...Shadows.md,
         },
-        nounCardCorrect: {
-            borderColor: Colors.success[500],
-            backgroundColor: isDark ? Colors.success[900] : Colors.success[50],
-        },
-        nounCardWrong: {
-            borderColor: Colors.error[500],
-            backgroundColor: isDark ? Colors.error[900] : Colors.error[50],
-        },
-        nounText: {
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.sm,
-        },
-        nounTranslation: {
-            fontSize: FontSize.lg,
-            color: theme.text.secondary,
-        },
+        nounCorrect: { borderColor: Colors.success[500], backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : Colors.success[50] },
+        nounWrong: { borderColor: Colors.error[500], backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : Colors.error[50] },
+        nounText: { fontSize: 42, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: 6 },
+        nounTrans: { fontSize: 16, color: theme.text.secondary },
         patternHint: {
-            marginTop: Spacing.md,
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.xs,
-            backgroundColor: Colors.primary[100],
-            borderRadius: BorderRadius.md,
+            marginTop: 12, paddingHorizontal: 14, paddingVertical: 6,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50], borderRadius: 8,
         },
-        patternHintText: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[700],
-            fontWeight: FontWeight.medium,
-        },
-        correctAnswer: {
-            marginTop: Spacing.md,
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: Colors.success[600],
-        },
-        buttonContainer: {
-            flexDirection: 'row',
-            gap: Spacing.md,
-            marginBottom: Spacing.lg,
-        },
-        articleButton: {
-            flex: 1,
-            paddingVertical: Spacing.lg,
-            borderRadius: BorderRadius.lg,
-            alignItems: 'center',
-            ...Shadows.md,
-        },
-        derButton: {
-            backgroundColor: Colors.primary[500],
-        },
-        dieButton: {
-            backgroundColor: Colors.error[500],
-        },
-        dasButton: {
-            backgroundColor: Colors.success[500],
-        },
-        articleButtonText: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        articleSubtext: {
-            fontSize: FontSize.xs,
-            color: Colors.white,
-            opacity: 0.8,
-        },
-        progressInfo: {
-            alignItems: 'center',
-        },
-        progressText: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-        },
+        patternHintText: { fontSize: 13, color: Colors.primary[500], fontWeight: FontWeight.medium },
+        correctAns: { marginTop: 10, fontSize: 16, fontWeight: FontWeight.bold, color: Colors.success[500] },
 
-        // Finished State
-        finishedContainer: {
-            flex: 1,
-            padding: Spacing.lg,
-            justifyContent: 'center',
+        btnRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+        articleBtn: {
+            width: 105, paddingVertical: 18, borderRadius: 14,
+            alignItems: 'center', ...Shadows.sm,
         },
-        resultsCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.xl,
-            padding: Spacing.xl,
-            alignItems: 'center',
-            marginBottom: Spacing.xl,
-            ...Shadows.lg,
+        articleBtnText: { fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white },
+        articleBtnSub: { fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+        progressText: { fontSize: 12, color: theme.text.tertiary, textAlign: 'center' },
+
+        /* ===== FINISHED ===== */
+        finishWrap: { flex: 1, padding: Spacing.lg, justifyContent: 'center' },
+        resultCard: {
+            backgroundColor: theme.background.secondary, borderRadius: 24,
+            padding: 28, alignItems: 'center', marginBottom: 20,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
-        resultsEmoji: {
-            fontSize: 64,
-            marginBottom: Spacing.md,
+        resultIconCircle: {
+            width: 72, height: 72, borderRadius: 36,
+            alignItems: 'center', justifyContent: 'center', marginBottom: 16,
         },
-        resultsTitle: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.lg,
+        newHighBadge: {
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB',
+            paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 12,
+            borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.2)' : '#FEF3C7',
         },
-        finalScoreContainer: {
-            alignItems: 'center',
-            marginBottom: Spacing.md,
+        newHighText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.warning[600] },
+        resultTitle: { fontSize: 22, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: 4 },
+        resultScoreValue: { fontSize: 52, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+        resultScoreLabel: { fontSize: 14, color: theme.text.tertiary, marginBottom: 20 },
+
+        resultStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+        resultStatItem: { alignItems: 'center' },
+        resultStatValue: { fontSize: 20, fontWeight: FontWeight.bold, color: theme.text.primary },
+        resultStatLabel: { fontSize: 11, color: theme.text.tertiary, marginTop: 2 },
+        resultStatDivider: { width: 1, height: 28, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : Colors.neutral[200] },
+
+        playAgainBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+            paddingVertical: 16, borderRadius: 14, ...Shadows.md,
         },
-        finalScoreLabel: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
-        finalScoreValue: {
-            fontSize: 56,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[500],
-        },
-        newHighScoreBadge: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: Colors.warning[100],
-            paddingVertical: Spacing.xs,
-            paddingHorizontal: Spacing.md,
-            borderRadius: BorderRadius.md,
-            gap: Spacing.xs,
-            marginBottom: Spacing.lg,
-        },
-        newHighScoreText: {
-            fontSize: FontSize.md,
-            color: Colors.warning[700],
-            fontWeight: FontWeight.bold,
-        },
-        statsGrid: {
-            flexDirection: 'row',
-            gap: Spacing.xl,
-        },
-        statGridItem: {
-            alignItems: 'center',
-        },
-        statGridValue: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        statGridLabel: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-        },
-        actionButtons: {
-            gap: Spacing.md,
-        },
-        playAgainButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.lg,
-            gap: Spacing.sm,
-            ...Shadows.md,
-        },
-        playAgainButtonText: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        exitButton: {
-            alignItems: 'center',
-            paddingVertical: Spacing.md,
-        },
-        exitButtonText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
+        playAgainText: { fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white },
+        exitBtn: { alignItems: 'center', paddingVertical: 14 },
+        exitBtnText: { fontSize: 14, color: theme.text.secondary },
     });
 
 export default ArticleDrillScreen;

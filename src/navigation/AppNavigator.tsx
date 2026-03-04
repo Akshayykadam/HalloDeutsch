@@ -2,9 +2,11 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing } from 'react-native-reanimated';
 
 import {
     WelcomeScreen,
@@ -18,7 +20,6 @@ import { PracticeScreen } from '../screens/practice';
 import { ProfileScreen, AboutScreen } from '../screens/profile';
 import { ChatScreen } from '../screens/chat';
 import { GrammarScreen, GrammarReferenceScreen } from '../screens/grammar';
-
 
 import { VocabularyScreen } from '../screens/vocabulary';
 import { DictionaryScreen } from '../screens/dictionary';
@@ -36,8 +37,9 @@ import { CulturalGuideScreen } from '../screens/culture';
 import { IdiomsSlangScreen } from '../screens/idioms';
 import { FillInBlankScreen } from '../screens/fillInBlank';
 import { useUserStore } from '../store';
-import { Colors, FontSize, FontWeight, Shadows } from '../theme';
+import { Colors, FontWeight } from '../theme';
 import { useTheme } from '../context/ThemeContext';
+import { useIsFocused } from '@react-navigation/native';
 import {
     RootStackParamList,
     OnboardingStackParamList,
@@ -48,37 +50,225 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 
-// Tab Bar Icon Component
-const getTabIcon = (routeName: string, focused: boolean) => {
-    let iconName: keyof typeof Ionicons.glyphMap;
-    const color = focused ? Colors.primary[500] : Colors.neutral[400];
-    const size = 24;
-
+/* ─── Tab icon helper ─── */
+const getTabIconName = (routeName: string, focused: boolean): keyof typeof Ionicons.glyphMap => {
     switch (routeName) {
         case 'Home':
-            iconName = focused ? 'home' : 'home-outline';
-            break;
+            return focused ? 'home' : 'home-outline';
         case 'Learn':
-            iconName = focused ? 'library' : 'library-outline';
-            break;
+            return focused ? 'library' : 'library-outline';
         case 'Practice':
-            iconName = focused ? 'game-controller' : 'game-controller-outline';
-            break;
+            return focused ? 'game-controller' : 'game-controller-outline';
         case 'Tools':
-            iconName = focused ? 'construct' : 'construct-outline';
-            break;
+            return focused ? 'construct' : 'construct-outline';
         case 'Chat':
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            break;
-        case 'Profile':
-            iconName = focused ? 'person' : 'person-outline';
-            break;
+            return focused ? 'chatbubbles' : 'chatbubbles-outline';
         default:
-            iconName = 'ellipse-outline';
+            return 'ellipse-outline';
     }
-
-    return <Ionicons name={iconName} size={size} color={color} />;
 };
+
+/* ─── Animated Tab Item ─── */
+const TabItem: React.FC<{
+    iconName: keyof typeof Ionicons.glyphMap;
+    label: string;
+    isFocused: boolean;
+    onPress: () => void;
+    isDark: boolean;
+}> = ({ iconName, label, isFocused, onPress, isDark }) => {
+    const scale = useSharedValue(isFocused ? 1 : 0);
+    const iconScale = useSharedValue(1);
+
+    React.useEffect(() => {
+        scale.value = withSpring(isFocused ? 1 : 0, { damping: 15, stiffness: 180 });
+    }, [isFocused]);
+
+    const pillStyle = useAnimatedStyle(() => ({
+        opacity: scale.value,
+        transform: [{ scale: 0.7 + scale.value * 0.3 }],
+    }));
+
+    const labelStyle = useAnimatedStyle(() => ({
+        opacity: 0.45 + scale.value * 0.55,
+        transform: [{ scale: 0.95 + scale.value * 0.05 }],
+    }));
+
+    const handlePress = () => {
+        iconScale.value = withSpring(0.85, { damping: 10 }, () => {
+            iconScale.value = withSpring(1, { damping: 10 });
+        });
+        onPress();
+    };
+
+    const activeColor = '#fff';
+    const inactiveColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
+    const activeLabelColor = isDark ? '#C7D2FE' : '#6366F1';
+    const inactiveLabelColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+
+    return (
+        <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            onPress={handlePress}
+            activeOpacity={0.8}
+            style={tabStyles.tab}
+        >
+            <View style={tabStyles.iconArea}>
+                <Animated.View style={[tabStyles.pillBg, pillStyle]}>
+                    <LinearGradient
+                        colors={['#6366F1', '#4F46E5'] as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </Animated.View>
+                <Ionicons
+                    name={iconName}
+                    size={21}
+                    color={isFocused ? activeColor : inactiveColor}
+                />
+            </View>
+            <Animated.Text
+                style={[
+                    tabStyles.label,
+                    {
+                        color: isFocused ? activeLabelColor : inactiveLabelColor,
+                        fontWeight: isFocused ? FontWeight.bold : FontWeight.medium,
+                    },
+                    labelStyle,
+                ]}
+                numberOfLines={1}
+            >
+                {label}
+            </Animated.Text>
+        </TouchableOpacity>
+    );
+};
+
+/* ─── Custom Floating Tab Bar ─── */
+const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+    const { isDark } = useTheme();
+
+    return (
+        <View style={tabStyles.wrapper}>
+            <View style={[
+                tabStyles.container,
+                isDark ? tabStyles.containerDark : tabStyles.containerLight,
+            ]}>
+                {/* Inner glow overlay for glassmorphism */}
+                <View style={[
+                    tabStyles.innerGlow,
+                    { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)' },
+                ]} />
+
+                {state.routes.map((route, index) => {
+                    const { options } = descriptors[route.key];
+                    const label = (options.tabBarLabel as string) ?? route.name;
+                    const isFocused = state.index === index;
+
+                    const onPress = () => {
+                        const event = navigation.emit({
+                            type: 'tabPress',
+                            target: route.key,
+                            canPreventDefault: true,
+                        });
+                        if (!isFocused && !event.defaultPrevented) {
+                            navigation.navigate(route.name);
+                        }
+                    };
+
+                    const iconName = getTabIconName(route.name, isFocused);
+
+                    return (
+                        <TabItem
+                            key={route.key}
+                            iconName={iconName}
+                            label={label}
+                            isFocused={isFocused}
+                            onPress={onPress}
+                            isDark={isDark}
+                        />
+                    );
+                })}
+            </View>
+        </View>
+    );
+};
+
+const tabStyles = StyleSheet.create({
+    wrapper: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingBottom: Platform.OS === 'ios' ? 30 : 18,
+    },
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '88%',
+        borderRadius: 32,
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        overflow: 'hidden',
+    },
+    containerDark: {
+        backgroundColor: '#12121C',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.35,
+                shadowRadius: 24,
+            },
+            android: { elevation: 20 },
+        }),
+    },
+    containerLight: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.6)',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#6366F1',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.12,
+                shadowRadius: 24,
+            },
+            android: { elevation: 20 },
+        }),
+    },
+    innerGlow: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 32,
+        borderWidth: 1,
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    iconArea: {
+        width: 44,
+        height: 38,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pillBg: {
+        position: 'absolute',
+        width: 44,
+        height: 38,
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    label: {
+        fontSize: 10,
+    },
+});
 
 // Onboarding Navigator
 const OnboardingNavigator: React.FC = () => (
@@ -90,56 +280,84 @@ const OnboardingNavigator: React.FC = () => (
     </OnboardingStack.Navigator>
 );
 
-// Main Tab Navigator
-const MainTabNavigator: React.FC = () => {
-    const { theme, isDark } = useTheme();
+/* ─── Standalone Floating Tab Bar (no React Navigation dependency) ─── */
+const TAB_CONFIG = [
+    { key: 'Home', label: 'Home' },
+    { key: 'Learn', label: 'Learn' },
+    { key: 'Chat', label: 'Chat' },
+    { key: 'Practice', label: 'Practice' },
+    { key: 'Tools', label: 'Tools' },
+] as const;
+
+const StandaloneTabBar: React.FC<{
+    activeIndex: number;
+    onTabPress: (index: number) => void;
+}> = ({ activeIndex, onTabPress }) => {
+    const { isDark } = useTheme();
 
     return (
-        <MainTab.Navigator
-            screenOptions={({ route }) => ({
-                headerShown: false,
-                tabBarStyle: {
-                    backgroundColor: theme.background.primary,
-                    borderTopWidth: 1,
-                    borderTopColor: theme.border.light,
-                    height: 85,
-                    paddingBottom: 24,
-                    paddingTop: 8,
-                    ...(isDark ? {} : Shadows.sm),
-                },
-                tabBarActiveTintColor: Colors.primary[500],
-                tabBarInactiveTintColor: isDark ? Colors.neutral[500] : Colors.neutral[400],
-                tabBarLabelStyle: styles.tabBarLabel,
-                tabBarIcon: ({ focused }) => getTabIcon(route.name, focused),
-            })}
-        >
-            <MainTab.Screen
-                name="Home"
-                component={HomeScreen}
-                options={{ tabBarLabel: 'Home' }}
-            />
-            <MainTab.Screen
-                name="Learn"
-                component={LearnScreen}
-                options={{ tabBarLabel: 'Learn' }}
-            />
-            <MainTab.Screen
-                name="Chat"
-                component={ChatScreen}
-                options={{ tabBarLabel: 'Chat' }}
-            />
-            <MainTab.Screen
-                name="Practice"
-                component={PracticeScreen}
-                options={{ tabBarLabel: 'Practice' }}
-            />
-            <MainTab.Screen
-                name="Tools"
-                component={ToolsScreen}
-                options={{ tabBarLabel: 'Tools' }}
-            />
+        <View style={tabStyles.wrapper}>
+            <View style={[
+                tabStyles.container,
+                isDark ? tabStyles.containerDark : tabStyles.containerLight,
+            ]}>
+                <View style={[
+                    tabStyles.innerGlow,
+                    { borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)' },
+                ]} />
 
-        </MainTab.Navigator>
+                {TAB_CONFIG.map((tab, index) => {
+                    const isFocused = activeIndex === index;
+                    const iconName = getTabIconName(tab.key, isFocused);
+
+                    return (
+                        <TabItem
+                            key={tab.key}
+                            iconName={iconName}
+                            label={tab.label}
+                            isFocused={isFocused}
+                            onPress={() => onTabPress(index)}
+                            isDark={isDark}
+                        />
+                    );
+                })}
+            </View>
+        </View>
+    );
+};
+
+/* ─── Tab screen components in order ─── */
+const TAB_SCREENS = [HomeScreen, LearnScreen, ChatScreen, PracticeScreen, ToolsScreen];
+
+/* ─── Horizontal Pager Tab Navigator ─── */
+const MainTabNavigator: React.FC = () => {
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const translateX = useSharedValue(0);
+    const { width } = useWindowDimensions();
+
+    const handleTabPress = React.useCallback((index: number) => {
+        setActiveIndex(index);
+        translateX.value = withTiming(-index * width, {
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
+        });
+    }, [width]);
+
+    const pagerStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: translateX.value }],
+    }));
+
+    return (
+        <View style={{ flex: 1, overflow: 'hidden' }}>
+            <Animated.View style={[{ flexDirection: 'row', width: width * TAB_SCREENS.length, flex: 1 }, pagerStyle]}>
+                {TAB_SCREENS.map((Screen, i) => (
+                    <View key={i} style={{ width, flex: 1 }}>
+                        <Screen />
+                    </View>
+                ))}
+            </Animated.View>
+            <StandaloneTabBar activeIndex={activeIndex} onTabPress={handleTabPress} />
+        </View>
     );
 };
 
@@ -250,10 +468,3 @@ export const AppNavigator: React.FC = () => {
         </NavigationContainer>
     );
 };
-
-const styles = StyleSheet.create({
-    tabBarLabel: {
-        fontSize: FontSize.xs,
-        fontWeight: FontWeight.medium,
-    },
-});

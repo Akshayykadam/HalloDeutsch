@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as audioService from '../../services/audioService';
 
@@ -30,7 +31,7 @@ const { width } = Dimensions.get('window');
 export const IdiomsSlangScreen: React.FC = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
-    const styles = getStyles(theme, isDark);
+    const s = getStyles(theme, isDark);
 
     const [screenState, setScreenState] = useState<ScreenState>('browse');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -46,11 +47,8 @@ export const IdiomsSlangScreen: React.FC = () => {
 
     const flipAnim = useRef(new Animated.Value(0)).current;
 
-    // Cleanup: Stop audio when navigating away
     useEffect(() => {
-        return () => {
-            audioService.stopAudio();
-        };
+        return () => { audioService.stopAudio(); };
     }, []);
 
     const displayIdioms = selectedCategory
@@ -106,11 +104,7 @@ export const IdiomsSlangScreen: React.FC = () => {
     const toggleFavorite = (id: string) => {
         setFavorites(prev => {
             const newFavs = new Set(prev);
-            if (newFavs.has(id)) {
-                newFavs.delete(id);
-            } else {
-                newFavs.add(id);
-            }
+            if (newFavs.has(id)) { newFavs.delete(id); } else { newFavs.add(id); }
             return newFavs;
         });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -127,7 +121,6 @@ export const IdiomsSlangScreen: React.FC = () => {
     const handleQuizAnswer = (answer: string) => {
         if (selectedAnswer) return;
         setSelectedAnswer(answer);
-
         const isCorrect = answer === quizIdioms[quizIndex].meaning;
         if (isCorrect) {
             setQuizScore(prev => prev + 1);
@@ -158,341 +151,360 @@ export const IdiomsSlangScreen: React.FC = () => {
         outputRange: ['180deg', '360deg'],
     });
 
+    const getCategoryColor = (cat: string): [string, string] => {
+        switch (cat) {
+            case 'animals': return ['#F59E0B', '#D97706'];
+            case 'food': return ['#10B981', '#059669'];
+            case 'body': return ['#EF4444', '#DC2626'];
+            case 'weather': return ['#3B82F6', '#2563EB'];
+            case 'money': return ['#8B5CF6', '#7C3AED'];
+            default: return ['#6366F1', '#4F46E5'];
+        }
+    };
+
+    const getUsageColor = (usage: string) => {
+        switch (usage) {
+            case 'common': return { bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5', text: '#059669' };
+            case 'formal': return { bg: isDark ? 'rgba(99,102,241,0.12)' : '#EEF2FF', text: '#4F46E5' };
+            default: return { bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB', text: '#D97706' };
+        }
+    };
+
+    /* ─── Browse ─── */
     const renderBrowse = () => (
-        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
-            {/* Action Buttons */}
-            <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleStartCards}>
-                    <Ionicons name="albums-outline" size={24} color={Colors.white} />
-                    <Text style={styles.actionButtonText}>Flashcards</Text>
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+            {/* Hero Action Row */}
+            <View style={s.heroRow}>
+                <TouchableOpacity style={s.heroCard} onPress={handleStartCards} activeOpacity={0.85}>
+                    <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
+                        <View style={s.heroIconWrap}>
+                            <Ionicons name="albums" size={22} color="#fff" />
+                        </View>
+                        <Text style={s.heroLabel}>Flashcards</Text>
+                        <Text style={s.heroSub}>Swipe & learn</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[styles.actionButton, styles.quizButton]}
-                    onPress={handleStartQuiz}
-                >
-                    <Ionicons name="help-circle-outline" size={24} color={Colors.white} />
-                    <Text style={styles.actionButtonText}>Quiz</Text>
+                <TouchableOpacity style={s.heroCard} onPress={handleStartQuiz} activeOpacity={0.85}>
+                    <LinearGradient colors={['#10B981', '#059669'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
+                        <View style={s.heroIconWrap}>
+                            <Ionicons name="help-circle" size={22} color="#fff" />
+                        </View>
+                        <Text style={s.heroLabel}>Quiz</Text>
+                        <Text style={s.heroSub}>Test yourself</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
-            {/* Category Filter */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryScroll}
-            >
+            {/* Category Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
                 <TouchableOpacity
-                    style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+                    style={[s.chip, !selectedCategory && s.chipActive]}
                     onPress={() => setSelectedCategory(null)}
                 >
-                    <Text
-                        style={[
-                            styles.categoryChipText,
-                            !selectedCategory && styles.categoryChipTextActive,
-                        ]}
-                    >
-                        All
-                    </Text>
+                    <Text style={[s.chipText, !selectedCategory && s.chipTextActive]}>All</Text>
                 </TouchableOpacity>
                 {idiomCategories.map((cat) => (
                     <TouchableOpacity
                         key={cat.key}
-                        style={[
-                            styles.categoryChip,
-                            selectedCategory === cat.key && styles.categoryChipActive,
-                        ]}
+                        style={[s.chip, selectedCategory === cat.key && s.chipActive]}
                         onPress={() => setSelectedCategory(cat.key)}
                     >
-                        <Ionicons name={cat.icon as any} size={20} color={selectedCategory === cat.key ? Colors.white : theme.text.secondary} />
-                        <Text
-                            style={[
-                                styles.categoryChipText,
-                                selectedCategory === cat.key && styles.categoryChipTextActive,
-                            ]}
-                        >
+                        <Ionicons
+                            name={cat.icon as any}
+                            size={14}
+                            color={selectedCategory === cat.key ? '#fff' : theme.text.tertiary}
+                        />
+                        <Text style={[s.chipText, selectedCategory === cat.key && s.chipTextActive]}>
                             {cat.label}
                         </Text>
                     </TouchableOpacity>
                 ))}
             </ScrollView>
 
-            {/* Idioms List */}
-            <Text style={styles.sectionTitle}>
-                {selectedCategory
-                    ? idiomCategories.find(c => c.key === selectedCategory)?.label
-                    : 'All Expressions'} ({displayIdioms.length})
-            </Text>
+            {/* Section Header */}
+            <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>
+                    {selectedCategory
+                        ? idiomCategories.find(c => c.key === selectedCategory)?.label
+                        : 'All Expressions'}
+                </Text>
+                <View style={s.countPill}>
+                    <Text style={s.countText}>{displayIdioms.length}</Text>
+                </View>
+            </View>
 
-            {displayIdioms.map((idiom) => (
-                <TouchableOpacity
-                    key={idiom.id}
-                    style={styles.idiomCard}
-                    onPress={() => {
-                        setCurrentCards([idiom]);
-                        setCardIndex(0);
-                        setIsFlipped(false);
-                        flipAnim.setValue(0);
-                        setScreenState('card');
-                    }}
-                >
-                    <View style={styles.idiomHeader}>
-                        <View style={styles.idiomMain}>
-                            <Text style={styles.idiomGerman}>{idiom.german}</Text>
-                            <Text style={styles.idiomLiteral}>"{idiom.literal}"</Text>
+            {/* Idiom Cards */}
+            {displayIdioms.map((idiom) => {
+                const catColors = getCategoryColor(idiom.category);
+                const usageStyle = getUsageColor(idiom.usage);
+                return (
+                    <TouchableOpacity
+                        key={idiom.id}
+                        style={s.idiomCard}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                            setCurrentCards([idiom]);
+                            setCardIndex(0);
+                            setIsFlipped(false);
+                            flipAnim.setValue(0);
+                            setScreenState('card');
+                        }}
+                    >
+                        {/* Left accent */}
+                        <LinearGradient colors={catColors} style={s.idiomAccent} />
+
+                        <View style={s.idiomBody}>
+                            {/* Top row: german text + actions */}
+                            <View style={s.idiomTopRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={s.idiomGerman}>{idiom.german}</Text>
+                                    <Text style={s.idiomLiteral}>"{idiom.literal}"</Text>
+                                </View>
+                                <View style={s.idiomActions}>
+                                    <TouchableOpacity
+                                        style={s.idiomActionBtn}
+                                        onPress={(e) => { e.stopPropagation(); playAudio(idiom.german); }}
+                                    >
+                                        <Ionicons name="volume-medium" size={16} color={Colors.primary[400]} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={s.idiomActionBtn}
+                                        onPress={(e) => { e.stopPropagation(); toggleFavorite(idiom.id); }}
+                                    >
+                                        <Ionicons
+                                            name={favorites.has(idiom.id) ? 'heart' : 'heart-outline'}
+                                            size={16}
+                                            color={favorites.has(idiom.id) ? '#EF4444' : theme.text.tertiary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Meaning */}
+                            <Text style={s.idiomMeaning}>{idiom.meaning}</Text>
+
+                            {/* Meta pills */}
+                            <View style={s.idiomMetaRow}>
+                                <View style={s.levelPill}>
+                                    <Text style={s.levelPillText}>{idiom.level}</Text>
+                                </View>
+                                <View style={[s.usagePill, { backgroundColor: usageStyle.bg }]}>
+                                    <Text style={[s.usagePillText, { color: usageStyle.text }]}>{idiom.usage}</Text>
+                                </View>
+                            </View>
                         </View>
-                        <View style={styles.idiomActions}>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    playAudio(idiom.german);
-                                }}
-                            >
-                                <Ionicons
-                                    name="volume-high"
-                                    size={20}
-                                    color={Colors.primary[500]}
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    toggleFavorite(idiom.id);
-                                }}
-                            >
-                                <Ionicons
-                                    name={favorites.has(idiom.id) ? 'heart' : 'heart-outline'}
-                                    size={20}
-                                    color={favorites.has(idiom.id) ? Colors.error[500] : Colors.neutral[400]}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    <Text style={styles.idiomMeaning}>{idiom.meaning}</Text>
-                    <View style={styles.idiomMeta}>
-                        <Text style={styles.idiomLevel}>{idiom.level}</Text>
-                        <Text style={styles.idiomUsage}>{idiom.usage}</Text>
-                    </View>
-                </TouchableOpacity>
-            ))}
+                    </TouchableOpacity>
+                );
+            })}
         </ScrollView>
     );
 
+    /* ─── Flashcard ─── */
     const renderCard = () => {
         if (!currentCard) return null;
-
+        const catColors = getCategoryColor(currentCard.category);
         return (
-            <View style={styles.cardContainer}>
-                {/* Progress */}
-                <View style={styles.cardProgress}>
-                    <Text style={styles.cardProgressText}>
-                        {cardIndex + 1} / {currentCards.length}
-                    </Text>
+            <View style={s.cardContainer}>
+                {/* Progress bar */}
+                <View style={s.cardProgressWrap}>
+                    <Text style={s.cardProgressLabel}>{cardIndex + 1} / {currentCards.length}</Text>
+                    <View style={s.cardProgressTrack}>
+                        <LinearGradient
+                            colors={['#6366F1', '#818CF8'] as [string, string]}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                            style={[s.cardProgressFill, { width: `${((cardIndex + 1) / currentCards.length) * 100}%` }]}
+                        />
+                    </View>
                 </View>
 
-                {/* Flashcard */}
-                <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={handleFlip}
-                    style={styles.cardWrapper}
-                >
+                {/* Flip Card */}
+                <TouchableOpacity activeOpacity={0.95} onPress={handleFlip} style={s.cardWrapper}>
                     {/* Front */}
-                    <Animated.View
-                        style={[
-                            styles.card,
-                            styles.cardFront,
-                            { transform: [{ rotateY: frontInterpolate }] },
-                        ]}
-                    >
+                    <Animated.View style={[s.card, s.cardFront, { transform: [{ rotateY: frontInterpolate }] }]}>
+                        <LinearGradient colors={catColors} style={s.cardCatBadge}>
+                            <Text style={s.cardCatText}>{currentCard.category}</Text>
+                        </LinearGradient>
+
                         <TouchableOpacity
-                            style={styles.cardAudioButton}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                playAudio(currentCard.german);
-                            }}
+                            style={s.cardAudioBtn}
+                            onPress={(e) => { e.stopPropagation(); playAudio(currentCard.german); }}
                         >
-                            <Ionicons
-                                name="volume-high"
-                                size={28}
-                                color={Colors.primary[500]}
-                            />
+                            <Ionicons name="volume-medium" size={22} color={Colors.primary[400]} />
                         </TouchableOpacity>
 
-                        <Text style={styles.cardGerman}>{currentCard.german}</Text>
-                        <Text style={styles.cardLiteral}>"{currentCard.literal}"</Text>
+                        <Text style={s.cardGerman}>{currentCard.german}</Text>
+                        <Text style={s.cardLiteral}>"{currentCard.literal}"</Text>
 
-                        <Text style={styles.cardTapHint}>Tap to flip</Text>
+                        <View style={s.cardHintRow}>
+                            <Ionicons name="sync-outline" size={14} color={theme.text.tertiary} />
+                            <Text style={s.cardHint}>Tap to reveal meaning</Text>
+                        </View>
                     </Animated.View>
 
                     {/* Back */}
-                    <Animated.View
-                        style={[
-                            styles.card,
-                            styles.cardBack,
-                            { transform: [{ rotateY: backInterpolate }] },
-                        ]}
-                    >
-                        <Text style={styles.cardMeaningLabel}>Meaning:</Text>
-                        <Text style={styles.cardMeaning}>{currentCard.meaning}</Text>
+                    <Animated.View style={[s.card, s.cardBack, { transform: [{ rotateY: backInterpolate }] }]}>
+                        <Text style={s.cardBackLabel}>Meaning</Text>
+                        <Text style={s.cardMeaning}>{currentCard.meaning}</Text>
 
-                        <View style={styles.cardExampleSection}>
-                            <Text style={styles.cardExampleLabel}>Example:</Text>
-                            <Text style={styles.cardExample}>{currentCard.example}</Text>
-                            <Text style={styles.cardExampleTranslation}>
-                                {currentCard.exampleTranslation}
-                            </Text>
+                        <View style={s.cardExampleWrap}>
+                            <View style={s.cardExampleHeader}>
+                                <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.primary[400]} />
+                                <Text style={s.cardExampleLabel}>Example</Text>
+                            </View>
+                            <Text style={s.cardExample}>{currentCard.example}</Text>
+                            <Text style={s.cardExampleTrans}>{currentCard.exampleTranslation}</Text>
                         </View>
 
-                        <View style={styles.cardMetaRow}>
-                            <View style={styles.cardMetaBadge}>
-                                <Text style={styles.cardMetaText}>{currentCard.level}</Text>
+                        <View style={s.cardMetaRow}>
+                            <View style={s.cardMetaPill}>
+                                <Text style={s.cardMetaText}>{currentCard.level}</Text>
                             </View>
-                            <View style={styles.cardMetaBadge}>
-                                <Text style={styles.cardMetaText}>{currentCard.category}</Text>
+                            <View style={s.cardMetaPill}>
+                                <Text style={s.cardMetaText}>{currentCard.category}</Text>
                             </View>
                         </View>
                     </Animated.View>
                 </TouchableOpacity>
 
-                {/* Favorite Button */}
-                <TouchableOpacity
-                    style={styles.favoriteButton}
-                    onPress={() => toggleFavorite(currentCard.id)}
-                >
+                {/* Favorite */}
+                <TouchableOpacity style={s.favBtn} onPress={() => toggleFavorite(currentCard.id)}>
                     <Ionicons
                         name={favorites.has(currentCard.id) ? 'heart' : 'heart-outline'}
-                        size={28}
-                        color={favorites.has(currentCard.id) ? Colors.error[500] : theme.text.secondary}
+                        size={24}
+                        color={favorites.has(currentCard.id) ? '#EF4444' : theme.text.tertiary}
                     />
                 </TouchableOpacity>
 
-                {/* Navigation */}
-                <View style={styles.cardNavigation}>
+                {/* Nav */}
+                <View style={s.cardNav}>
                     <TouchableOpacity
-                        style={[styles.navButton, cardIndex === 0 && styles.navButtonDisabled]}
+                        style={[s.navBtn, cardIndex === 0 && s.navBtnDisabled]}
                         onPress={handlePrevCard}
                         disabled={cardIndex === 0}
                     >
-                        <Ionicons
-                            name="chevron-back"
-                            size={24}
-                            color={cardIndex === 0 ? Colors.neutral[400] : theme.text.primary}
-                        />
-                        <Text style={[styles.navButtonText, cardIndex === 0 && styles.navButtonTextDisabled]}>
-                            Previous
-                        </Text>
+                        <Ionicons name="chevron-back" size={20} color={cardIndex === 0 ? theme.text.tertiary : theme.text.primary} />
+                        <Text style={[s.navBtnText, cardIndex === 0 && { color: theme.text.tertiary }]}>Previous</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[
-                            styles.navButton,
-                            styles.nextNavButton,
-                            cardIndex === currentCards.length - 1 && styles.navButtonDisabled,
-                        ]}
+                        style={[s.navBtn, s.navBtnNext, cardIndex === currentCards.length - 1 && s.navBtnDisabled]}
                         onPress={handleNextCard}
                         disabled={cardIndex === currentCards.length - 1}
                     >
-                        <Text
-                            style={[
-                                styles.navButtonText,
-                                styles.nextNavButtonText,
-                                cardIndex === currentCards.length - 1 && styles.navButtonTextDisabled,
-                            ]}
-                        >
-                            Next
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={24}
-                            color={cardIndex === currentCards.length - 1 ? Colors.neutral[400] : Colors.white}
-                        />
+                        <Text style={[s.navBtnText, { color: '#fff' }, cardIndex === currentCards.length - 1 && { color: 'rgba(255,255,255,0.4)' }]}>Next</Text>
+                        <Ionicons name="chevron-forward" size={20} color={cardIndex === currentCards.length - 1 ? 'rgba(255,255,255,0.4)' : '#fff'} />
                     </TouchableOpacity>
                 </View>
             </View>
         );
     };
 
+    /* ─── Quiz ─── */
     const renderQuiz = () => {
         const currentQuiz = quizIdioms[quizIndex];
         if (!currentQuiz) return null;
 
-        // Generate wrong answers
         const otherIdioms = germanIdioms.filter(i => i.id !== currentQuiz.id);
-        const wrongAnswers = otherIdioms
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3)
-            .map(i => i.meaning);
+        const wrongAnswers = otherIdioms.sort(() => Math.random() - 0.5).slice(0, 3).map(i => i.meaning);
         const options = [...wrongAnswers, currentQuiz.meaning].sort(() => Math.random() - 0.5);
 
         return (
-            <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.quizProgress}>
-                    <Text style={styles.quizProgressText}>
-                        Question {quizIndex + 1} of {quizIdioms.length}
-                    </Text>
-                    <Text style={styles.quizScoreText}>Score: {quizScore}</Text>
+            <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+                {/* Progress */}
+                <View style={s.quizProgressRow}>
+                    <Text style={s.quizProgressLabel}>Question {quizIndex + 1}/{quizIdioms.length}</Text>
+                    <View style={s.quizScorePill}>
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text style={s.quizScoreText}>{quizScore}</Text>
+                    </View>
+                </View>
+                <View style={s.quizProgressTrack}>
+                    <LinearGradient
+                        colors={['#6366F1', '#818CF8'] as [string, string]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={[s.quizProgressFill, { width: `${((quizIndex + 1) / quizIdioms.length) * 100}%` }]}
+                    />
                 </View>
 
-                <View style={styles.quizCard}>
-                    <Text style={styles.quizLabel}>What does this mean?</Text>
-                    <Text style={styles.quizGerman}>{currentQuiz.german}</Text>
-                    <Text style={styles.quizLiteral}>"{currentQuiz.literal}"</Text>
+                {/* Question Card */}
+                <View style={s.quizQuestionCard}>
+                    <Text style={s.quizQuestionLabel}>What does this mean?</Text>
+                    <Text style={s.quizGerman}>{currentQuiz.german}</Text>
+                    <Text style={s.quizLiteral}>"{currentQuiz.literal}"</Text>
                 </View>
 
-                <View style={styles.quizOptions}>
+                {/* Options */}
+                <View style={s.quizOptions}>
                     {options.map((option, index) => {
                         const isSelected = selectedAnswer === option;
                         const isCorrect = option === currentQuiz.meaning;
                         const showResult = selectedAnswer !== null;
 
+                        let optionStyle = s.quizOption;
+                        let borderStyle = {};
+                        if (showResult && isCorrect) {
+                            borderStyle = { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ECFDF5' };
+                        } else if (showResult && isSelected && !isCorrect) {
+                            borderStyle = { borderColor: '#EF4444', backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#FEF2F2' };
+                        }
+
                         return (
                             <TouchableOpacity
                                 key={index}
-                                style={[
-                                    styles.quizOption,
-                                    showResult && isCorrect && styles.quizOptionCorrect,
-                                    showResult && isSelected && !isCorrect && styles.quizOptionWrong,
-                                ]}
+                                style={[optionStyle, borderStyle]}
                                 onPress={() => handleQuizAnswer(option)}
                                 disabled={selectedAnswer !== null}
+                                activeOpacity={0.8}
                             >
-                                <Text style={styles.quizOptionText}>{option}</Text>
+                                <View style={s.quizOptionIndex}>
+                                    <Text style={s.quizOptionIndexText}>{String.fromCharCode(65 + index)}</Text>
+                                </View>
+                                <Text style={s.quizOptionText}>{option}</Text>
+                                {showResult && isCorrect && (
+                                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                                )}
+                                {showResult && isSelected && !isCorrect && (
+                                    <Ionicons name="close-circle" size={20} color="#EF4444" />
+                                )}
                             </TouchableOpacity>
                         );
                     })}
                 </View>
 
+                {/* Next */}
                 {selectedAnswer && (
-                    <TouchableOpacity style={styles.quizNextButton} onPress={handleNextQuiz}>
-                        <Text style={styles.quizNextButtonText}>
-                            {quizIndex < quizIdioms.length - 1 ? 'Next' : 'Finish'}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+                    <TouchableOpacity activeOpacity={0.85} onPress={handleNextQuiz}>
+                        <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.quizNextBtn}>
+                            <Text style={s.quizNextText}>
+                                {quizIndex < quizIdioms.length - 1 ? 'Next Question' : 'Finish'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={18} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                 )}
             </ScrollView>
         );
     };
 
+    /* ─── Main ─── */
     return (
-        <View style={styles.container}>
+        <View style={s.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={s.header}>
                 <TouchableOpacity
                     onPress={() => {
-                        if (screenState === 'browse') {
-                            navigation.goBack();
-                        } else {
-                            setScreenState('browse');
-                        }
+                        if (screenState === 'browse') { navigation.goBack(); }
+                        else { setScreenState('browse'); }
                     }}
-                    style={styles.backButton}
+                    style={s.backBtn}
                 >
-                    <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Idioms & Slang</Text>
-                <View style={styles.headerRight}>
-                    <Ionicons name="chatbubbles-outline" size={24} color={Colors.primary[500]} />
+                <Text style={s.headerTitle}>Idioms & Slang</Text>
+                <View style={s.headerPill}>
+                    <Ionicons name="chatbubbles" size={13} color={Colors.primary[400]} />
+                    <Text style={s.headerPillText}>{germanIdioms.length}</Text>
                 </View>
             </View>
 
@@ -505,368 +517,186 @@ export const IdiomsSlangScreen: React.FC = () => {
 
 const getStyles = (theme: any, isDark: boolean) =>
     StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: theme.background.primary,
-        },
+        container: { flex: 1, backgroundColor: theme.background.primary },
+        /* Header */
         header: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: Spacing.md,
-            paddingTop: 50,
-            paddingBottom: Spacing.md,
-            backgroundColor: theme.background.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border.light,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
         },
-        backButton: {
-            padding: Spacing.xs,
+        backBtn: { padding: 4 },
+        headerTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
+        headerPill: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
         },
-        headerTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        headerRight: {
-            width: 40,
-            alignItems: 'flex-end',
-        },
+        headerPillText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[500] },
 
-        scrollContent: {
-            flex: 1,
-        },
-        scrollContainer: {
-            padding: Spacing.md,
-            paddingBottom: Spacing['2xl'],
-        },
-        actionRow: {
-            flexDirection: 'row',
-            gap: Spacing.md,
-            marginBottom: Spacing.lg,
-        },
-        actionButton: {
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.lg,
-            gap: Spacing.sm,
-        },
-        quizButton: {
-            backgroundColor: Colors.success[500],
-        },
-        actionButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        categoryScroll: {
-            paddingBottom: Spacing.md,
-            gap: Spacing.sm,
-        },
-        categoryChip: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.background.secondary,
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.sm,
-            borderRadius: BorderRadius.full,
-            gap: Spacing.xs,
-        },
-        categoryChipActive: {
-            backgroundColor: Colors.primary[500],
-        },
+        /* Scroll */
+        scroll: { flex: 1 },
+        scrollPad: { padding: 16, paddingBottom: 40 },
 
-        categoryChipText: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
+        /* Hero Action Cards */
+        heroRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+        heroCard: { flex: 1 },
+        heroGrad: { borderRadius: 16, padding: 16, minHeight: 100 },
+        heroIconWrap: {
+            width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)',
+            alignItems: 'center', justifyContent: 'center', marginBottom: 10,
         },
-        categoryChipTextActive: {
-            color: Colors.white,
-            fontWeight: FontWeight.medium,
+        heroLabel: { fontSize: 15, fontWeight: FontWeight.bold, color: '#fff' },
+        heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+
+        /* Category Chips */
+        chipRow: { paddingBottom: 14, gap: 8 },
+        chip: {
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+            paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
         },
-        sectionTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.md,
+        chipActive: { backgroundColor: Colors.primary[500] },
+        chipText: { fontSize: 13, color: theme.text.secondary, fontWeight: FontWeight.medium },
+        chipTextActive: { color: '#fff' },
+
+        /* Section */
+        sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+        sectionTitle: { fontSize: 17, fontWeight: FontWeight.bold, color: theme.text.primary },
+        countPill: {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12,
         },
+        countText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+
+        /* Idiom Cards */
         idiomCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.md,
-            marginBottom: Spacing.sm,
-            ...Shadows.sm,
+            flexDirection: 'row', marginBottom: 10, borderRadius: 14, overflow: 'hidden',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        idiomHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: Spacing.xs,
+        idiomAccent: { width: 4 },
+        idiomBody: { flex: 1, padding: 14 },
+        idiomTopRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
+        idiomGerman: { fontSize: 15, fontWeight: FontWeight.bold, color: theme.text.primary, lineHeight: 20 },
+        idiomLiteral: { fontSize: 12, color: theme.text.tertiary, fontStyle: 'italic', marginTop: 2 },
+        idiomActions: { flexDirection: 'row', gap: 6, marginLeft: 8 },
+        idiomActionBtn: {
+            width: 30, height: 30, borderRadius: 15,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+            alignItems: 'center', justifyContent: 'center',
         },
-        idiomMain: {
-            flex: 1,
+        idiomMeaning: { fontSize: 13, color: Colors.primary[isDark ? 300 : 600], marginBottom: 8, lineHeight: 18 },
+        idiomMetaRow: { flexDirection: 'row', gap: 6 },
+        levelPill: {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+            paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
         },
-        idiomGerman: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
+        levelPillText: { fontSize: 11, fontWeight: FontWeight.bold, color: theme.text.secondary },
+        usagePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+        usagePillText: { fontSize: 11, fontWeight: FontWeight.medium, textTransform: 'capitalize' as const },
+
+        /* ─── Flashcard ─── */
+        cardContainer: { flex: 1, padding: 16, alignItems: 'center' },
+        cardProgressWrap: { width: '100%', marginBottom: 20 },
+        cardProgressLabel: { fontSize: 13, color: theme.text.secondary, marginBottom: 6 },
+        cardProgressTrack: {
+            height: 6, borderRadius: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6', overflow: 'hidden',
         },
-        idiomLiteral: {
-            fontSize: FontSize.sm,
-            color: theme.text.tertiary,
-            fontStyle: 'italic',
-        },
-        idiomActions: {
-            flexDirection: 'row',
-            gap: Spacing.md,
-        },
-        idiomMeaning: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[600],
-            marginBottom: Spacing.sm,
-        },
-        idiomMeta: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-        },
-        idiomLevel: {
-            fontSize: FontSize.xs,
-            color: theme.text.secondary,
-            backgroundColor: theme.background.tertiary,
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 2,
-            borderRadius: BorderRadius.sm,
-        },
-        idiomUsage: {
-            fontSize: FontSize.xs,
-            color: Colors.success[600],
-            backgroundColor: Colors.success[50],
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 2,
-            borderRadius: BorderRadius.sm,
-            textTransform: 'capitalize',
-        },
-        cardContainer: {
-            flex: 1,
-            padding: Spacing.md,
-            alignItems: 'center',
-        },
-        cardProgress: {
-            marginBottom: Spacing.lg,
-        },
-        cardProgressText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
-        cardWrapper: {
-            width: width - 40,
-            height: 400,
-        },
+        cardProgressFill: { height: '100%', borderRadius: 3 },
+        cardWrapper: { width: width - 40, height: 380 },
         card: {
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            borderRadius: BorderRadius.xl,
-            padding: Spacing.xl,
-            alignItems: 'center',
-            justifyContent: 'center',
+            position: 'absolute', width: '100%', height: '100%',
+            borderRadius: 22, padding: 24, alignItems: 'center', justifyContent: 'center',
             backfaceVisibility: 'hidden',
-            ...Shadows.lg,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
         },
-        cardFront: {
-            backgroundColor: theme.background.secondary,
+        cardFront: { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff' },
+        cardBack: { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : '#EEF2FF' },
+        cardCatBadge: {
+            position: 'absolute', top: 16, left: 16,
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
         },
-        cardBack: {
-            backgroundColor: Colors.primary[50],
+        cardCatText: { fontSize: 11, fontWeight: FontWeight.bold, color: '#fff', textTransform: 'capitalize' as const },
+        cardAudioBtn: {
+            position: 'absolute', top: 16, right: 16,
+            width: 36, height: 36, borderRadius: 18,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            alignItems: 'center', justifyContent: 'center',
         },
-        cardAudioButton: {
-            position: 'absolute',
-            top: Spacing.md,
-            right: Spacing.md,
+        cardGerman: { fontSize: 26, fontWeight: FontWeight.bold, color: theme.text.primary, textAlign: 'center', marginBottom: 8 },
+        cardLiteral: { fontSize: 16, color: theme.text.secondary, fontStyle: 'italic', textAlign: 'center' },
+        cardHintRow: {
+            position: 'absolute', bottom: 20,
+            flexDirection: 'row', alignItems: 'center', gap: 5,
         },
-        cardGerman: {
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            textAlign: 'center',
-            marginBottom: Spacing.md,
+        cardHint: { fontSize: 12, color: theme.text.tertiary },
+        cardBackLabel: { fontSize: 12, color: Colors.primary[400], fontWeight: FontWeight.bold, marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: 1 },
+        cardMeaning: { fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? '#C7D2FE' : Colors.primary[700], textAlign: 'center', marginBottom: 20 },
+        cardExampleWrap: {
+            width: '100%', backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
+            borderRadius: 14, padding: 14, marginBottom: 16,
         },
-        cardLiteral: {
-            fontSize: FontSize.lg,
-            color: theme.text.secondary,
-            fontStyle: 'italic',
-            textAlign: 'center',
+        cardExampleHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
+        cardExampleLabel: { fontSize: 11, color: Colors.primary[400], fontWeight: FontWeight.bold },
+        cardExample: { fontSize: 14, fontWeight: FontWeight.medium, color: isDark ? '#C7D2FE' : Colors.primary[700], marginBottom: 4 },
+        cardExampleTrans: { fontSize: 13, color: theme.text.secondary, fontStyle: 'italic' },
+        cardMetaRow: { flexDirection: 'row', gap: 8 },
+        cardMetaPill: {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[100],
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
         },
-        cardTapHint: {
-            position: 'absolute',
-            bottom: Spacing.lg,
-            fontSize: FontSize.sm,
-            color: theme.text.tertiary,
+        cardMetaText: { fontSize: 11, fontWeight: FontWeight.bold, color: Colors.primary[isDark ? 300 : 600], textTransform: 'capitalize' as const },
+        favBtn: { marginTop: 16 },
+        cardNav: { flexDirection: 'row', gap: 12, marginTop: 20, width: '100%' },
+        navBtn: {
+            flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            paddingVertical: 13, borderRadius: 12, gap: 4,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        cardMeaningLabel: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[500],
-            marginBottom: Spacing.xs,
+        navBtnDisabled: { opacity: 0.4 },
+        navBtnText: { fontSize: 14, fontWeight: FontWeight.medium, color: theme.text.primary },
+        navBtnNext: { backgroundColor: Colors.primary[500] },
+
+        /* ─── Quiz ─── */
+        quizProgressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+        quizProgressLabel: { fontSize: 13, color: theme.text.secondary },
+        quizScorePill: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
         },
-        cardMeaning: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[700],
-            textAlign: 'center',
-            marginBottom: Spacing.lg,
+        quizScoreText: { fontSize: 13, fontWeight: FontWeight.bold, color: '#D97706' },
+        quizProgressTrack: {
+            height: 6, borderRadius: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+            overflow: 'hidden', marginBottom: 20,
         },
-        cardExampleSection: {
-            backgroundColor: Colors.white,
-            borderRadius: BorderRadius.md,
-            padding: Spacing.md,
-            width: '100%',
-            marginBottom: Spacing.md,
+        quizProgressFill: { height: '100%', borderRadius: 3 },
+        quizQuestionCard: {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 18, padding: 24, alignItems: 'center', marginBottom: 20,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        cardExampleLabel: {
-            fontSize: FontSize.xs,
-            color: Colors.primary[500],
-            marginBottom: Spacing.xs,
-        },
-        cardExample: {
-            fontSize: FontSize.md,
-            color: Colors.primary[700],
-            fontWeight: FontWeight.medium,
-        },
-        cardExampleTranslation: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[500],
-            fontStyle: 'italic',
-        },
-        cardMetaRow: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-        },
-        cardMetaBadge: {
-            backgroundColor: Colors.primary[100],
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: Spacing.xs,
-            borderRadius: BorderRadius.sm,
-        },
-        cardMetaText: {
-            fontSize: FontSize.xs,
-            color: Colors.primary[700],
-            fontWeight: FontWeight.medium,
-            textTransform: 'capitalize',
-        },
-        favoriteButton: {
-            marginTop: Spacing.lg,
-        },
-        cardNavigation: {
-            flexDirection: 'row',
-            gap: Spacing.md,
-            marginTop: Spacing.xl,
-            width: '100%',
-        },
-        navButton: {
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.md,
-            backgroundColor: theme.background.secondary,
-            gap: Spacing.xs,
-        },
-        navButtonDisabled: {
-            opacity: 0.5,
-        },
-        navButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.medium,
-            color: theme.text.primary,
-        },
-        navButtonTextDisabled: {
-            color: Colors.neutral[400],
-        },
-        nextNavButton: {
-            backgroundColor: Colors.primary[500],
-        },
-        nextNavButtonText: {
-            color: Colors.white,
-        },
-        quizProgress: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: Spacing.lg,
-        },
-        quizProgressText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
-        quizScoreText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[500],
-        },
-        quizCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.xl,
-            padding: Spacing.xl,
-            alignItems: 'center',
-            marginBottom: Spacing.lg,
-        },
-        quizLabel: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            marginBottom: Spacing.sm,
-        },
-        quizGerman: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            textAlign: 'center',
-            marginBottom: Spacing.sm,
-        },
-        quizLiteral: {
-            fontSize: FontSize.md,
-            color: theme.text.tertiary,
-            fontStyle: 'italic',
-        },
-        quizOptions: {
-            gap: Spacing.sm,
-            marginBottom: Spacing.lg,
-        },
+        quizQuestionLabel: { fontSize: 13, color: theme.text.tertiary, marginBottom: 10 },
+        quizGerman: { fontSize: 22, fontWeight: FontWeight.bold, color: theme.text.primary, textAlign: 'center', marginBottom: 6 },
+        quizLiteral: { fontSize: 14, color: theme.text.tertiary, fontStyle: 'italic' },
+        quizOptions: { gap: 10, marginBottom: 20 },
         quizOption: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.md,
-            padding: Spacing.md,
-            borderWidth: 2,
-            borderColor: 'transparent',
+            flexDirection: 'row', alignItems: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 14, padding: 14, borderWidth: 1.5,
+            borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB',
         },
-        quizOptionCorrect: {
-            borderColor: Colors.success[500],
-            backgroundColor: Colors.success[50],
+        quizOptionIndex: {
+            width: 28, height: 28, borderRadius: 8,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50],
+            alignItems: 'center', justifyContent: 'center', marginRight: 12,
         },
-        quizOptionWrong: {
-            borderColor: Colors.error[500],
-            backgroundColor: Colors.error[50],
+        quizOptionIndexText: { fontSize: 13, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+        quizOptionText: { flex: 1, fontSize: 14, color: theme.text.primary, lineHeight: 20 },
+        quizNextBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            paddingVertical: 14, borderRadius: 14, gap: 6,
         },
-        quizOptionText: {
-            fontSize: FontSize.md,
-            color: theme.text.primary,
-        },
-        quizNextButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.md,
-            gap: Spacing.xs,
-        },
-        quizNextButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
+        quizNextText: { fontSize: 15, fontWeight: FontWeight.bold, color: '#fff' },
     });
 
 export default IdiomsSlangScreen;

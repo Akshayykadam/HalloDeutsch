@@ -6,16 +6,14 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Image,
-    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
-import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
-import { getRandomImage } from '../../services/imageService';
 import {
     culturalTips,
     cultureQuizQuestions,
@@ -31,7 +29,7 @@ type ScreenState = 'browse' | 'detail' | 'quiz' | 'quiz-result';
 export const CulturalGuideScreen: React.FC = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
-    const styles = getStyles(theme, isDark);
+    const s = getStyles(theme, isDark);
 
     const [screenState, setScreenState] = useState<ScreenState>('browse');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -65,17 +63,14 @@ export const CulturalGuideScreen: React.FC = () => {
 
     const handleQuizAnswer = (answer: string) => {
         if (showExplanation) return;
-
         setSelectedAnswer(answer);
         const isCorrect = answer === quizQuestions[quizIndex].correctAnswer;
-
         if (isCorrect) {
             setQuizScore(prev => prev + 1);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
-
         setShowExplanation(true);
     };
 
@@ -89,331 +84,314 @@ export const CulturalGuideScreen: React.FC = () => {
         }
     };
 
-    const getImportanceColor = (importance: CulturalTip['importance']) => {
+    const getImportanceGrad = (importance: CulturalTip['importance']): [string, string] => {
         switch (importance) {
-            case 'essential':
-                return Colors.error[500];
-            case 'helpful':
-                return Colors.primary[500];
-            case 'interesting':
-                return Colors.success[500];
+            case 'essential': return ['#EF4444', '#DC2626'];
+            case 'helpful': return ['#6366F1', '#4F46E5'];
+            case 'interesting': return ['#10B981', '#059669'];
         }
     };
 
+    const getImportanceIcon = (importance: CulturalTip['importance']) => {
+        switch (importance) {
+            case 'essential': return 'alert-circle';
+            case 'helpful': return 'thumbs-up';
+            case 'interesting': return 'sparkles';
+        }
+    };
+
+    /* ─── Browse ─── */
     const renderBrowse = () => (
-        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
-            {/* Quiz Banner */}
-            <TouchableOpacity style={styles.quizBanner} onPress={handleStartQuiz}>
-                <View style={styles.quizBannerContent}>
-                    <View style={styles.quizBannerIconContainer}>
-                        <Ionicons name="school" size={32} color={Colors.white} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+            {/* Quiz Hero Banner */}
+            <TouchableOpacity activeOpacity={0.85} onPress={handleStartQuiz}>
+                <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.quizBanner}>
+                    <View style={s.quizBannerLeft}>
+                        <View style={s.quizBannerIcon}>
+                            <Ionicons name="school" size={22} color="#fff" />
+                        </View>
+                        <View>
+                            <Text style={s.quizBannerTitle}>Test Your Knowledge!</Text>
+                            <Text style={s.quizBannerSub}>5-question culture quiz</Text>
+                        </View>
                     </View>
-                    <View>
-                        <Text style={styles.quizBannerTitle}>Test Your Knowledge!</Text>
-                        <Text style={styles.quizBannerSubtitle}>Take the culture quiz</Text>
+                    <View style={s.quizBannerArrow}>
+                        <Ionicons name="chevron-forward" size={18} color="#fff" />
                     </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={Colors.white} />
+                </LinearGradient>
             </TouchableOpacity>
 
-            {/* Category Filter */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryScroll}
-            >
+            {/* Category Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
                 <TouchableOpacity
-                    style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+                    style={[s.chip, !selectedCategory && s.chipActive]}
                     onPress={() => setSelectedCategory(null)}
                 >
-                    <Text
-                        style={[
-                            styles.categoryChipText,
-                            !selectedCategory && styles.categoryChipTextActive,
-                        ]}
-                    >
-                        All
-                    </Text>
+                    <Text style={[s.chipText, !selectedCategory && s.chipTextActive]}>All</Text>
                 </TouchableOpacity>
                 {categories.map((cat) => (
                     <TouchableOpacity
                         key={cat.key}
-                        style={[
-                            styles.categoryChip,
-                            selectedCategory === cat.key && styles.categoryChipActive,
-                        ]}
+                        style={[s.chip, selectedCategory === cat.key && s.chipActive]}
                         onPress={() => setSelectedCategory(cat.key)}
                     >
-                        <Ionicons
-                            name={cat.icon as any}
-                            size={16}
-                            color={selectedCategory === cat.key ? Colors.white : theme.text.secondary}
-                        />
-                        <Text
-                            style={[
-                                styles.categoryChipText,
-                                selectedCategory === cat.key && styles.categoryChipTextActive,
-                            ]}
-                        >
-                            {cat.label}
-                        </Text>
+                        <Ionicons name={cat.icon as any} size={14} color={selectedCategory === cat.key ? '#fff' : theme.text.tertiary} />
+                        <Text style={[s.chipText, selectedCategory === cat.key && s.chipTextActive]}>{cat.label}</Text>
                     </TouchableOpacity>
                 ))}
             </ScrollView>
 
-            {/* Tips List */}
-            <Text style={styles.sectionTitle}>
-                {selectedCategory
-                    ? categories.find(c => c.key === selectedCategory)?.label
-                    : 'All Tips'}
-            </Text>
+            {/* Section Header */}
+            <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>
+                    {selectedCategory ? categories.find(c => c.key === selectedCategory)?.label : 'All Tips'}
+                </Text>
+                <View style={s.countPill}>
+                    <Text style={s.countText}>{displayTips.length}</Text>
+                </View>
+            </View>
 
-            {displayTips.map((tip) => (
-                <TouchableOpacity
-                    key={tip.id}
-                    style={styles.tipCard}
-                    onPress={() => handleSelectTip(tip)}
-                >
-                    <View style={styles.tipIconContainer}>
-                        <Ionicons name={tip.icon as any} size={28} color={getImportanceColor(tip.importance)} />
-                    </View>
-                    <View style={styles.tipContent}>
-                        <Text style={styles.tipTitle}>{tip.title}</Text>
-                        <Text style={styles.tipTitleDe}>{tip.titleDe}</Text>
-                        <View
-                            style={[
-                                styles.importanceBadge,
-                                { backgroundColor: getImportanceColor(tip.importance) + '20' },
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.importanceText,
-                                    { color: getImportanceColor(tip.importance) },
-                                ]}
-                            >
-                                {tip.importance}
-                            </Text>
+            {/* Tips List */}
+            {displayTips.map((tip) => {
+                const gradColors = getImportanceGrad(tip.importance);
+                return (
+                    <TouchableOpacity key={tip.id} style={s.tipCard} onPress={() => handleSelectTip(tip)} activeOpacity={0.8}>
+                        <LinearGradient colors={gradColors} style={s.tipIconWrap}>
+                            <Ionicons name={tip.icon as any} size={22} color="#fff" />
+                        </LinearGradient>
+                        <View style={s.tipContent}>
+                            <Text style={s.tipTitle}>{tip.title}</Text>
+                            <Text style={s.tipTitleDe}>{tip.titleDe}</Text>
+                            <View style={[s.importancePill, { backgroundColor: gradColors[0] + '18' }]}>
+                                <Text style={[s.importanceText, { color: gradColors[0] }]}>{tip.importance}</Text>
+                            </View>
                         </View>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={theme.text.tertiary} />
-                </TouchableOpacity>
-            ))}
+                        <Ionicons name="chevron-forward" size={18} color={theme.text.tertiary} />
+                    </TouchableOpacity>
+                );
+            })}
         </ScrollView>
     );
 
+    /* ─── Detail ─── */
     const renderDetail = () => {
         if (!selectedTip) return null;
+        const gradColors = getImportanceGrad(selectedTip.importance);
 
         return (
-            <ScrollView style={styles.scrollContent} contentContainerStyle={styles.detailScrollContainer}>
-                {/* Hero Image */}
-                <View style={styles.heroImageContainer}>
-                    <Image
-                        source={{ uri: getRandomImage(selectedTip.title + ' germany', 800, 400) }}
-                        style={styles.heroImage}
-                        resizeMode="cover"
-                    />
-                    <View style={styles.heroImageOverlay} />
-                    <View style={styles.heroContent}>
-                        <View style={[styles.detailIconContainer, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
-                            <Ionicons name={selectedTip.icon as any} size={36} color={getImportanceColor(selectedTip.importance)} />
-                        </View>
-                        <Text style={styles.heroTitle}>{selectedTip.title}</Text>
-                        <Text style={styles.heroTitleDe}>{selectedTip.titleDe}</Text>
-                        <View style={[styles.detailImportanceBadge, { backgroundColor: getImportanceColor(selectedTip.importance) }]}>
-                            <Ionicons
-                                name={selectedTip.importance === 'essential' ? 'alert-circle' : selectedTip.importance === 'helpful' ? 'thumbs-up' : 'sparkles'}
-                                size={14}
-                                color={Colors.white}
-                            />
-                            <Text style={styles.detailImportanceText}>{selectedTip.importance}</Text>
-                        </View>
+            <ScrollView style={s.scroll} contentContainerStyle={s.detailPad} showsVerticalScrollIndicator={false}>
+                {/* Hero Header */}
+                <View style={s.detailHero}>
+                    <LinearGradient colors={gradColors} style={s.detailIconCircle}>
+                        <Ionicons name={selectedTip.icon as any} size={32} color="#fff" />
+                    </LinearGradient>
+                    <Text style={s.detailTitle}>{selectedTip.title}</Text>
+                    <Text style={s.detailTitleDe}>{selectedTip.titleDe}</Text>
+                    <View style={[s.detailBadge, { backgroundColor: gradColors[0] }]}>
+                        <Ionicons name={getImportanceIcon(selectedTip.importance) as any} size={12} color="#fff" />
+                        <Text style={s.detailBadgeText}>{selectedTip.importance}</Text>
                     </View>
                 </View>
 
                 {/* Content Card */}
-                <View style={styles.detailCard}>
-                    <View style={styles.detailCardHeader}>
-                        <Ionicons name="information-circle" size={20} color={Colors.primary[500]} />
-                        <Text style={styles.detailCardTitle}>What You Should Know</Text>
+                <View style={s.detailCard}>
+                    <View style={s.detailCardHeader}>
+                        <View style={s.detailCardIconWrap}>
+                            <Ionicons name="information-circle" size={16} color={Colors.primary[400]} />
+                        </View>
+                        <Text style={s.detailCardLabel}>What You Should Know</Text>
                     </View>
-                    <Text style={styles.detailContent}>{selectedTip.content}</Text>
+                    <Text style={s.detailCardContent}>{selectedTip.content}</Text>
                 </View>
 
+                {/* Phrase Card */}
                 {selectedTip.germanPhrase && (
-                    <View style={styles.phraseCard}>
-                        <View style={styles.phraseHeader}>
-                            <View style={styles.phraseFlagContainer}>
-                                <Ionicons name="flag" size={18} color={Colors.primary[500]} />
+                    <View style={s.phraseCard}>
+                        <LinearGradient colors={gradColors} style={s.phraseAccent} />
+                        <View style={s.phraseBody}>
+                            <View style={s.phraseHeader}>
+                                <View style={s.phraseFlagWrap}>
+                                    <Ionicons name="flag" size={14} color={Colors.primary[400]} />
+                                </View>
+                                <Text style={s.phraseLabel}>Useful Phrase</Text>
                             </View>
-                            <Text style={styles.phraseLabel}>Useful Phrase</Text>
+                            <Text style={s.phraseGerman}>{selectedTip.germanPhrase}</Text>
+                            <View style={s.phraseDivider} />
+                            <Text style={s.phraseEnglish}>{selectedTip.germanPhraseTranslation}</Text>
                         </View>
-                        <Text style={styles.phraseGerman}>{selectedTip.germanPhrase}</Text>
-                        <View style={styles.phraseDivider} />
-                        <Text style={styles.phraseEnglish}>
-                            {selectedTip.germanPhraseTranslation}
-                        </Text>
                     </View>
                 )}
 
+                {/* Did You Know */}
                 {selectedTip.didYouKnow && (
-                    <View style={styles.didYouKnowCard}>
-                        <View style={styles.didYouKnowHeader}>
-                            <View style={styles.didYouKnowIconContainer}>
-                                <Ionicons name="bulb" size={20} color={Colors.warning[600]} />
+                    <View style={s.dykCard}>
+                        <View style={s.dykHeader}>
+                            <View style={s.dykIconWrap}>
+                                <Ionicons name="bulb" size={16} color="#F59E0B" />
                             </View>
-                            <Text style={styles.didYouKnowLabel}>Did You Know?</Text>
+                            <Text style={s.dykLabel}>Did You Know?</Text>
                         </View>
-                        <Text style={styles.didYouKnowText}>{selectedTip.didYouKnow}</Text>
+                        <Text style={s.dykText}>{selectedTip.didYouKnow}</Text>
                     </View>
                 )}
 
-                <TouchableOpacity
-                    style={styles.backToListButton}
-                    onPress={() => setScreenState('browse')}
-                >
-                    <View style={styles.backToListIconContainer}>
-                        <Ionicons name="arrow-back" size={18} color={Colors.primary[500]} />
-                    </View>
-                    <Text style={styles.backToListText}>Back to all tips</Text>
+                {/* Back button */}
+                <TouchableOpacity style={s.backToListBtn} onPress={() => setScreenState('browse')} activeOpacity={0.8}>
+                    <Ionicons name="arrow-back" size={16} color={Colors.primary[400]} />
+                    <Text style={s.backToListText}>Back to all tips</Text>
                 </TouchableOpacity>
             </ScrollView>
         );
     };
 
+    /* ─── Quiz ─── */
     const renderQuiz = () => {
         const currentQuestion = quizQuestions[quizIndex];
         if (!currentQuestion) return null;
 
         return (
-            <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.quizProgress}>
-                    <Text style={styles.quizProgressText}>
-                        Question {quizIndex + 1} of {quizQuestions.length}
-                    </Text>
-                    <View style={styles.quizProgressBar}>
-                        <View
-                            style={[
-                                styles.quizProgressFill,
-                                { width: `${((quizIndex + 1) / quizQuestions.length) * 100}%` },
-                            ]}
-                        />
+            <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+                {/* Progress */}
+                <View style={s.quizProgressRow}>
+                    <Text style={s.quizProgressLabel}>Question {quizIndex + 1}/{quizQuestions.length}</Text>
+                    <View style={s.quizScorePill}>
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text style={s.quizScoreText}>{quizScore}</Text>
                     </View>
                 </View>
-
-                <View style={styles.questionCard}>
-                    <Text style={styles.questionText}>{currentQuestion.question}</Text>
+                <View style={s.quizProgressTrack}>
+                    <LinearGradient
+                        colors={['#6366F1', '#818CF8'] as [string, string]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={[s.quizProgressFill, { width: `${((quizIndex + 1) / quizQuestions.length) * 100}%` }]}
+                    />
                 </View>
 
-                <View style={styles.quizOptions}>
+                {/* Question */}
+                <View style={s.quizQuestionCard}>
+                    <Text style={s.quizQuestionText}>{currentQuestion.question}</Text>
+                </View>
+
+                {/* Options */}
+                <View style={s.quizOptions}>
                     {currentQuestion.options.map((option, index) => {
                         const isSelected = selectedAnswer === option;
                         const isCorrect = option === currentQuestion.correctAnswer;
                         const showCorrect = showExplanation && isCorrect;
                         const showWrong = showExplanation && isSelected && !isCorrect;
 
+                        let borderStyle = {};
+                        if (showCorrect) {
+                            borderStyle = { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ECFDF5' };
+                        } else if (showWrong) {
+                            borderStyle = { borderColor: '#EF4444', backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#FEF2F2' };
+                        }
+
                         return (
                             <TouchableOpacity
                                 key={index}
-                                style={[
-                                    styles.quizOption,
-                                    isSelected && styles.quizOptionSelected,
-                                    showCorrect && styles.quizOptionCorrect,
-                                    showWrong && styles.quizOptionWrong,
-                                ]}
+                                style={[s.quizOption, borderStyle]}
                                 onPress={() => handleQuizAnswer(option)}
                                 disabled={showExplanation}
+                                activeOpacity={0.8}
                             >
-                                <Text style={styles.quizOptionText}>{option}</Text>
-                                {showCorrect && (
-                                    <Ionicons name="checkmark-circle" size={24} color={Colors.success[500]} />
-                                )}
-                                {showWrong && (
-                                    <Ionicons name="close-circle" size={24} color={Colors.error[500]} />
-                                )}
+                                <View style={s.quizOptionIndex}>
+                                    <Text style={s.quizOptionIndexText}>{String.fromCharCode(65 + index)}</Text>
+                                </View>
+                                <Text style={s.quizOptionText}>{option}</Text>
+                                {showCorrect && <Ionicons name="checkmark-circle" size={20} color="#10B981" />}
+                                {showWrong && <Ionicons name="close-circle" size={20} color="#EF4444" />}
                             </TouchableOpacity>
                         );
                     })}
                 </View>
 
+                {/* Explanation */}
                 {showExplanation && (
-                    <View style={styles.explanationCard}>
-                        <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
+                    <View style={s.explanationCard}>
+                        <Ionicons name="bulb" size={16} color="#F59E0B" />
+                        <Text style={s.explanationText}>{currentQuestion.explanation}</Text>
                     </View>
                 )}
 
+                {/* Next */}
                 {showExplanation && (
-                    <TouchableOpacity style={styles.nextButton} onPress={handleNextQuestion}>
-                        <Text style={styles.nextButtonText}>
-                            {quizIndex < quizQuestions.length - 1 ? 'Next Question' : 'See Results'}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+                    <TouchableOpacity activeOpacity={0.85} onPress={handleNextQuestion}>
+                        <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.nextBtn}>
+                            <Text style={s.nextBtnText}>
+                                {quizIndex < quizQuestions.length - 1 ? 'Next Question' : 'See Results'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={18} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                 )}
             </ScrollView>
         );
     };
 
+    /* ─── Quiz Result ─── */
     const renderQuizResult = () => {
         const percentage = Math.round((quizScore / quizQuestions.length) * 100);
-        const iconName = percentage >= 80 ? 'trophy' : percentage >= 60 ? 'thumbs-up' : 'book';
-        const iconColor = percentage >= 80 ? Colors.gold[500] : percentage >= 60 ? Colors.primary[500] : Colors.warning[500];
+        let iconName: 'trophy' | 'thumbs-up' | 'book' = 'book';
+        let gradColors: [string, string] = ['#6366F1', '#4F46E5'];
+        let message = "Keep exploring! There's more to discover.";
+
+        if (percentage >= 80) {
+            iconName = 'trophy'; gradColors = ['#F59E0B', '#D97706'];
+            message = 'Excellent! You know German culture well!';
+        } else if (percentage >= 60) {
+            iconName = 'thumbs-up'; gradColors = ['#10B981', '#059669'];
+            message = 'Good job! Keep learning!';
+        }
 
         return (
-            <View style={styles.resultContainer}>
-                <View style={styles.resultCard}>
-                    <Ionicons name={iconName} size={64} color={iconColor} style={{ marginBottom: Spacing.md }} />
-                    <Text style={styles.resultTitle}>Quiz Complete!</Text>
-                    <Text style={styles.resultScore}>
-                        {quizScore} / {quizQuestions.length} correct
-                    </Text>
-                    <Text style={styles.resultPercentage}>{percentage}%</Text>
-                    <Text style={styles.resultMessage}>
-                        {percentage >= 80
-                            ? 'Excellent! You know German culture well!'
-                            : percentage >= 60
-                                ? 'Good job! Keep learning!'
-                                : 'Keep exploring! There\'s more to discover.'}
-                    </Text>
+            <View style={s.resultContainer}>
+                <View style={s.resultCard}>
+                    <LinearGradient colors={gradColors} style={s.resultIconCircle}>
+                        <Ionicons name={iconName} size={36} color="#fff" />
+                    </LinearGradient>
+                    <Text style={s.resultTitle}>Quiz Complete!</Text>
+
+                    <View style={s.resultScoreCircle}>
+                        <Text style={s.resultPct}>{percentage}%</Text>
+                        <Text style={s.resultScoreLabel}>Score</Text>
+                    </View>
+
+                    <Text style={s.resultDetail}>{quizScore} / {quizQuestions.length} correct</Text>
+                    <Text style={s.resultMessage}>{message}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.retryButton} onPress={handleStartQuiz}>
-                    <Ionicons name="refresh" size={20} color={Colors.white} />
-                    <Text style={styles.retryButtonText}>Try Again</Text>
+                <TouchableOpacity activeOpacity={0.85} onPress={handleStartQuiz}>
+                    <LinearGradient colors={['#6366F1', '#4F46E5'] as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.retryBtn}>
+                        <Ionicons name="refresh" size={18} color="#fff" />
+                        <Text style={s.retryBtnText}>Try Again</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.browseButton}
-                    onPress={() => setScreenState('browse')}
-                >
-                    <Text style={styles.browseButtonText}>Back to Tips</Text>
+                <TouchableOpacity style={s.browseBtn} onPress={() => setScreenState('browse')}>
+                    <Text style={s.browseBtnText}>Back to Tips</Text>
                 </TouchableOpacity>
             </View>
         );
     };
 
+    /* ─── Main ─── */
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
+        <View style={s.container}>
+            <View style={s.header}>
                 <TouchableOpacity
                     onPress={() => {
-                        if (screenState === 'browse') {
-                            navigation.goBack();
-                        } else if (screenState === 'detail') {
-                            setScreenState('browse');
-                        } else if (screenState === 'quiz' || screenState === 'quiz-result') {
-                            setScreenState('browse');
-                        }
+                        if (screenState === 'browse') { navigation.goBack(); }
+                        else { setScreenState('browse'); }
                     }}
-                    style={styles.backButton}
+                    style={s.backButton}
                 >
-                    <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Cultural Guide</Text>
-                <View style={styles.headerRight}>
-                    <Ionicons name="globe-outline" size={24} color={theme.text.primary} />
+                <Text style={s.headerTitle}>Cultural Guide</Text>
+                <View style={s.headerPill}>
+                    <Ionicons name="globe" size={13} color={Colors.primary[400]} />
+                    <Text style={s.headerPillText}>{culturalTips.length}</Text>
                 </View>
             </View>
 
@@ -427,501 +405,218 @@ export const CulturalGuideScreen: React.FC = () => {
 
 const getStyles = (theme: any, isDark: boolean) =>
     StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: theme.background.primary,
-        },
+        container: { flex: 1, backgroundColor: theme.background.primary },
+        /* Header */
         header: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: Spacing.md,
-            paddingTop: 50,
-            paddingBottom: Spacing.md,
-            backgroundColor: theme.background.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border.light,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
         },
-        backButton: {
-            padding: Spacing.xs,
+        backButton: { padding: 4 },
+        headerTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
+        headerPill: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
         },
-        headerTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        headerRight: {
-            width: 40,
-            alignItems: 'flex-end',
-        },
-        scrollContent: {
-            flex: 1,
-        },
-        scrollContainer: {
-            padding: Spacing.md,
-            paddingBottom: Spacing['2xl'],
-        },
+        headerPillText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+
+        /* Scroll */
+        scroll: { flex: 1 },
+        scrollPad: { padding: 16, paddingBottom: 40 },
+        detailPad: { padding: 16, paddingBottom: 40 },
+
+        /* Quiz Banner */
         quizBanner: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: Colors.primary[500],
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.md,
-            marginBottom: Spacing.lg,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            borderRadius: 16, padding: 16, marginBottom: 18,
         },
-        quizBannerContent: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.md,
+        quizBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+        quizBannerIcon: {
+            width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)',
+            alignItems: 'center', justifyContent: 'center',
         },
-        quizBannerIconContainer: {
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            alignItems: 'center',
-            justifyContent: 'center',
+        quizBannerTitle: { fontSize: 15, fontWeight: FontWeight.bold, color: '#fff' },
+        quizBannerSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+        quizBannerArrow: {
+            width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)',
+            alignItems: 'center', justifyContent: 'center',
         },
-        quizBannerTitle: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+
+        /* Category Chips */
+        chipRow: { paddingBottom: 14, gap: 8 },
+        chip: {
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+            paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
         },
-        quizBannerSubtitle: {
-            fontSize: FontSize.sm,
-            color: Colors.white,
-            opacity: 0.9,
+        chipActive: { backgroundColor: Colors.primary[500] },
+        chipText: { fontSize: 13, color: theme.text.secondary, fontWeight: FontWeight.medium },
+        chipTextActive: { color: '#fff' },
+
+        /* Section */
+        sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+        sectionTitle: { fontSize: 17, fontWeight: FontWeight.bold, color: theme.text.primary },
+        countPill: {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12,
         },
-        categoryScroll: {
-            paddingBottom: Spacing.md,
-            gap: Spacing.sm,
-        },
-        categoryChip: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.background.secondary,
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.sm,
-            borderRadius: BorderRadius.full,
-            gap: Spacing.xs,
-        },
-        categoryChipActive: {
-            backgroundColor: Colors.primary[500],
-        },
-        categoryChipText: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-        },
-        categoryChipTextActive: {
-            color: Colors.white,
-            fontWeight: FontWeight.medium,
-        },
-        sectionTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.md,
-        },
+        countText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+
+        /* Tip Cards */
         tipCard: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.md,
-            marginBottom: Spacing.sm,
-            ...Shadows.sm,
+            flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderRadius: 14,
+            padding: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        tipIconContainer: {
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: theme.background.tertiary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: Spacing.md,
+        tipIconWrap: {
+            width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12,
         },
-        tipContent: {
-            flex: 1,
+        tipContent: { flex: 1 },
+        tipTitle: { fontSize: 14, fontWeight: FontWeight.bold, color: theme.text.primary },
+        tipTitleDe: { fontSize: 12, color: theme.text.secondary, marginBottom: 4 },
+        importancePill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+        importanceText: { fontSize: 11, fontWeight: FontWeight.bold, textTransform: 'capitalize' as const },
+
+        /* ─── Detail ─── */
+        detailHero: { alignItems: 'center', paddingVertical: 24, marginBottom: 8 },
+        detailIconCircle: {
+            width: 72, height: 72, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
         },
-        tipTitle: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
+        detailTitle: { fontSize: 22, fontWeight: FontWeight.bold, color: theme.text.primary, textAlign: 'center', marginBottom: 4 },
+        detailTitleDe: { fontSize: 14, color: theme.text.secondary, textAlign: 'center', marginBottom: 12 },
+        detailBadge: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
         },
-        tipTitleDe: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            marginBottom: Spacing.xs,
-        },
-        importanceBadge: {
-            alignSelf: 'flex-start',
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 2,
-            borderRadius: BorderRadius.sm,
-        },
-        importanceText: {
-            fontSize: FontSize.xs,
-            fontWeight: FontWeight.medium,
-            textTransform: 'capitalize',
-        },
-        detailScrollContainer: {
-            paddingBottom: Spacing['2xl'],
-        },
-        heroImageContainer: {
-            height: 220,
-            position: 'relative',
-            marginBottom: Spacing.md,
-        },
-        heroImage: {
-            width: '100%',
-            height: '100%',
-        },
-        heroImageOverlay: {
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-        },
-        heroContent: {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: Spacing.lg,
-            alignItems: 'center',
-        },
-        heroTitle: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            textAlign: 'center',
-            marginBottom: Spacing.xs,
-            textShadowColor: 'rgba(0,0,0,0.5)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3,
-        },
-        heroTitleDe: {
-            fontSize: FontSize.md,
-            color: Colors.white,
-            textAlign: 'center',
-            marginBottom: Spacing.md,
-            opacity: 0.9,
-        },
-        detailHero: {
-            alignItems: 'center',
-            paddingVertical: Spacing.xl,
-            paddingHorizontal: Spacing.lg,
-            marginBottom: Spacing.md,
-            borderBottomLeftRadius: BorderRadius['2xl'],
-            borderBottomRightRadius: BorderRadius['2xl'],
-        },
-        detailHeader: {
-            alignItems: 'center',
-            marginBottom: Spacing.lg,
-        },
-        detailIconContainer: {
-            width: 72,
-            height: 72,
-            borderRadius: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: Spacing.md,
-        },
-        detailTitle: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            textAlign: 'center',
-            marginBottom: Spacing.xs,
-        },
-        detailTitleDe: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            textAlign: 'center',
-            marginBottom: Spacing.md,
-        },
-        detailImportanceBadge: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 4,
-            borderRadius: BorderRadius.full,
-            gap: Spacing.xs,
-        },
-        detailImportanceText: {
-            fontSize: FontSize.xs,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            textTransform: 'capitalize',
-        },
+        detailBadgeText: { fontSize: 11, fontWeight: FontWeight.bold, color: '#fff', textTransform: 'capitalize' as const },
         detailCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginHorizontal: Spacing.md,
-            marginBottom: Spacing.md,
-            ...Shadows.sm,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 16, padding: 18, marginBottom: 12,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        detailCardHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
+        detailCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+        detailCardIconWrap: {
+            width: 28, height: 28, borderRadius: 8,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50],
+            alignItems: 'center', justifyContent: 'center',
         },
-        detailCardTitle: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[600],
-        },
-        detailContent: {
-            fontSize: FontSize.md,
-            color: theme.text.primary,
-            lineHeight: 24,
-        },
+        detailCardLabel: { fontSize: 14, fontWeight: FontWeight.bold, color: Colors.primary[isDark ? 300 : 600] },
+        detailCardContent: { fontSize: 14, color: theme.text.primary, lineHeight: 22 },
+
+        /* Phrase Card */
         phraseCard: {
-            backgroundColor: Colors.primary[50],
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginHorizontal: Spacing.md,
-            marginBottom: Spacing.md,
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.primary[500],
+            flexDirection: 'row', borderRadius: 16, overflow: 'hidden', marginBottom: 12,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.06)' : '#EEF2FF',
         },
-        phraseHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
+        phraseAccent: { width: 4 },
+        phraseBody: { flex: 1, padding: 18 },
+        phraseHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+        phraseFlagWrap: {
+            width: 26, height: 26, borderRadius: 8,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[100],
+            alignItems: 'center', justifyContent: 'center',
         },
-        phraseFlagContainer: {
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: Colors.white,
-            alignItems: 'center',
-            justifyContent: 'center',
+        phraseLabel: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[isDark ? 300 : 600] },
+        phraseGerman: { fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? '#C7D2FE' : Colors.primary[700], marginBottom: 8 },
+        phraseDivider: { height: 1, backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[200], marginBottom: 8 },
+        phraseEnglish: { fontSize: 14, color: isDark ? '#A5B4FC' : Colors.primary[600], fontStyle: 'italic' },
+
+        /* Did You Know */
+        dykCard: {
+            backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB',
+            borderRadius: 16, padding: 18, marginBottom: 16,
+            borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
         },
-        phraseFlag: {
-            fontSize: FontSize.md,
+        dykHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+        dykIconWrap: {
+            width: 28, height: 28, borderRadius: 8,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : '#FEF3C7',
+            alignItems: 'center', justifyContent: 'center',
         },
-        phraseLabel: {
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[600],
+        dykLabel: { fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? '#FBBF24' : '#B45309' },
+        dykText: { fontSize: 14, color: isDark ? '#FCD34D' : '#92400E', lineHeight: 21 },
+
+        /* Back to list */
+        backToListBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+            paddingVertical: 14, borderRadius: 14,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6',
         },
-        phraseGerman: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[700],
-            marginBottom: Spacing.sm,
+        backToListText: { fontSize: 14, fontWeight: FontWeight.medium, color: Colors.primary[isDark ? 300 : 500] },
+
+        /* ─── Quiz ─── */
+        quizProgressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+        quizProgressLabel: { fontSize: 13, color: theme.text.secondary },
+        quizScorePill: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
         },
-        phraseDivider: {
-            height: 1,
-            backgroundColor: Colors.primary[200],
-            marginVertical: Spacing.sm,
+        quizScoreText: { fontSize: 13, fontWeight: FontWeight.bold, color: '#D97706' },
+        quizProgressTrack: {
+            height: 6, borderRadius: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
+            overflow: 'hidden', marginBottom: 20,
         },
-        phraseEnglish: {
-            fontSize: FontSize.md,
-            color: Colors.primary[600],
-            fontStyle: 'italic',
+        quizProgressFill: { height: '100%', borderRadius: 3 },
+        quizQuestionCard: {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 18, padding: 24, marginBottom: 20,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        didYouKnowCard: {
-            backgroundColor: Colors.warning[50],
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginHorizontal: Spacing.md,
-            marginBottom: Spacing.lg,
-            borderWidth: 1,
-            borderColor: Colors.warning[200],
-        },
-        didYouKnowHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
-        },
-        didYouKnowIconContainer: {
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: Colors.warning[100],
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        didYouKnowLabel: {
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.bold,
-            color: Colors.warning[700],
-        },
-        didYouKnowText: {
-            fontSize: FontSize.md,
-            color: Colors.warning[700],
-            lineHeight: 22,
-        },
-        backToListButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: Spacing.sm,
-            paddingVertical: Spacing.md,
-            marginHorizontal: Spacing.md,
-            marginBottom: Spacing.md,
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.md,
-        },
-        backToListIconContainer: {
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: Colors.primary[50],
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        backToListText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.medium,
-            color: Colors.primary[500],
-        },
-        quizProgress: {
-            marginBottom: Spacing.lg,
-        },
-        quizProgressText: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            marginBottom: Spacing.xs,
-        },
-        quizProgressBar: {
-            height: 8,
-            backgroundColor: theme.background.tertiary,
-            borderRadius: BorderRadius.full,
-            overflow: 'hidden',
-        },
-        quizProgressFill: {
-            height: '100%',
-            backgroundColor: Colors.primary[500],
-        },
-        questionCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginBottom: Spacing.lg,
-        },
-        questionText: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            textAlign: 'center',
-        },
-        quizOptions: {
-            gap: Spacing.sm,
-            marginBottom: Spacing.lg,
-        },
+        quizQuestionText: { fontSize: 16, fontWeight: FontWeight.medium, color: theme.text.primary, lineHeight: 24 },
+        quizOptions: { gap: 10, marginBottom: 16 },
         quizOption: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.md,
-            padding: Spacing.md,
-            borderWidth: 2,
-            borderColor: 'transparent',
+            flexDirection: 'row', alignItems: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 14, padding: 14, borderWidth: 1.5,
+            borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB',
         },
-        quizOptionSelected: {
-            borderColor: Colors.primary[500],
+        quizOptionIndex: {
+            width: 28, height: 28, borderRadius: 8,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50],
+            alignItems: 'center', justifyContent: 'center', marginRight: 12,
         },
-        quizOptionCorrect: {
-            borderColor: Colors.success[500],
-            backgroundColor: Colors.success[50],
-        },
-        quizOptionWrong: {
-            borderColor: Colors.error[500],
-            backgroundColor: Colors.error[50],
-        },
-        quizOptionText: {
-            flex: 1,
-            fontSize: FontSize.md,
-            color: theme.text.primary,
-        },
+        quizOptionIndexText: { fontSize: 13, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+        quizOptionText: { flex: 1, fontSize: 14, color: theme.text.primary, lineHeight: 20 },
         explanationCard: {
-            backgroundColor: Colors.primary[50],
-            borderRadius: BorderRadius.md,
-            padding: Spacing.md,
-            marginBottom: Spacing.lg,
+            flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, marginBottom: 16,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB',
+            borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.12)' : '#FEF3C7',
         },
-        explanationText: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[700],
+        explanationText: { flex: 1, fontSize: 13, color: isDark ? '#FCD34D' : '#92400E', lineHeight: 20 },
+        nextBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            paddingVertical: 14, borderRadius: 14, gap: 6,
         },
-        nextButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.md,
-            gap: Spacing.xs,
-        },
-        nextButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        resultContainer: {
-            flex: 1,
-            padding: Spacing.lg,
-            justifyContent: 'center',
-        },
+        nextBtnText: { fontSize: 15, fontWeight: FontWeight.bold, color: '#fff' },
+
+        /* ─── Result ─── */
+        resultContainer: { flex: 1, padding: 16, justifyContent: 'center' },
         resultCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.xl,
-            padding: Spacing.xl,
-            alignItems: 'center',
-            marginBottom: Spacing.lg,
-            ...Shadows.lg,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+            borderRadius: 22, padding: 28, alignItems: 'center', marginBottom: 20,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6',
         },
-        resultTitle: {
-            fontSize: FontSize['2xl'],
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            marginBottom: Spacing.sm,
+        resultIconCircle: {
+            width: 72, height: 72, borderRadius: 22,
+            alignItems: 'center', justifyContent: 'center', marginBottom: 16,
         },
-        resultScore: {
-            fontSize: FontSize.lg,
-            color: theme.text.secondary,
+        resultTitle: { fontSize: 22, fontWeight: FontWeight.bold, color: theme.text.primary, marginBottom: 16 },
+        resultScoreCircle: {
+            width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : Colors.primary[50], marginBottom: 16,
         },
-        resultPercentage: {
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: Colors.primary[500],
-            marginVertical: Spacing.md,
+        resultPct: { fontSize: 28, fontWeight: FontWeight.bold, color: Colors.primary[isDark ? 300 : 600] },
+        resultScoreLabel: { fontSize: 12, color: Colors.primary[400] },
+        resultDetail: { fontSize: 14, color: theme.text.secondary, marginBottom: 8 },
+        resultMessage: { fontSize: 14, color: theme.text.secondary, textAlign: 'center', lineHeight: 20 },
+        retryBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            paddingVertical: 14, borderRadius: 14, gap: 8, marginBottom: 12,
         },
-        resultMessage: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            textAlign: 'center',
-        },
-        retryButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.md,
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
-        },
-        retryButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        browseButton: {
-            alignItems: 'center',
-            paddingVertical: Spacing.md,
-        },
-        browseButtonText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
+        retryBtnText: { fontSize: 15, fontWeight: FontWeight.bold, color: '#fff' },
+        browseBtn: { alignItems: 'center', paddingVertical: 14 },
+        browseBtnText: { fontSize: 14, color: theme.text.secondary },
     });
 
 export default CulturalGuideScreen;

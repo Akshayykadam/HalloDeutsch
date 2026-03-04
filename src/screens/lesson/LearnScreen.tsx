@@ -666,6 +666,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     },
     contentContainer: {
         padding: Spacing.base,
+        paddingBottom: 100,
     },
     sectionHeader: {
         fontSize: FontSize.md,

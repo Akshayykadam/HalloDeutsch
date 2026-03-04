@@ -11,6 +11,7 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as audioService from '../../services/audioService';
@@ -32,7 +33,7 @@ export const DictationScreen: React.FC = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
     const { progress } = useUserStore();
-    const styles = getStyles(theme, isDark);
+    const s = getStyles(theme, isDark);
 
     const [difficulty, setDifficulty] = useState<Difficulty>('word');
     const [items, setItems] = useState<DictationItem[]>([]);
@@ -49,16 +50,8 @@ export const DictationScreen: React.FC = () => {
     const [score, setScore] = useState(0);
     const [completed, setCompleted] = useState(0);
 
-    useEffect(() => {
-        loadItems();
-    }, [difficulty, progress.level]);
-
-    // Cleanup: Stop audio when navigating away
-    useEffect(() => {
-        return () => {
-            audioService.stopAudio();
-        };
-    }, []);
+    useEffect(() => { loadItems(); }, [difficulty, progress.level]);
+    useEffect(() => { return () => { audioService.stopAudio(); }; }, []);
 
     const loadItems = () => {
         const newItems = getDictationByDifficulty(progress.level, difficulty);
@@ -74,29 +67,24 @@ export const DictationScreen: React.FC = () => {
 
     const playAudio = async (slow: boolean = false) => {
         if (isPlaying || !currentItem) return;
-
         setIsPlaying(true);
         setHasPlayed(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        const success = await audioService.speak(currentItem.german, { slow });
+        await audioService.speak(currentItem.german, { slow });
         setIsPlaying(false);
     };
 
     const handleCheck = async () => {
         if (!currentItem || !userInput.trim()) return;
-
         const checkResult = compareDictation(userInput, currentItem.german);
         setResult(checkResult);
         setShowResult(true);
-
         if (checkResult.isCorrect) {
             setScore(prev => prev + 1);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
-
         setCompleted(prev => prev + 1);
     };
 
@@ -115,161 +103,117 @@ export const DictationScreen: React.FC = () => {
         handleNext();
     };
 
-    const renderDifficultyTabs = () => (
-        <View style={styles.difficultyContainer}>
-            {(['word', 'phrase', 'sentence'] as Difficulty[]).map((level) => (
-                <TouchableOpacity
-                    key={level}
-                    style={[
-                        styles.difficultyTab,
-                        difficulty === level && styles.difficultyTabActive,
-                    ]}
-                    onPress={() => setDifficulty(level)}
-                >
-                    <Text
-                        style={[
-                            styles.difficultyText,
-                            difficulty === level && styles.difficultyTextActive,
-                        ]}
-                    >
-                        {level.charAt(0).toUpperCase() + level.slice(1)}s
-                    </Text>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
-
     const renderCharComparison = () => {
         if (!result || !currentItem) return null;
-
         return (
-            <View style={styles.comparisonContainer}>
-                <Text style={styles.comparisonLabel}>Correct spelling:</Text>
-                <View style={styles.charContainer}>
-                    {result.differences.map((diff, index) => (
-                        <Text
-                            key={index}
-                            style={[
-                                styles.charText,
-                                diff.correct ? styles.charCorrect : styles.charWrong,
-                            ]}
-                        >
-                            {diff.char}
-                        </Text>
+            <View style={s.compWrap}>
+                <Text style={s.compLabel}>Correct spelling:</Text>
+                <View style={s.charRow}>
+                    {result.differences.map((diff, i) => (
+                        <Text key={i} style={[s.charText, diff.correct ? s.charOk : s.charBad]}>{diff.char}</Text>
                     ))}
                 </View>
-                <Text style={styles.translationText}>{currentItem.english}</Text>
+                <Text style={s.tranText}>{currentItem.english}</Text>
             </View>
         );
     };
 
     if (items.length === 0) {
         return (
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+            <View style={s.container}>
+                <View style={s.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                        <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Dictation</Text>
-                    <View style={styles.headerRight} />
+                    <Text style={s.headerTitle}>Dictation</Text>
+                    <View style={{ width: 30 }} />
                 </View>
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No dictation items available for this level.</Text>
+                <View style={s.emptyWrap}>
+                    <Ionicons name="volume-mute-outline" size={48} color={theme.text.tertiary} />
+                    <Text style={s.emptyText}>No items available for this level.</Text>
                 </View>
             </View>
         );
     }
 
+    const pct = ((currentIndex + 1) / Math.max(items.length, 1)) * 100;
+
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
+        <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+            <View style={s.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Dictation</Text>
-                <View style={styles.headerRight}>
-                    <Text style={styles.levelBadge}>{getLevelTitle(progress.level)}</Text>
+                <Text style={s.headerTitle}>Dictation</Text>
+                <View style={s.headerPill}>
+                    <Ionicons name="school-outline" size={13} color={Colors.primary[500]} />
+                    <Text style={s.headerPillText}>{getLevelTitle(progress.level)}</Text>
                 </View>
             </View>
 
             {/* Difficulty Tabs */}
-            {renderDifficultyTabs()}
-
-            {/* Progress */}
-            <View style={styles.progressBar}>
-                <View
-                    style={[
-                        styles.progressFill,
-                        { width: `${((currentIndex + 1) / Math.max(items.length, 1)) * 100}%` },
-                    ]}
-                />
+            <View style={s.tabRow}>
+                {(['word', 'phrase', 'sentence'] as Difficulty[]).map(lvl => (
+                    <TouchableOpacity
+                        key={lvl}
+                        style={[s.tab, difficulty === lvl && s.tabActive]}
+                        onPress={() => setDifficulty(lvl)}
+                    >
+                        <Text style={[s.tabText, difficulty === lvl && s.tabTextActive]}>
+                            {lvl.charAt(0).toUpperCase() + lvl.slice(1)}s
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
-            <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-                {/* Instructions */}
-                <View style={styles.instructionCard}>
-                    <Ionicons name="headset" size={22} color={Colors.primary[500]} />
-                    <Text style={styles.instructionText}>
-                        Listen carefully and type what you hear
-                    </Text>
+            {/* Progress */}
+            <View style={s.progressBg}>
+                <LinearGradient colors={[Colors.primary[400], Colors.primary[600]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.progressFill, { width: `${pct}%` }]} />
+            </View>
+
+            <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+                {/* Instruction */}
+                <View style={s.instrRow}>
+                    <Ionicons name="headset-outline" size={16} color={Colors.primary[400]} />
+                    <Text style={s.instrText}>Listen carefully and type what you hear</Text>
                 </View>
 
-                {/* Audio Controls */}
-                <View style={styles.audioSection}>
+                {/* Audio Player */}
+                <View style={s.audioCard}>
                     <TouchableOpacity
-                        style={[styles.playButton, isPlaying && styles.playButtonActive]}
+                        style={s.playBtn}
                         onPress={() => playAudio(false)}
                         disabled={isPlaying || showResult}
+                        activeOpacity={0.8}
                     >
-                        <Ionicons
-                            name={isPlaying ? 'pause' : 'volume-high'}
-                            size={40}
-                            color={Colors.white}
-                        />
+                        <LinearGradient
+                            colors={isPlaying ? [Colors.primary[600], Colors.primary[700]] : [Colors.primary[400], Colors.primary[600]]}
+                            style={s.playBtnGrad}
+                        >
+                            <Ionicons name={isPlaying ? 'pause' : 'volume-high'} size={32} color={Colors.white} />
+                        </LinearGradient>
                     </TouchableOpacity>
 
-                    <View style={styles.audioOptions}>
-                        <TouchableOpacity
-                            style={styles.audioOptionButton}
-                            onPress={() => playAudio(true)}
-                            disabled={isPlaying || showResult}
-                        >
-                            <Ionicons
-                                name="speedometer-outline"
-                                size={20}
-                                color={isPlaying ? Colors.neutral[400] : Colors.primary[500]}
-                            />
-                            <Text style={styles.audioOptionText}>Slow</Text>
+                    <View style={s.audioOpts}>
+                        <TouchableOpacity style={s.audioOptBtn} onPress={() => playAudio(true)} disabled={isPlaying || showResult}>
+                            <Ionicons name="speedometer-outline" size={18} color={isPlaying ? Colors.neutral[500] : Colors.primary[400]} />
+                            <Text style={[s.audioOptText, isPlaying && { color: Colors.neutral[500] }]}>Slow</Text>
                         </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.audioOptionButton}
-                            onPress={() => playAudio(false)}
-                            disabled={isPlaying || showResult}
-                        >
-                            <Ionicons
-                                name="repeat"
-                                size={20}
-                                color={isPlaying ? Colors.neutral[400] : Colors.primary[500]}
-                            />
-                            <Text style={styles.audioOptionText}>Repeat</Text>
+                        <TouchableOpacity style={s.audioOptBtn} onPress={() => playAudio(false)} disabled={isPlaying || showResult}>
+                            <Ionicons name="repeat" size={18} color={isPlaying ? Colors.neutral[500] : Colors.primary[400]} />
+                            <Text style={[s.audioOptText, isPlaying && { color: Colors.neutral[500] }]}>Repeat</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {!hasPlayed && (
-                        <Text style={styles.tapToPlay}>Tap to play audio</Text>
-                    )}
+                    {!hasPlayed && <Text style={s.tapHint}>Tap to play audio</Text>}
                 </View>
 
-                {/* Input Area */}
+                {/* Input or Result */}
                 {!showResult ? (
-                    <View style={styles.inputSection}>
+                    <View style={s.inputSection}>
                         <TextInput
-                            style={styles.textInput}
+                            style={s.textInput}
                             placeholder={`Type the ${difficulty} you hear...`}
                             placeholderTextColor={theme.text.tertiary}
                             value={userInput}
@@ -281,112 +225,96 @@ export const DictationScreen: React.FC = () => {
                         />
 
                         {currentItem?.hints && currentItem.hints.length > 0 && (
-                            <View style={styles.hintsContainer}>
-                                <Ionicons name="bulb-outline" size={16} color={Colors.warning[500]} />
-                                <Text style={styles.hintText}>{currentItem.hints[0]}</Text>
+                            <View style={s.hintRow}>
+                                <Ionicons name="bulb-outline" size={14} color={Colors.warning[500]} />
+                                <Text style={s.hintText}>{currentItem.hints[0]}</Text>
                             </View>
                         )}
 
-                        <View style={styles.inputActions}>
-                            <TouchableOpacity
-                                style={styles.skipButton}
-                                onPress={handleSkip}
-                            >
-                                <Text style={styles.skipButtonText}>Skip</Text>
+                        <View style={s.actionRow}>
+                            <TouchableOpacity style={s.skipBtn} onPress={handleSkip}>
+                                <Text style={s.skipBtnText}>Skip</Text>
                             </TouchableOpacity>
-
                             <TouchableOpacity
-                                style={[
-                                    styles.checkButton,
-                                    (!userInput.trim() || !hasPlayed) && styles.checkButtonDisabled,
-                                ]}
+                                style={[s.checkBtn, (!userInput.trim() || !hasPlayed) && s.checkBtnOff]}
                                 onPress={handleCheck}
                                 disabled={!userInput.trim() || !hasPlayed}
+                                activeOpacity={0.85}
                             >
-                                <Text style={styles.checkButtonText}>Check</Text>
-                                <Ionicons name="checkmark" size={20} color={Colors.white} />
+                                <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.checkBtnGrad}>
+                                    <Text style={s.checkBtnText}>Check</Text>
+                                    <Ionicons name="checkmark" size={18} color={Colors.white} />
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
                     </View>
                 ) : (
-                    <View style={styles.resultSection}>
+                    <View style={s.resultSection}>
                         {/* Result Card */}
-                        <View
-                            style={[
-                                styles.resultCard,
-                                result?.isCorrect ? styles.resultCorrect : styles.resultWrong,
-                            ]}
-                        >
-                            <View style={styles.resultHeader}>
-                                <Ionicons name={result?.isCorrect ? 'checkmark-circle' : 'create'} size={28} color={result?.isCorrect ? Colors.success[500] : Colors.warning[500]} />
-                                <Text style={styles.resultTitle}>
+                        <View style={[s.resultCard, result?.isCorrect ? s.resultOk : s.resultBad]}>
+                            <View style={s.resultHeader}>
+                                <View style={[s.resultIconCircle, { backgroundColor: result?.isCorrect ? Colors.success[500] : Colors.warning[500] }]}>
+                                    <Ionicons name={result?.isCorrect ? 'checkmark' : 'close'} size={20} color={Colors.white} />
+                                </View>
+                                <Text style={s.resultTitle}>
                                     {result?.isCorrect ? 'Perfect!' : 'Almost there!'}
                                 </Text>
                             </View>
 
                             {!result?.isCorrect && (
                                 <>
-                                    <View style={styles.yourAnswerSection}>
-                                        <Text style={styles.yourAnswerLabel}>Your answer:</Text>
-                                        <Text style={styles.yourAnswerText}>{userInput}</Text>
+                                    <View style={s.yourAns}>
+                                        <Text style={s.yourAnsLabel}>Your answer:</Text>
+                                        <Text style={s.yourAnsText}>{userInput}</Text>
                                     </View>
                                     {renderCharComparison()}
                                 </>
                             )}
 
                             {result?.isCorrect && (
-                                <View style={styles.correctSection}>
-                                    <Text style={styles.correctGerman}>{currentItem?.german}</Text>
-                                    <Text style={styles.correctEnglish}>{currentItem?.english}</Text>
+                                <View style={s.correctSection}>
+                                    <Text style={s.correctGerman}>{currentItem?.german}</Text>
+                                    <Text style={s.correctEnglish}>{currentItem?.english}</Text>
                                 </View>
                             )}
 
-                            <View style={styles.accuracyBar}>
-                                <Text style={styles.accuracyLabel}>Accuracy:</Text>
-                                <View style={styles.accuracyBarBg}>
-                                    <View
-                                        style={[
-                                            styles.accuracyBarFill,
-                                            { width: `${result?.accuracy || 0}%` },
-                                        ]}
-                                    />
+                            {/* Accuracy bar */}
+                            <View style={s.accRow}>
+                                <Text style={s.accLabel}>Accuracy</Text>
+                                <View style={s.accBarBg}>
+                                    <View style={[s.accBarFill, { width: `${result?.accuracy || 0}%` }]} />
                                 </View>
-                                <Text style={styles.accuracyValue}>
-                                    {Math.round(result?.accuracy || 0)}%
-                                </Text>
+                                <Text style={s.accValue}>{Math.round(result?.accuracy || 0)}%</Text>
                             </View>
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.nextButton}
-                            onPress={handleNext}
-                        >
-                            <Text style={styles.nextButtonText}>
-                                {currentIndex < items.length - 1 ? 'Next' : 'Finish'}
-                            </Text>
-                            <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+                        <TouchableOpacity onPress={handleNext} activeOpacity={0.85}>
+                            <LinearGradient colors={[Colors.primary[500], Colors.primary[600]]} style={s.nextBtn}>
+                                <Text style={s.nextBtnText}>
+                                    {currentIndex < items.length - 1 ? 'Next' : 'Finish'}
+                                </Text>
+                                <Ionicons name="chevron-forward" size={18} color={Colors.white} />
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
                 )}
             </ScrollView>
 
             {/* Stats Footer */}
-            <View style={styles.statsFooter}>
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{score}</Text>
-                    <Text style={styles.statLabel}>Correct</Text>
+            <View style={s.footer}>
+                <View style={s.footerItem}>
+                    <Text style={s.footerValue}>{score}</Text>
+                    <Text style={s.footerLabel}>Correct</Text>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{completed}</Text>
-                    <Text style={styles.statLabel}>Completed</Text>
+                <View style={s.footerDiv} />
+                <View style={s.footerItem}>
+                    <Text style={s.footerValue}>{completed}</Text>
+                    <Text style={s.footerLabel}>Done</Text>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>
-                        {completed > 0 ? Math.round((score / completed) * 100) : 0}%
-                    </Text>
-                    <Text style={styles.statLabel}>Accuracy</Text>
+                <View style={s.footerDiv} />
+                <View style={s.footerItem}>
+                    <Text style={s.footerValue}>{completed > 0 ? Math.round((score / completed) * 100) : 0}%</Text>
+                    <Text style={s.footerLabel}>Accuracy</Text>
                 </View>
             </View>
         </KeyboardAvoidingView>
@@ -395,355 +323,140 @@ export const DictationScreen: React.FC = () => {
 
 const getStyles = (theme: any, isDark: boolean) =>
     StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: theme.background.primary,
-        },
+        container: { flex: 1, backgroundColor: theme.background.primary },
+
+        /* Header */
         header: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: Spacing.md,
-            paddingTop: 50,
-            paddingBottom: Spacing.md,
-            backgroundColor: theme.background.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border.light,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingHorizontal: Spacing.md, paddingTop: 52, paddingBottom: 12,
         },
-        backButton: {
-            padding: Spacing.xs,
+        backBtn: { padding: 4 },
+        headerTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
+        headerPill: {
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
         },
-        headerTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
+        headerPillText: { fontSize: 12, fontWeight: FontWeight.bold, color: Colors.primary[500] },
+
+        /* Tabs */
+        tabRow: { flexDirection: 'row', paddingHorizontal: Spacing.md, gap: 8, marginBottom: 4 },
+        tab: {
+            flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 10,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : Colors.neutral[50],
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
-        headerRight: {
-            width: 50,
-            alignItems: 'flex-end',
+        tabActive: { backgroundColor: Colors.primary[500], borderColor: Colors.primary[500] },
+        tabText: { fontSize: 13, fontWeight: FontWeight.medium, color: theme.text.secondary },
+        tabTextActive: { color: Colors.white, fontWeight: FontWeight.bold },
+
+        /* Progress */
+        progressBg: { height: 4, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200], overflow: 'hidden', marginTop: 6 },
+        progressFill: { height: '100%' },
+
+        /* Scroll */
+        scroll: { flex: 1 },
+        scrollContent: { padding: Spacing.md, paddingBottom: 20 },
+
+        /* Empty */
+        emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+        emptyText: { fontSize: 14, color: theme.text.secondary, textAlign: 'center' },
+
+        /* Instruction */
+        instrRow: {
+            flexDirection: 'row', alignItems: 'center', gap: 8,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : Colors.primary[50],
+            paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, marginBottom: 16,
         },
-        levelBadge: {
-            backgroundColor: Colors.primary[500],
-            color: Colors.white,
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 2,
-            borderRadius: BorderRadius.sm,
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.bold,
-            overflow: 'hidden',
+        instrText: { fontSize: 13, color: isDark ? Colors.primary[300] : Colors.primary[700], flex: 1 },
+
+        /* Audio Card */
+        audioCard: { alignItems: 'center', marginBottom: 20 },
+        playBtn: {},
+        playBtnGrad: {
+            width: 80, height: 80, borderRadius: 40,
+            alignItems: 'center', justifyContent: 'center', ...Shadows.md,
         },
-        difficultyContainer: {
-            flexDirection: 'row',
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.sm,
-            gap: Spacing.sm,
-        },
-        difficultyTab: {
-            flex: 1,
-            paddingVertical: Spacing.sm,
-            alignItems: 'center',
-            borderRadius: BorderRadius.md,
-            backgroundColor: theme.background.secondary,
-        },
-        difficultyTabActive: {
-            backgroundColor: Colors.primary[500],
-        },
-        difficultyText: {
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.medium,
-            color: theme.text.secondary,
-        },
-        difficultyTextActive: {
-            color: Colors.white,
-        },
-        progressBar: {
-            height: 4,
-            backgroundColor: theme.background.tertiary,
-        },
-        progressFill: {
-            height: '100%',
-            backgroundColor: Colors.primary[500],
-        },
-        content: {
-            flex: 1,
-        },
-        contentContainer: {
-            padding: Spacing.md,
-        },
-        emptyContainer: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: Spacing.xl,
-        },
-        emptyText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            textAlign: 'center',
-        },
-        instructionCard: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: Colors.primary[50],
-            paddingVertical: Spacing.sm,
-            paddingHorizontal: Spacing.md,
-            borderRadius: BorderRadius.md,
-            marginBottom: Spacing.lg,
-            gap: Spacing.sm,
-        },
-        instructionIcon: {
-            fontSize: 24,
-        },
-        instructionText: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[700],
-            flex: 1,
-        },
-        audioSection: {
-            alignItems: 'center',
-            marginBottom: Spacing.xl,
-        },
-        playButton: {
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            backgroundColor: Colors.primary[500],
-            alignItems: 'center',
-            justifyContent: 'center',
-            ...Shadows.lg,
-        },
-        playButtonActive: {
-            backgroundColor: Colors.primary[600],
-        },
-        audioOptions: {
-            flexDirection: 'row',
-            marginTop: Spacing.md,
-            gap: Spacing.lg,
-        },
-        audioOptionButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.xs,
-        },
-        audioOptionText: {
-            fontSize: FontSize.sm,
-            color: Colors.primary[500],
-        },
-        tapToPlay: {
-            marginTop: Spacing.sm,
-            fontSize: FontSize.sm,
-            color: theme.text.tertiary,
-        },
-        inputSection: {
-            marginBottom: Spacing.lg,
-        },
+        audioOpts: { flexDirection: 'row', marginTop: 12, gap: 24 },
+        audioOptBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+        audioOptText: { fontSize: 12, color: Colors.primary[400], fontWeight: FontWeight.medium },
+        tapHint: { marginTop: 8, fontSize: 12, color: theme.text.tertiary },
+
+        /* Input */
+        inputSection: { marginBottom: 16 },
         textInput: {
+            backgroundColor: theme.background.secondary, borderRadius: 14,
+            padding: 16, fontSize: 17, color: theme.text.primary,
+            borderWidth: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200],
+            minHeight: 56,
+        },
+        hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+        hintText: { fontSize: 12, color: Colors.warning[600], fontStyle: 'italic' },
+        actionRow: { flexDirection: 'row', marginTop: 14, gap: 10 },
+        skipBtn: {
+            flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 12,
             backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.md,
-            fontSize: FontSize.lg,
-            color: theme.text.primary,
-            borderWidth: 2,
-            borderColor: theme.border.light,
-            minHeight: 60,
+            borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
-        hintsContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: Spacing.sm,
-            gap: Spacing.xs,
+        skipBtnText: { fontSize: 14, color: theme.text.secondary, fontWeight: FontWeight.medium },
+        checkBtn: { flex: 2, borderRadius: 12, overflow: 'hidden' },
+        checkBtnOff: { opacity: 0.4 },
+        checkBtnGrad: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+            paddingVertical: 14,
         },
-        hintText: {
-            fontSize: FontSize.sm,
-            color: Colors.warning[600],
-            fontStyle: 'italic',
-        },
-        inputActions: {
-            flexDirection: 'row',
-            marginTop: Spacing.md,
-            gap: Spacing.md,
-        },
-        skipButton: {
-            flex: 1,
-            paddingVertical: Spacing.md,
-            alignItems: 'center',
-            borderRadius: BorderRadius.md,
-            backgroundColor: theme.background.secondary,
-        },
-        skipButtonText: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-        },
-        checkButton: {
-            flex: 2,
-            flexDirection: 'row',
-            paddingVertical: Spacing.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: BorderRadius.md,
-            backgroundColor: Colors.primary[500],
-            gap: Spacing.xs,
-        },
-        checkButtonDisabled: {
-            backgroundColor: Colors.neutral[400],
-        },
-        checkButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        resultSection: {
-            gap: Spacing.md,
-        },
+        checkBtnText: { fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white },
+
+        /* Result */
+        resultSection: { gap: 14 },
         resultCard: {
-            backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            borderWidth: 2,
+            backgroundColor: theme.background.secondary, borderRadius: 16,
+            padding: 18, borderWidth: 1.5,
         },
-        resultCorrect: {
-            borderColor: Colors.success[500],
+        resultOk: { borderColor: Colors.success[500] },
+        resultBad: { borderColor: Colors.warning[500] },
+        resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+        resultIconCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+        resultTitle: { fontSize: 18, fontWeight: FontWeight.bold, color: theme.text.primary },
+        yourAns: { marginBottom: 12 },
+        yourAnsLabel: { fontSize: 12, color: theme.text.tertiary, marginBottom: 3 },
+        yourAnsText: { fontSize: 15, color: Colors.error[500], textDecorationLine: 'line-through' },
+
+        compWrap: { marginBottom: 12 },
+        compLabel: { fontSize: 12, color: theme.text.tertiary, marginBottom: 3 },
+        charRow: { flexDirection: 'row', flexWrap: 'wrap' },
+        charText: { fontSize: 17, fontWeight: FontWeight.bold },
+        charOk: { color: Colors.success[600] },
+        charBad: { color: Colors.error[500], backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : Colors.error[50] },
+        tranText: { fontSize: 12, color: theme.text.secondary, fontStyle: 'italic', marginTop: 4 },
+
+        correctSection: { alignItems: 'center', marginBottom: 12 },
+        correctGerman: { fontSize: 20, fontWeight: FontWeight.bold, color: Colors.success[500], marginBottom: 3 },
+        correctEnglish: { fontSize: 14, color: theme.text.secondary, fontStyle: 'italic' },
+
+        accRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+        accLabel: { fontSize: 12, color: theme.text.tertiary },
+        accBarBg: { flex: 1, height: 6, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200], borderRadius: 3, overflow: 'hidden' },
+        accBarFill: { height: '100%', backgroundColor: Colors.success[500], borderRadius: 3 },
+        accValue: { fontSize: 13, fontWeight: FontWeight.bold, color: theme.text.primary, width: 36, textAlign: 'right' },
+
+        nextBtn: {
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+            paddingVertical: 14, borderRadius: 12,
         },
-        resultWrong: {
-            borderColor: Colors.warning[500],
+        nextBtnText: { fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white },
+
+        /* Footer */
+        footer: {
+            flexDirection: 'row', justifyContent: 'space-around',
+            paddingVertical: 12, paddingHorizontal: Spacing.md,
+            borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
+            backgroundColor: theme.background.primary,
         },
-        resultHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
-        },
-        resultEmoji: {
-            fontSize: 32,
-        },
-        resultTitle: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        yourAnswerSection: {
-            marginBottom: Spacing.md,
-        },
-        yourAnswerLabel: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            marginBottom: Spacing.xs,
-        },
-        yourAnswerText: {
-            fontSize: FontSize.md,
-            color: Colors.error[500],
-            textDecorationLine: 'line-through',
-        },
-        comparisonContainer: {
-            marginBottom: Spacing.md,
-        },
-        comparisonLabel: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            marginBottom: Spacing.xs,
-        },
-        charContainer: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-        },
-        charText: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-        },
-        charCorrect: {
-            color: Colors.success[600],
-        },
-        charWrong: {
-            color: Colors.error[500],
-            backgroundColor: Colors.error[100],
-        },
-        translationText: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-            fontStyle: 'italic',
-            marginTop: Spacing.xs,
-        },
-        correctSection: {
-            alignItems: 'center',
-            marginBottom: Spacing.md,
-        },
-        correctGerman: {
-            fontSize: FontSize.xl,
-            fontWeight: FontWeight.bold,
-            color: Colors.success[600],
-            marginBottom: Spacing.xs,
-        },
-        correctEnglish: {
-            fontSize: FontSize.md,
-            color: theme.text.secondary,
-            fontStyle: 'italic',
-        },
-        accuracyBar: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-        },
-        accuracyLabel: {
-            fontSize: FontSize.sm,
-            color: theme.text.secondary,
-        },
-        accuracyBarBg: {
-            flex: 1,
-            height: 8,
-            backgroundColor: theme.background.tertiary,
-            borderRadius: BorderRadius.full,
-            overflow: 'hidden',
-        },
-        accuracyBarFill: {
-            height: '100%',
-            backgroundColor: Colors.success[500],
-        },
-        accuracyValue: {
-            fontSize: FontSize.sm,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-            width: 40,
-            textAlign: 'right',
-        },
-        nextButton: {
-            flexDirection: 'row',
-            paddingVertical: Spacing.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: BorderRadius.md,
-            backgroundColor: Colors.primary[500],
-            gap: Spacing.xs,
-        },
-        nextButtonText: {
-            fontSize: FontSize.md,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-        },
-        statsFooter: {
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            paddingVertical: Spacing.md,
-            paddingHorizontal: Spacing.md,
-            backgroundColor: theme.background.secondary,
-            borderTopWidth: 1,
-            borderTopColor: theme.border.light,
-        },
-        statItem: {
-            alignItems: 'center',
-        },
-        statValue: {
-            fontSize: FontSize.lg,
-            fontWeight: FontWeight.bold,
-            color: theme.text.primary,
-        },
-        statLabel: {
-            fontSize: FontSize.xs,
-            color: theme.text.secondary,
-        },
-        statDivider: {
-            width: 1,
-            backgroundColor: theme.border.light,
-        },
+        footerItem: { alignItems: 'center' },
+        footerValue: { fontSize: 16, fontWeight: FontWeight.bold, color: theme.text.primary },
+        footerLabel: { fontSize: 10, color: theme.text.tertiary, marginTop: 1 },
+        footerDiv: { width: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : Colors.neutral[200] },
     });
 
 export default DictationScreen;

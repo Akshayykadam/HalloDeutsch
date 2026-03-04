@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserStore } from '../../store';
@@ -540,11 +541,12 @@ export const ExamPrepScreen: React.FC = () => {
                     }}
                     style={styles.backButton}
                 >
-                    <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
+                    <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Exam Prep</Text>
-                <View style={styles.headerRight}>
-                    <Text style={styles.levelBadge}>{selectedLevel}</Text>
+                <View style={styles.headerPill}>
+                    <Ionicons name="school-outline" size={13} color={Colors.primary[500]} />
+                    <Text style={styles.headerPillText}>{selectedLevel}</Text>
                 </View>
             </View>
 
@@ -567,33 +569,30 @@ const getStyles = (theme: any, isDark: boolean) =>
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: Spacing.md,
-            paddingTop: 50,
-            paddingBottom: Spacing.md,
-            backgroundColor: theme.background.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border.light,
+            paddingTop: 52,
+            paddingBottom: 12,
         },
         backButton: {
-            padding: Spacing.xs,
+            padding: 4,
         },
         headerTitle: {
-            fontSize: FontSize.lg,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: theme.text.primary,
         },
-        headerRight: {
-            width: 50,
-            alignItems: 'flex-end',
+        headerPill: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : Colors.primary[50],
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 20,
         },
-        levelBadge: {
-            backgroundColor: Colors.primary[500],
-            color: Colors.white,
-            paddingHorizontal: Spacing.sm,
-            paddingVertical: 2,
-            borderRadius: BorderRadius.sm,
-            fontSize: FontSize.sm,
+        headerPillText: {
+            fontSize: 12,
             fontWeight: FontWeight.bold,
-            overflow: 'hidden',
+            color: Colors.primary[500],
         },
         loadingContainer: {
             flex: 1,
@@ -620,10 +619,11 @@ const getStyles = (theme: any, isDark: boolean) =>
         },
         examCard: {
             backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
+            borderRadius: 16,
             padding: Spacing.md,
             marginBottom: Spacing.md,
-            ...Shadows.sm,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
         examHeader: {
             flexDirection: 'row',
@@ -721,10 +721,11 @@ const getStyles = (theme: any, isDark: boolean) =>
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.lg,
+            borderRadius: 14,
             padding: Spacing.md,
             marginBottom: Spacing.sm,
-            ...Shadows.sm,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
         sectionInfo: {
             flex: 1,
@@ -856,8 +857,8 @@ const getStyles = (theme: any, isDark: boolean) =>
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: Colors.primary[500],
-            paddingVertical: Spacing.md,
-            borderRadius: BorderRadius.md,
+            paddingVertical: 14,
+            borderRadius: 12,
             gap: Spacing.xs,
         },
         nextButtonText: {
@@ -867,11 +868,12 @@ const getStyles = (theme: any, isDark: boolean) =>
         },
         resultCard: {
             backgroundColor: theme.background.secondary,
-            borderRadius: BorderRadius.xl,
+            borderRadius: 22,
             padding: Spacing.xl,
             alignItems: 'center',
             marginBottom: Spacing.lg,
-            ...Shadows.lg,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.06)' : Colors.neutral[100],
         },
         resultEmoji: {
             fontSize: 64,
